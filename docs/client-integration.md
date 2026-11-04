@@ -147,6 +147,7 @@ zimo:
 运行中    ──►  POST /api/discovery/services/heartbeat  每 30s 刷新 last_heartbeat_time
 进程退出  ──►  DELETE /api/discovery/services/deregister 主动下线（状态置为「异常」）
 每次请求  ──►  POST /api/trace/logs/batch              异步批量上报调用日志
+每次请求  ──►  POST /api/trace/spans/batch             异步批量上报链路 span（调用链 / 服务拓扑数据源）
 ```
 
 对应控制台菜单：
@@ -175,6 +176,7 @@ zimo:
 | POST | `/api/discovery/services/heartbeat` | 心跳 |
 | DELETE | `/api/discovery/services/deregister` | 实例下线 |
 | POST | `/api/trace/logs/batch` | 批量上报调用日志 |
+| POST | `/api/trace/spans/batch` | 批量上报链路 span（SERVER / CLIENT，供瀑布图与拓扑） |
 
 ## 六、编程式调用平台能力
 
@@ -223,6 +225,7 @@ zimo:
 
 1. `POST /api/discovery/services/register` 注册实例（定期 `POST .../heartbeat`，退出时 `DELETE .../deregister`）
 2. `POST /api/trace/logs/batch` 批量上报调用日志
+3. `POST /api/trace/spans/batch` 批量上报链路 span（可选；Java SDK 自动完成，不报 span 的客户端没有调用链瀑布与拓扑边）
 
 请求体字段见第五、六节对应的 `ServiceInstanceDTO` / `TraceLogDTO`。
 

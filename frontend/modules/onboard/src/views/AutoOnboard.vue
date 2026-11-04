@@ -189,7 +189,8 @@
             <div class="doc-block">
               <div class="doc-block-title">③ 上报</div>
               <p class="doc-text">
-                日志进内存队列后立即返回，后台线程批量 <code>POST /trace/logs/batch</code>。
+                日志进内存队列后立即返回，后台线程批量 <code>POST /trace/logs/batch</code>，
+                同时上报链路 span（<code>/trace/spans/batch</code>，供调用链瀑布图与拓扑页使用）。
                 队列满直接丢弃，<strong>绝不阻塞业务线程</strong>。
               </p>
             </div>

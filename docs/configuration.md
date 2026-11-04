@@ -94,6 +94,20 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `127.0.0.1` / `3306` / `root` / `Root@123456` / `api_gateway` | 仅供 `scripts/init-db.sh` 等脚本使用（后端连接串在 yml 内） |
 | `JAVA_OPTS` | `-Xms256m -Xmx512m` | `scripts/start.sh` 启动 JVM 参数 |
 
+## 7.1 业务接入侧配置（zimo.gateway.client.*，业务系统 yml）
+
+业务系统引入 `jv-api-gateway-client-starter` 后在自身 `application.yml` 配置，完整示例见
+[`docs/client-integration.md`](client-integration.md)：
+
+| 配置 | 默认值 | 作用 |
+| --- | --- | --- |
+| `zimo.gateway.client.server-addr` | `http://127.0.0.1:28080/api` | 平台统一入口（注册 / 心跳 / 上报都走它） |
+| `zimo.gateway.client.app-id` / `app-name` / `service-name` | `app-demo` / 示例应用 / `demo-service` | 接入归属 |
+| `zimo.gateway.client.trace.sample-rate` | `1.0` | 采集采样率（高流量服务建议 0.1~0.3） |
+| `zimo.gateway.client.registry.heartbeat-interval` | `30000` | 心跳间隔（ms） |
+
+另：`jv-api-gateway-proxy` 自注册走 `zimo.gateway.discovery.addr`（默认 `http://127.0.0.1:28083/api`，直连 discovery，不经自身转发）。
+
 ## 8. 修改配置的三种方式（优先级从高到低）
 
 1. **环境变量**：如 `GATEWAY_JWT_SECRET=xxx ./scripts/start.sh`（已支持 `${VAR:default}` 占位符的项）；

@@ -232,11 +232,12 @@ GROUP BY service_name, peer_service
 
 ### 日志/链路表分区（每天一个分区）
 
-`tb_gw_trace_log` 与 `tb_gw_trace_span` 均按天分区，建表见 `sql/trace_span.sql`：
+`tb_gw_trace_log`、`tb_gw_trace_span`、`tb_gw_service_edge` 三表均按天分区，
+建表见 `sql/trace_span.sql`（阶段一）与 `sql/trace_partition_optimize.sql`（阶段二：edge 表纳入 + log 表索引复合化）：
 
 ```sql
-PRIMARY KEY (id, req_time)                 -- 分区键必须并入主键
-PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
+PRIMARY KEY (id, req_time)                 -- 分区键必须并入主键（edge 表 PK(id, window_start)）
+PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time，edge 表用 window_start
   PARTITION p20261104 VALUES LESS THAN (TO_DAYS('2026-11-05')),
   ...
 )
@@ -244,7 +245,9 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
 
 - 分区由 `jv-api-gateway-trace` 的 `PartitionMaintainer` 维护：启动即校验一次，之后每天 00:05
   补建未来 3 天分区（缺分区会导致插入报 `Table has no partition for value`，直接丢数据）、
-  删除 45 天前的分区（`DROP PARTITION` 秒级、不产生 binlog 峰值，替代 `DELETE` + 逻辑删除）
+  删除 45 天前的分区（`DROP PARTITION` 秒级、不产生 binlog 峰值，替代 `DELETE` + 逻辑删除；
+  edge 表另有聚合器自身的 30 天行级清理，分区 45 天兜底物理释放）
+- `tb_gw_api` 是接口登记配置表（百行级、无时间衰减），不做分区
 - 索引与查询场景对应关系：
 
 | 索引 | 命中场景 |
@@ -252,7 +255,10 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
 | `idx_trace(trace_id)` | 链路瀑布图：按 traceId 取全量 span |
 | `idx_start(start_time)` | 时间窗统计 + 分区裁剪（`WHERE start_time >= ?` 直接定位天分区） |
 | `idx_edge(service_name, peer_service, start_time)` | 服务拓扑：CLIENT span 的调用对聚合 |
-| `idx_reqtime(req_time)` / `idx_service` / `idx_errtype`（log 表） | 列表筛选与错误检索 |
+| `idx_reqtime(req_time)`（log 表） | 无附加过滤的时间窗分页（ORDER BY req_time DESC LIMIT） |
+| `idx_service_time(service_name, req_time)`（log 表） | 按服务的统计 / 分页 / 服务趋势（替代原单列 idx_service，扫描行数约 -68%） |
+| `idx_app_time(app_id, req_time)`（log 表） | 按应用的统计 / 拓扑按应用圈服务（扫描行数约 -75%） |
+| `idx_errtype_time(err_type, req_time)`（log 表） | 错误类型检索（错误检索总伴随时间窗） |
 
 ### 链路传播（阶段一）
 

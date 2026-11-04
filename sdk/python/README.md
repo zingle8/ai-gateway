@@ -124,6 +124,8 @@ client.report(client.build_trace_log(
    `400/422→参数校验失败`、`429→限流拒绝`、`504→上游响应超时`、`5xx→上游响应异常`、其余 `无`。
 3. **上报**：日志进内存队列立即返回，后台线程每 3 秒（或满 50 条）批量
    `POST {server_addr}/trace/logs/batch`。
+   （Python SDK 暂不上报链路 span —— 调用链瀑布与拓扑边由 Java SDK 的
+   `/trace/spans/batch` 提供，Python 侧接入不影响日志与统计页数据。）
 
 **任何环节失败都不影响业务**：注册/心跳失败只记日志，上报失败直接丢弃当前批次，
 队列满用 `put_nowait` 丢弃而不是阻塞。`stop()` 与 `atexit` 都会兜底刷写一次。

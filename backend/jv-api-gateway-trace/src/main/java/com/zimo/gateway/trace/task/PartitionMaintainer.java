@@ -18,7 +18,8 @@ import java.util.stream.Collectors;
 /**
  * 日志/链路表按天分区维护。
  *
- * <p>两张表（tb_gw_trace_log / tb_gw_trace_span）统一按天 RANGE(TO_DAYS) 分区：
+ * <p>三张表（tb_gw_trace_log / tb_gw_trace_span / tb_gw_service_edge）统一按天
+ * RANGE(TO_DAYS) 分区：
  * <ul>
  *   <li>补建未来 {@link #PRE_CREATE_DAYS} 天分区 —— 保证任何时刻写入都有落点，
  *       否则插入会报 "Table has no partition for value" 直接丢数据；</li>
@@ -34,8 +35,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PartitionMaintainer implements ApplicationRunner {
 
-    /** 需要维护的分区表 */
-    private static final List<String> TABLES = List.of("tb_gw_trace_log", "tb_gw_trace_span");
+    /** 需要维护的分区表（trace_log 调用日志 / trace_span 链路 / service_edge 拓扑预聚合） */
+    private static final List<String> TABLES = List.of("tb_gw_trace_log", "tb_gw_trace_span", "tb_gw_service_edge");
 
     /** 预建未来分区数：连续 3 天没起服务也不丢写入 */
     private static final int PRE_CREATE_DAYS = 3;

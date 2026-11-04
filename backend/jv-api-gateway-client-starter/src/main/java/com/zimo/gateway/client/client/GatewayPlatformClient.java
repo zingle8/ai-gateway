@@ -10,6 +10,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,14 +50,9 @@ public class GatewayPlatformClient {
         return get("/trace/logs", params == null ? new HashMap<>() : params);
     }
 
-    /** 上报单条调用日志 */
+    /** 上报单条调用日志（服务端只有批量端点 /trace/logs/batch，这里包成单元素列表） */
     public void reportTrace(TraceLogDTO log) {
-        restClient.post()
-                .uri("/trace/logs")
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
-                .body(log)
-                .retrieve()
-                .toBodilessEntity();
+        post("/trace/logs/batch", List.of(log));
     }
 
     /** 注册 / 更新服务实例 */
