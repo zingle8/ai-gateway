@@ -1,6 +1,7 @@
 package com.zimo.gateway.client.web;
 
 import com.zimo.gateway.client.common.constant.GatewayClientConstant;
+import com.zimo.gateway.client.common.dto.SpanRecordDTO;
 import com.zimo.gateway.client.common.dto.TraceLogDTO;
 import com.zimo.gateway.client.common.enums.ErrType;
 import com.zimo.gateway.client.properties.GatewayClientProperties;
@@ -53,6 +54,19 @@ public class GatewayTraceFilter extends OncePerRequestFilter {
         LocalDateTime reqTime = LocalDateTime.now();
         long start = System.currentTimeMillis();
 
+        // —— 链路上文：优先 traceparent（W3C），兜底旧 X-Gateway-Trace-Id，都没有则本服务是链路根
+        TraceContextUtil.Parsed upstream = TraceContextUtil.parse(request.getHeader(GatewayClientConstant.HEADER_TRACEPARENT));
+        if (upstream == null) {
+            upstream = TraceContextUtil.fromLegacy(request.getHeader(GatewayClientConstant.HEADER_TRACE_ID));
+        }
+        String traceId = upstream != null ? upstream.traceId()
+                : UUID.randomUUID().toString().replace("-", "");
+        String parentSpanId = upstream == null ? null : upstream.spanId();
+        String serverSpanId = TraceContextUtil.newSpanId();
+
+        // 写入线程上下文：本服务向外发起 HTTP 调用时，拦截器据此生成 CLIENT span 并注入 header
+        TraceContext.set(traceId, serverSpanId);
+
         CachedBodyRequestWrapper wrappedRequest = new CachedBodyRequestWrapper(request);
         CachedBodyResponseWrapper wrappedResponse = new CachedBodyResponseWrapper(response);
 
@@ -63,8 +77,11 @@ public class GatewayTraceFilter extends OncePerRequestFilter {
             error = e;
             throw e;
         } finally {
+            TraceContext.clear();
             try {
-                reporter.offer(buildLog(wrappedRequest, wrappedResponse, reqTime, start, error));
+                reporter.offer(buildLog(wrappedRequest, wrappedResponse, reqTime, start, error, traceId));
+                reporter.offerSpan(buildServerSpan(wrappedRequest, wrappedResponse, reqTime, start,
+                        error, traceId, parentSpanId, serverSpanId));
             } catch (Exception e) {
                 log.debug("采集网关调用日志失败：{}", e.getMessage());
             }
@@ -107,7 +124,7 @@ public class GatewayTraceFilter extends OncePerRequestFilter {
 
     private TraceLogDTO buildLog(CachedBodyRequestWrapper request,
                                  CachedBodyResponseWrapper response,
-                                 LocalDateTime reqTime, long start, Throwable error) {
+                                 LocalDateTime reqTime, long start, Throwable error, String traceId) {
         TraceLogDTO dto = new TraceLogDTO();
         dto.setAppId(properties.getAppId());
         dto.setAppName(properties.getAppName());
@@ -139,21 +156,41 @@ public class GatewayTraceFilter extends OncePerRequestFilter {
         dto.setResBody(readBody(response.getCachedBody(), response.getCharacterEncoding(), maxBody()));
         dto.setReqBytes((long) request.getCachedBody().length);
         dto.setResBytes((long) response.getCachedBody().length);
-        dto.setTraceId(resolveTraceId(request));
+        dto.setTraceId(traceId);
         return dto;
+    }
+
+    /**
+     * 本服务 SERVER span：parent 为上游（网关 CLIENT span）传播来的 spanId，
+     * 服务作为链路根（不经网关直接被调用 / 手动触发）时 parent 为 NULL。
+     */
+    private SpanRecordDTO buildServerSpan(CachedBodyRequestWrapper request,
+                                          CachedBodyResponseWrapper response,
+                                          LocalDateTime reqTime, long start, Throwable error,
+                                          String traceId, String parentSpanId, String spanId) {
+        int statusCode = response.getStatus();
+        if (error != null && statusCode < 400) {
+            statusCode = 500;
+        }
+        SpanRecordDTO span = new SpanRecordDTO();
+        span.setTraceId(traceId);
+        span.setSpanId(spanId);
+        span.setParentSpanId(parentSpanId);
+        span.setKind(SpanRecordDTO.KIND_SERVER);
+        span.setAppId(properties.getAppId());
+        span.setAppName(properties.getAppName());
+        span.setServiceName(properties.getServiceName());
+        span.setApi(request.getMethod() + " " + request.getRequestURI());
+        span.setStatusCode(statusCode);
+        span.setErrType(resolveErrType(error, statusCode));
+        span.setCost((int) (System.currentTimeMillis() - start));
+        span.setStartTime(reqTime);
+        return span;
     }
 
     private int maxBody() {
         int max = properties.getTrace().getMaxBodySize();
         return max <= 0 ? GatewayClientConstant.DEFAULT_MAX_BODY_SIZE : max;
-    }
-
-    private String resolveTraceId(HttpServletRequest request) {
-        String traceId = request.getHeader(GatewayClientConstant.HEADER_TRACE_ID);
-        if (traceId == null || traceId.isEmpty()) {
-            traceId = UUID.randomUUID().toString().replace("-", "");
-        }
-        return traceId;
     }
 
     private String resolveErrType(Throwable error, int status) {

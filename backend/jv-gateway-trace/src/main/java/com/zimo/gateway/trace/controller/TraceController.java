@@ -4,6 +4,7 @@ import com.zimo.gateway.client.common.dto.TraceLogDTO;
 import com.zimo.gateway.common.result.PageResult;
 import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.trace.entity.GwTraceLog;
+import com.zimo.gateway.trace.model.SpanDTO;
 import com.zimo.gateway.trace.model.TraceQuery;
 import com.zimo.gateway.trace.service.TraceService;
 import lombok.RequiredArgsConstructor;
@@ -86,5 +87,22 @@ public class TraceController {
     @PostMapping("/logs/batch")
     public R<Integer> batchSave(@RequestBody List<TraceLogDTO> logs) {
         return R.ok(traceService.batchSave(logs));
+    }
+
+    /**
+     * 批量上报链路 span（业务系统接入 SDK 使用）
+     */
+    @PostMapping("/spans/batch")
+    public R<Integer> batchSaveSpans(@RequestBody List<SpanDTO> spans) {
+        return R.ok(traceService.batchSaveSpans(spans));
+    }
+
+    /**
+     * 链路详情：按 traceId 取全量 span，前端组树画瀑布图。
+     * span 为空说明该请求早于链路功能上线（只有调用日志，没有 span）。
+     */
+    @GetMapping("/traces/{traceId}")
+    public R<List<SpanDTO>> trace(@PathVariable String traceId) {
+        return R.ok(traceService.listSpans(traceId));
     }
 }

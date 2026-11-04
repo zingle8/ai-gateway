@@ -1,6 +1,7 @@
 package com.zimo.gateway.client.report;
 
 import com.zimo.gateway.client.common.constant.GatewayClientConstant;
+import com.zimo.gateway.client.common.dto.SpanRecordDTO;
 import com.zimo.gateway.client.common.dto.TraceLogDTO;
 import com.zimo.gateway.client.properties.GatewayClientProperties;
 import com.zimo.gateway.client.support.RestClientFactory;
@@ -33,6 +34,9 @@ public class TraceReporter implements DisposableBean {
     private final BlockingQueue<TraceLogDTO> queue =
             new ArrayBlockingQueue<>(GatewayClientConstant.DEFAULT_QUEUE_SIZE);
 
+    private final BlockingQueue<SpanRecordDTO> spanQueue =
+            new ArrayBlockingQueue<>(GatewayClientConstant.DEFAULT_QUEUE_SIZE);
+
     private final ScheduledExecutorService executor;
 
     private final int batchSize;
@@ -60,6 +64,41 @@ public class TraceReporter implements DisposableBean {
             return;
         }
         queue.offer(log);
+    }
+
+    /** 链路 span 单独排队（队列满直接丢弃，绝不阻塞业务线程） */
+    public void offerSpan(SpanRecordDTO span) {
+        if (closed || span == null) {
+            return;
+        }
+        spanQueue.offer(span);
+    }
+
+    /**
+     * 立即刷写 span（应用关闭或运维触发时使用）
+     */
+    public int flushSpans() {
+        int total = 0;
+        while (!spanQueue.isEmpty()) {
+            List<SpanRecordDTO> batch = new ArrayList<>(batchSize);
+            spanQueue.drainTo(batch, batchSize);
+            if (batch.isEmpty()) {
+                break;
+            }
+            try {
+                restClient.post()
+                        .uri(GatewayClientConstant.PATH_SPAN_BATCH)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(batch)
+                        .retrieve()
+                        .toBodilessEntity();
+                total += batch.size();
+            } catch (Exception e) {
+                log.debug("上报链路 span 失败，丢弃 {} 条：{}", batch.size(), e.getMessage());
+                break;
+            }
+        }
+        return total;
     }
 
     /**
@@ -94,6 +133,11 @@ public class TraceReporter implements DisposableBean {
             flush();
         } catch (Exception e) {
             log.debug("定时刷写调用日志异常：{}", e.getMessage());
+        }
+        try {
+            flushSpans();
+        } catch (Exception e) {
+            log.debug("定时刷写链路 span 异常：{}", e.getMessage());
         }
     }
 

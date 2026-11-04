@@ -6,7 +6,10 @@ import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.trace.entity.GwTraceLog;
+import com.zimo.gateway.trace.entity.GwTraceSpan;
 import com.zimo.gateway.trace.mapper.GwTraceLogMapper;
+import com.zimo.gateway.trace.mapper.GwTraceSpanMapper;
+import com.zimo.gateway.trace.model.SpanDTO;
 import com.zimo.gateway.trace.model.TraceQuery;
 import com.zimo.gateway.trace.service.TraceService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +31,8 @@ import java.util.Map;
 public class TraceServiceImpl implements TraceService {
 
     private final GwTraceLogMapper traceLogMapper;
+
+    private final GwTraceSpanMapper traceSpanMapper;
 
     @Override
     public Page<GwTraceLog> pageTraces(TraceQuery query) {
@@ -66,6 +71,49 @@ public class TraceServiceImpl implements TraceService {
         }
         traceLogMapper.batchInsert(entities);
         return entities.size();
+    }
+
+    @Override
+    public int batchSaveSpans(List<SpanDTO> spans) {
+        if (spans == null || spans.isEmpty()) {
+            return 0;
+        }
+        List<GwTraceSpan> entities = new ArrayList<>(spans.size());
+        for (SpanDTO dto : spans) {
+            if (dto == null || isBlank(dto.getTraceId()) || isBlank(dto.getSpanId())) {
+                continue; // 缺主键无法组链，丢弃
+            }
+            GwTraceSpan e = new GwTraceSpan();
+            BeanUtils.copyProperties(dto, e);
+            if (e.getStartTime() == null) {
+                e.setStartTime(LocalDateTime.now());
+            }
+            entities.add(e);
+        }
+        if (entities.isEmpty()) {
+            return 0;
+        }
+        traceSpanMapper.batchInsert(entities);
+        return entities.size();
+    }
+
+    @Override
+    public List<SpanDTO> listSpans(String traceId) {
+        if (isBlank(traceId)) {
+            return List.of();
+        }
+        List<GwTraceSpan> spans = traceSpanMapper.selectByTraceId(traceId);
+        List<SpanDTO> result = new ArrayList<>(spans.size());
+        for (GwTraceSpan e : spans) {
+            SpanDTO dto = new SpanDTO();
+            BeanUtils.copyProperties(e, dto);
+            result.add(dto);
+        }
+        return result;
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.isBlank();
     }
 
     @Override

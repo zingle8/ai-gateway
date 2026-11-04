@@ -120,3 +120,71 @@
   .hdr-line { gap: 8px; padding: 6px 10px; }
   .code-block { max-height: 240px; padding: 10px; }
 }
+
+/* ===== 调用链路瀑布图（日志追踪详情抽屉） ===== */
+.waterfall {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wf-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 4px;
+  border-radius: 4px;
+}
+
+.wf-row:hover { background: var(--gw-bg-hover, rgba(0, 0, 0, .03)); }
+
+.wf-name {
+  width: 46%;
+  font-size: 12px;
+  color: var(--gw-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.wf-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gw-success);
+  flex-shrink: 0;
+}
+
+.wf-dot.err { background: var(--gw-danger); }
+
+.wf-cost {
+  font-size: 11px;
+  color: var(--gw-text-secondary);
+  width: 56px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.wf-track {
+  position: relative;
+  flex: 1;
+  height: 12px;
+  background: var(--gw-border-light);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.wf-bar {
+  position: absolute;
+  top: 2px;
+  height: 8px;
+  min-width: 4px;
+  border-radius: 2px;
+  background: var(--gw-info);
+  opacity: .75;
+}
+
+.wf-bar.err { background: var(--gw-danger); }

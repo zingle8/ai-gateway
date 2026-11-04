@@ -107,6 +107,31 @@
         </div>
       </div>
 
+        <!-- 调用链路瀑布图：span 表有数据才显示（旧日志无 span） -->
+        <div v-if="spans.length" class="drawer-sec">
+          <div class="drawer-sec-title">
+            调用链路
+            <span class="gw-sm gw-muted" style="margin-left: 8px">
+              {{ spans.length }} 个 span · 总耗时 {{ traceDuration }} ms
+            </span>
+          </div>
+          <div class="waterfall">
+            <div v-for="n in spanTree" :key="n.key" class="wf-row">
+              <span class="wf-name" :style="{ paddingLeft: n.depth * 14 + 'px' }" :title="n.api">
+                <span class="wf-dot" :class="n.err ? 'err' : ''" />{{ n.label }}
+              </span>
+              <span class="wf-cost gw-mono">{{ n.cost }} ms</span>
+              <span class="wf-track">
+                <span
+                  class="wf-bar"
+                  :class="n.err ? 'err' : ''"
+                  :style="{ left: n.left + '%', width: Math.max(0.8, n.width) + '%' }"
+                />
+              </span>
+            </div>
+          </div>
+        </div>
+
         <div class="drawer-sec">
           <div class="drawer-sec-title">请求 Header</div>
           <div class="hdr-box">
@@ -170,7 +195,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import { fetchTraceLogs, fetchTraceFilters, fetchTraceLogDetail } from '../api'
+import { fetchTraceLogs, fetchTraceFilters, fetchTraceLogDetail, fetchTraceSpans } from '../api'
 import { fmtTime, fmtBytes, statusTagType, parseHeaders } from '@zimo/shared'
 
 const rows = ref([])
@@ -280,9 +305,14 @@ const openDetail = async (row) => {
   detail.value = row
   detailVisible.value = true
   detailLoading.value = true
+  spans.value = []
   try {
     const d = await fetchTraceLogDetail(row.id)
     if (d) detail.value = d
+    // 有 traceId 才拉链路；旧日志（功能上线前）span 表无数据，不显示瀑布图
+    if (detail.value.traceId) {
+      spans.value = await fetchTraceSpans(detail.value.traceId).catch(() => [])
+    }
   } catch (e) {
     // 详情不可用至少保留列表字段，不让抽屉白屏
     detail.value = row
@@ -290,6 +320,76 @@ const openDetail = async (row) => {
     detailLoading.value = false
   }
 }
+
+// ---------------------------------------------------------------- 调用链路瀑布图
+
+const spans = ref([])
+
+/** 链路总耗时：根 span 起点 → 最晚 span 终点 */
+const traceDuration = computed(() => {
+  const list = spans.value
+  if (!list.length) return 0
+  const starts = list.map((s) => new Date(s.startTime.replace(' ', 'T')).getTime())
+  const min = Math.min.apply(null, starts)
+  const maxEnd = Math.max.apply(null, list.map((s, i) => starts[i] + (s.cost || 0)))
+  return Math.max(0, maxEnd - min)
+})
+
+/**
+ * span 列表 → 树形瀑布行：按 parent 组树、层级缩进，
+ * 条形 left/width 按全链路时长归一化；无 parent 的多个根按时间先后并列。
+ */
+const spanTree = computed(() => {
+  const list = spans.value
+  if (!list.length) return []
+  const times = list.map((s) => new Date(s.startTime.replace(' ', 'T')).getTime())
+  const rootStart = Math.min.apply(null, times)
+  const duration = Math.max(1, traceDuration.value)
+
+  const byParent = new Map()
+  list.forEach((s, i) => {
+    const key = s.parentSpanId || '__root__'
+    if (!byParent.has(key)) byParent.set(key, [])
+    byParent.get(key).push({ s, t: times[i] })
+  })
+  // 同层按开始时间排序，瀑布自上而下与时间一致
+  byParent.forEach((arr) => arr.sort((a, b) => a.t - b.t))
+
+  const rows = []
+  const walk = (parentId, depth) => {
+    const children = byParent.get(parentId) || []
+    for (const { s, t } of children) {
+      rows.push({
+        key: s.spanId,
+        label: s.serviceName + (s.peerService ? ' → ' + s.peerService : ''),
+        api: s.api || '',
+        cost: s.cost || 0,
+        err: (s.statusCode || 0) >= 400 || (s.errType && s.errType !== '无'),
+        depth,
+        left: ((t - rootStart) / duration) * 100,
+        width: ((s.cost || 0) / duration) * 100
+      })
+      walk(s.spanId, depth + 1)
+    }
+  }
+  walk('__root__', 0)
+  // 防御：parent 指向不存在的 span（脏数据）时按根补挂，避免行丢失
+  if (rows.length < list.length) {
+    const shown = new Set(rows.map((r) => r.key))
+    list.forEach((s, i) => {
+      if (!shown.has(s.spanId)) {
+        rows.push({
+          key: s.spanId, label: s.serviceName + (s.peerService ? ' → ' + s.peerService : ''),
+          api: s.api || '', cost: s.cost || 0,
+          err: (s.statusCode || 0) >= 400, depth: 0,
+          left: ((times[i] - rootStart) / duration) * 100,
+          width: ((s.cost || 0) / duration) * 100
+        })
+      }
+    })
+  }
+  return rows
+})
 
 /** query string / form-urlencoded 原文解析成键值列表 */
 const parseParams = (text) => {

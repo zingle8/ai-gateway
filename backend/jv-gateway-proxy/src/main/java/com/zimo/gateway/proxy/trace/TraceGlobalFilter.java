@@ -60,12 +60,17 @@ public class TraceGlobalFilter implements GlobalFilter, Ordered {
     @Value("${gateway.proxy.max-body-size:8192}")
     private int maxBodySize;
 
+    /** 网关自身在链路中的服务名（SERVER/CLIENT span 的 serviceName） */
+    @Value("${spring.application.name:jv-gateway-proxy}")
+    private String gatewayServiceName;
+
     /**
      * SDK 上报链路自身不采集：否则心跳/批量上报会产生
      * 「记录上报的记录」的自引用噪音，且无限滚动。
      */
     private static final java.util.List<String> SKIP_PATHS = java.util.List.of(
             "/api/trace/logs/batch",
+            "/api/trace/spans/batch",
             "/api/discovery/services/register",
             "/api/discovery/services/heartbeat",
             "/api/discovery/services/deregister");
@@ -79,7 +84,16 @@ public class TraceGlobalFilter implements GlobalFilter, Ordered {
         ServerHttpRequest request = exchange.getRequest();
         LocalDateTime reqTime = LocalDateTime.now();
         long start = System.currentTimeMillis();
-        String traceId = UUID.randomUUID().toString().replace("-", "");
+
+        // —— 链路上下文：优先继承上游（W3C traceparent），兼容旧 X-Gateway-Trace-Id；都没有则本请求是链路根
+        TraceContextUtil.Parsed upstream = TraceContextUtil.parse(request.getHeaders().getFirst("traceparent"));
+        String legacyTraceId = request.getHeaders().getFirst("X-Gateway-Trace-Id");
+        String traceId = upstream != null ? upstream.traceId()
+                : (legacyTraceId == null || legacyTraceId.isEmpty()
+                        ? UUID.randomUUID().toString().replace("-", "") : legacyTraceId);
+        String parentSpanId = upstream == null ? null : upstream.spanId();
+        String rootSpanId = TraceContextUtil.newSpanId();      // 网关 SERVER span
+        String clientSpanId = TraceContextUtil.newSpanId();    // 网关 → 下游的 CLIENT span
 
         String reqContentType = request.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE);
         boolean textualRequest = isTextual(reqContentType);
@@ -103,8 +117,14 @@ public class TraceGlobalFilter implements GlobalFilter, Ordered {
         BodyCaptureResponse responseDecorator =
                 new BodyCaptureResponse(exchange.getResponse(), maxBodySize, respCharset);
 
+        // 转发请求携带链路上文：traceparent（W3C 标准，供新 SDK / OTel 兼容）+ 平台自有 header（供旧 SDK）
+        ServerHttpRequest propagated = requestDecorator.mutate()
+                .header("traceparent", TraceContextUtil.format(traceId, clientSpanId))
+                .header("X-Gateway-Trace-Id", traceId)
+                .build();
+
         ServerWebExchange mutated = exchange.mutate()
-                .request(requestDecorator)
+                .request(propagated)
                 .response(responseDecorator)
                 .build();
 
@@ -113,9 +133,13 @@ public class TraceGlobalFilter implements GlobalFilter, Ordered {
                 .doOnError(errorRef::set)
                 .doFinally(signal -> {
                     try {
-                        traceSink.offer(buildRecord(mutated, responseDecorator, traceId,
+                        TraceRecord record = buildRecord(mutated, responseDecorator, traceId,
                                 reqTime, start, reqBody.toString(), reqBytes.get(),
-                                errorRef.get(), signal));
+                                errorRef.get(), signal);
+                        traceSink.offer(record);
+                        // 一跳两个 span：SERVER（调用方→网关，parent=上游 span）+ CLIENT（网关→下游服务）
+                        traceSink.offerSpan(buildServerSpan(record, traceId, parentSpanId, rootSpanId, reqTime));
+                        traceSink.offerSpan(buildClientSpan(record, traceId, rootSpanId, clientSpanId, reqTime));
                     } catch (Exception e) {
                         // 采集失败绝不能影响转发结果
                         log.debug("[采集] 构造记录失败：{}", e.getMessage());
@@ -183,6 +207,45 @@ public class TraceGlobalFilter implements GlobalFilter, Ordered {
     }
 
     // ------------------------------------------------------------------ 工具方法
+
+    /** 网关 SERVER span：调用方 → 网关，parent 为上游传播来的 span（链路根为 NULL） */
+    private SpanRecord buildServerSpan(TraceRecord record, String traceId,
+                                       String parentSpanId, String spanId, LocalDateTime startTime) {
+        return SpanRecord.builder()
+                .traceId(traceId)
+                .spanId(spanId)
+                .parentSpanId(parentSpanId)
+                .kind(SpanRecord.KIND_SERVER)
+                .appId(record.getAppId())
+                .appName(record.getAppName())
+                .serviceName(gatewayServiceName)
+                .api(record.getApi())
+                .statusCode(record.getStatusCode())
+                .errType(record.getErrType())
+                .cost(record.getCost() == null ? null : record.getCost().intValue())
+                .startTime(startTime)
+                .build();
+    }
+
+    /** 网关 CLIENT span：网关 → 下游服务，peerService 是服务拓扑（调用对）的聚合依据 */
+    private SpanRecord buildClientSpan(TraceRecord record, String traceId,
+                                       String parentSpanId, String spanId, LocalDateTime startTime) {
+        return SpanRecord.builder()
+                .traceId(traceId)
+                .spanId(spanId)
+                .parentSpanId(parentSpanId)
+                .kind(SpanRecord.KIND_CLIENT)
+                .appId(record.getAppId())
+                .appName(record.getAppName())
+                .serviceName(gatewayServiceName)
+                .api(record.getApi())
+                .peerService(record.getServiceName())
+                .statusCode(record.getStatusCode())
+                .errType(record.getErrType())
+                .cost(record.getCost() == null ? null : record.getCost().intValue())
+                .startTime(startTime)
+                .build();
+    }
 
     /**
      * 取客户端到网关的真实协议版本，如 HTTP/1.1、HTTP/2。

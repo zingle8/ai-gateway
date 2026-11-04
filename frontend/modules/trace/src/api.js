@@ -14,3 +14,8 @@ export function fetchTraceLogDetail(id) {
 export function fetchTraceFilters() {
   return request.get('/trace/logs/filters')
 }
+
+/** 链路详情：按 traceId 取全量 span（瀑布图），start_time 升序 */
+export function fetchTraceSpans(traceId) {
+  return request.get(`/trace/traces/${traceId}`)
+}

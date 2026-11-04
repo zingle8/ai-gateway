@@ -1,6 +1,7 @@
 package com.zimo.gateway.client.autoconfigure;
 
 import com.zimo.gateway.client.client.GatewayPlatformClient;
+import com.zimo.gateway.client.client.TracePropagationInterceptor;
 import com.zimo.gateway.client.properties.GatewayClientProperties;
 import com.zimo.gateway.client.registry.ServiceRegistrar;
 import com.zimo.gateway.client.report.TraceReporter;
@@ -14,6 +15,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.web.client.RestClientCustomizer;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.Environment;
 import org.springframework.web.client.RestClient;
@@ -49,6 +51,18 @@ public class GatewayClientAutoConfiguration {
     @ConditionalOnClass(RestClient.class)
     public GatewayPlatformClient gatewayPlatformClient(GatewayClientProperties properties) {
         return new GatewayPlatformClient(properties);
+    }
+
+    /**
+     * 链路传播：业务方通过 Spring Boot 自动装配的 RestClient.Builder 创建的客户端
+     * 自动获得 CLIENT span 采集与 traceparent 注入；业务方自建 client 不受影响。
+     */
+    @Bean
+    @ConditionalOnClass(RestClient.class)
+    public RestClientCustomizer tracePropagationCustomizer(GatewayClientProperties properties,
+                                                           TraceReporter reporter) {
+        TracePropagationInterceptor interceptor = new TracePropagationInterceptor(properties, reporter);
+        return builder -> builder.requestInterceptor(interceptor);
     }
 
     /**

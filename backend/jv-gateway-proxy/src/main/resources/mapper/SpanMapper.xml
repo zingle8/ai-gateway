@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.proxy.mapper.SpanMapper">
+
+    <insert id="batchInsert">
+        INSERT INTO tb_gw_trace_span
+            (trace_id, span_id, parent_span_id, kind, app_id, app_name, service_name,
+             api, peer_service, status_code, err_type, cost, start_time, create_time)
+        VALUES
+        <foreach collection="spans" item="s" separator=",">
+            (#{s.traceId}, #{s.spanId}, #{s.parentSpanId}, #{s.kind}, #{s.appId}, #{s.appName},
+             #{s.serviceName}, #{s.api}, #{s.peerService}, #{s.statusCode}, #{s.errType},
+             #{s.cost}, #{s.startTime}, NOW())
+        </foreach>
+    </insert>
+</mapper>

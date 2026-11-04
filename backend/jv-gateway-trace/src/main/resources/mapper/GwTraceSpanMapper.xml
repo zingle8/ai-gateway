@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.trace.mapper.GwTraceSpanMapper">
+
+    <insert id="batchInsert">
+        INSERT INTO tb_gw_trace_span
+            (trace_id, span_id, parent_span_id, kind, app_id, app_name, service_name,
+             api, peer_service, status_code, err_type, cost, start_time, create_time)
+        VALUES
+        <foreach collection="spans" item="s" separator=",">
+            (#{s.traceId}, #{s.spanId}, #{s.parentSpanId}, #{s.kind}, #{s.appId}, #{s.appName},
+             #{s.serviceName}, #{s.api}, #{s.peerService}, #{s.statusCode}, #{s.errType},
+             #{s.cost}, #{s.startTime}, NOW())
+        </foreach>
+    </insert>
+
+    <!-- 瀑布图按链路取全量 span；idx_trace 命中分区后 idx_start 天然有序 -->
+    <select id="selectByTraceId" resultType="com.zimo.gateway.trace.entity.GwTraceSpan">
+        SELECT id, trace_id, span_id, parent_span_id, kind, app_id, app_name, service_name,
+               api, peer_service, status_code, err_type, cost, start_time, create_time
+        FROM tb_gw_trace_span
+        WHERE trace_id = #{traceId}
+        ORDER BY start_time, id
+    </select>
+
+    <!-- 分区信息：description 是该分区上界（LESS THAN 的 TO_DAYS 值） -->
+    <select id="selectPartitions" resultType="map">
+        SELECT PARTITION_NAME AS `name`, PARTITION_DESCRIPTION AS `description`
+        FROM information_schema.PARTITIONS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = #{tableName}
+          AND PARTITION_NAME IS NOT NULL
+        ORDER BY PARTITION_DESCRIPTION
+    </select>
+
+    <!-- 分区名/日期由维护任务按日期格式拼接，非外部输入，无注入面 -->
+    <update id="addPartition">
+        ALTER TABLE ${tableName} ADD PARTITION (
+            PARTITION ${partitionName} VALUES LESS THAN (#{lessThanDays})
+        )
+    </update>
+
+    <update id="dropPartition">
+        ALTER TABLE ${tableName} DROP PARTITION ${partitionName}
+    </update>
+</mapper>

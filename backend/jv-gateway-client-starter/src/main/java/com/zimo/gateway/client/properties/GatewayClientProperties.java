@@ -75,9 +75,13 @@ public class GatewayClientProperties {
         /** 是否采集请求与响应 */
         private boolean enabled = true;
 
-        /** 不采集的路径（Ant 风格） */
+        /** 不采集的路径（Ant 风格）。SDK 自身的注册/心跳/上报调用必须排除，
+         * 否则每次批量上报又被采集成一条调用日志/span，形成自引用噪音 */
         private List<String> excludePaths = new ArrayList<>(List.of(
-                "/actuator/**", "/error", "/favicon.ico", "/webjars/**"));
+                "/actuator/**", "/error", "/favicon.ico", "/webjars/**",
+                "/api/trace/logs/batch", "/api/trace/spans/batch",
+                "/api/discovery/services/register", "/api/discovery/services/heartbeat",
+                "/api/discovery/services/deregister"));
 
         /** 单条报文体最大采集长度，超出截断 */
         private int maxBodySize = 8192;

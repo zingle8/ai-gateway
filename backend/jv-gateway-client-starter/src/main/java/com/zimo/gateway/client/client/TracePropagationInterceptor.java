@@ -1,0 +1,95 @@
+package com.zimo.gateway.client.client;
+
+import com.zimo.gateway.client.common.constant.GatewayClientConstant;
+import com.zimo.gateway.client.common.dto.SpanRecordDTO;
+import com.zimo.gateway.client.common.enums.ErrType;
+import com.zimo.gateway.client.properties.GatewayClientProperties;
+import com.zimo.gateway.client.report.TraceReporter;
+import com.zimo.gateway.client.web.TraceContext;
+import com.zimo.gateway.client.web.TraceContextUtil;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpRequest;
+import org.springframework.http.client.ClientHttpRequestExecution;
+import org.springframework.http.client.ClientHttpRequestInterceptor;
+import org.springframework.http.client.ClientHttpResponse;
+
+import java.io.IOException;
+import java.net.URI;
+import java.time.LocalDateTime;
+
+/**
+ * 服务间调用链路拦截器（RestClient / RestTemplate 通用）。
+ *
+ * <p>业务服务通过 SDK 提供的 RestClient.Builder 发起 HTTP 调用时：
+ * <ul>
+ *   <li>从 {@link TraceContext} 取当前链路上文，生成 CLIENT span 并异步上报；</li>
+ *   <li>向下游注入 traceparent（W3C）+ X-Gateway-Trace-Id（兼容旧 SDK），下游服务的
+ *       GatewayTraceFilter 会读取并作为自己 SERVER span 的 parent，链路就此串联；</li>
+ *   <li>没有链路上文（如定时任务直接发起的调用）时只注入新链路的 traceparent，
+ *       调用仍会被下游采集为本链路的根。</li>
+ * </ul>
+ */
+@Slf4j
+@RequiredArgsConstructor
+public class TracePropagationInterceptor implements ClientHttpRequestInterceptor {
+
+    private final GatewayClientProperties properties;
+    private final TraceReporter reporter;
+
+    @Override
+    public ClientHttpResponse intercept(HttpRequest request, byte[] body,
+                                        ClientHttpRequestExecution execution) throws IOException {
+        TraceContext.Ctx ctx = TraceContext.get();
+        String clientSpanId = TraceContextUtil.newSpanId();
+
+        // 向下游传播：有上文则延续链路；没有则以本次调用为新链路根
+        String traceId = ctx != null ? ctx.traceId()
+                : java.util.UUID.randomUUID().toString().replace("-", "");
+        request.getHeaders().set(GatewayClientConstant.HEADER_TRACEPARENT,
+                TraceContextUtil.format(traceId, clientSpanId));
+        request.getHeaders().set(GatewayClientConstant.HEADER_TRACE_ID, traceId);
+
+        long start = System.currentTimeMillis();
+        LocalDateTime startTime = LocalDateTime.now();
+        try {
+            ClientHttpResponse response = execution.execute(request, body);
+            reportClientSpan(request.getURI(), request.getMethod().name(), traceId,
+                    ctx == null ? null : ctx.spanId(), clientSpanId,
+                    response.getStatusCode().value(), start, startTime);
+            return response;
+        } catch (IOException e) {
+            reportClientSpan(request.getURI(), request.getMethod().name(), traceId,
+                    ctx == null ? null : ctx.spanId(), clientSpanId,
+                    502, start, startTime);
+            throw e;
+        }
+    }
+
+    /** CLIENT span：peerService 从目标地址提取（host:port，无法拿到服务名时以实例地址表示） */
+    private void reportClientSpan(URI uri, String method, String traceId,
+                                  String parentSpanId, String spanId,
+                                  int statusCode, long start, LocalDateTime startTime) {
+        try {
+            SpanRecordDTO span = new SpanRecordDTO();
+            span.setTraceId(traceId);
+            span.setSpanId(spanId);
+            span.setParentSpanId(parentSpanId);
+            span.setKind(SpanRecordDTO.KIND_CLIENT);
+            span.setAppId(properties.getAppId());
+            span.setAppName(properties.getAppName());
+            span.setServiceName(properties.getServiceName());
+            span.setApi(method + " " + uri.getRawPath());
+            int port = uri.getPort() > 0 ? uri.getPort()
+                    : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
+            span.setPeerService(uri.getHost() + ":" + port);
+            span.setStatusCode(statusCode);
+            span.setErrType(ErrType.resolve(statusCode));
+            span.setCost((int) (System.currentTimeMillis() - start));
+            span.setStartTime(startTime);
+            reporter.offerSpan(span);
+        } catch (Exception e) {
+            log.debug("记录 CLIENT span 失败：{}", e.getMessage());
+        }
+    }
+}

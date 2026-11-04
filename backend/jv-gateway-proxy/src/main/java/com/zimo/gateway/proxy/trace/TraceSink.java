@@ -1,5 +1,6 @@
 package com.zimo.gateway.proxy.trace;
 
+import com.zimo.gateway.proxy.mapper.SpanMapper;
 import com.zimo.gateway.proxy.mapper.TraceLogMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +29,10 @@ public class TraceSink {
 
     private final TraceLogMapper traceLogMapper;
 
+    private final SpanMapper spanMapper;
+
     private final BlockingQueue<TraceRecord> queue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
+    private final BlockingQueue<SpanRecord> spanQueue = new LinkedBlockingQueue<>(QUEUE_CAPACITY);
     private final AtomicLong dropped = new AtomicLong();
     private final AtomicLong saved = new AtomicLong();
 
@@ -42,8 +46,18 @@ public class TraceSink {
         }
     }
 
+    /** span 同样非阻塞投递 */
+    public void offerSpan(SpanRecord span) {
+        spanQueue.offer(span);
+    }
+
     @Scheduled(fixedDelay = 1_000L, initialDelay = 2_000L)
     public void flush() {
+        flushLogs();
+        flushSpans();
+    }
+
+    private void flushLogs() {
         List<TraceRecord> batch = new ArrayList<>(BATCH_SIZE);
         queue.drainTo(batch, BATCH_SIZE);
         if (batch.isEmpty()) {
@@ -54,6 +68,20 @@ public class TraceSink {
             saved.addAndGet(batch.size());
         } catch (Exception e) {
             log.error("[采集] 批量写入失败，本批 {} 条被丢弃：{}", batch.size(), e.getMessage());
+        }
+    }
+
+    /** span 与日志同频刷写；独立队列独立失败，span 写入异常不影响调用日志 */
+    private void flushSpans() {
+        List<SpanRecord> batch = new ArrayList<>(BATCH_SIZE);
+        spanQueue.drainTo(batch, BATCH_SIZE);
+        if (batch.isEmpty()) {
+            return;
+        }
+        try {
+            spanMapper.batchInsert(batch);
+        } catch (Exception e) {
+            log.error("[采集] span 批量写入失败，本批 {} 条被丢弃：{}", batch.size(), e.getMessage());
         }
     }
 

@@ -54,7 +54,7 @@ zimo:
       version: 1.0.0
       # 采集已由 jv-gateway-proxy 在转发链路完成，模块内不再埋点，避免一条请求记两份
       trace:
-        enabled: false
+        enabled: true
       registry:
         enabled: true
         heartbeat-interval: 30000

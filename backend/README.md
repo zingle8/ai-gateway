@@ -204,9 +204,45 @@ docker exec -it redis redis-cli -a 'Redis@123456' ping   # 返回 PONG
 - `tb_gw_trace_log`：网关调用日志（含 `req_params`、`req_header`、`req_body`、`res_header`、`res_body`、`err_type` 等）
   - `req_params`：URL 上的原始 query string；表单（`x-www-form-urlencoded`）参数原文在 `req_body`
   - `req_bytes` / `res_bytes`：真实流经字节数（不再用截断后字符数）
+- `tb_gw_trace_span`：调用链路 span（`trace_span.sql`），一跳两个 span：`SERVER`（服务端处理）+ `CLIENT`（发起调用）
+
+### 日志/链路表分区（每天一个分区）
+
+`tb_gw_trace_log` 与 `tb_gw_trace_span` 均按天分区，建表见 `sql/trace_span.sql`：
+
+```sql
+PRIMARY KEY (id, req_time)                 -- 分区键必须并入主键
+PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
+  PARTITION p20261104 VALUES LESS THAN (TO_DAYS('2026-11-05')),
+  ...
+)
+```
+
+- 分区由 `jv-gateway-trace` 的 `PartitionMaintainer` 维护：启动即校验一次，之后每天 00:05
+  补建未来 3 天分区（缺分区会导致插入报 `Table has no partition for value`，直接丢数据）、
+  删除 45 天前的分区（`DROP PARTITION` 秒级、不产生 binlog 峰值，替代 `DELETE` + 逻辑删除）
+- 索引与查询场景对应关系：
+
+| 索引 | 命中场景 |
+| --- | --- |
+| `idx_trace(trace_id)` | 链路瀑布图：按 traceId 取全量 span |
+| `idx_start(start_time)` | 时间窗统计 + 分区裁剪（`WHERE start_time >= ?` 直接定位天分区） |
+| `idx_edge(service_name, peer_service, start_time)` | 服务拓扑：CLIENT span 的调用对聚合 |
+| `idx_reqtime(req_time)` / `idx_service` / `idx_errtype`（log 表） | 列表筛选与错误检索 |
+
+### 链路传播（阶段一）
+
+- 协议：W3C `traceparent: 00-<traceId:32hex>-<spanId:16hex>-01`，同时兼容旧 `X-Gateway-Trace-Id`
+- 网关 `TraceGlobalFilter`：有上游 traceparent 就继承（否则作为链路根），转发时注入新的 CLIENT spanId
+- 服务侧 SDK：`GatewayTraceFilter` 读 traceparent 记 SERVER span；`TracePropagationInterceptor`
+  在通过 Spring 自动装配的 `RestClient.Builder` 发起调用时记 CLIENT span 并注入 header
+- SDK 自身的注册/心跳/上报路径已在 `excludePaths` 默认排除，避免自引用噪音
 
 ```bash
+# 基础表 + 示例数据
 mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' < sql/api_gateway.sql
+# 链路 span 表 + 日志表按天分区改造（新环境必跑）
+mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/trace_span.sql
 ```
 
 ## Redis
@@ -383,6 +419,8 @@ chmod +x scripts/*.sh
 | GET | `/api/trace/logs/{id}` | 日志详情（含 `req_params`、Header、请求体、响应体） |
 | GET | `/api/trace/logs/filters` | 筛选项字典（**应用** / 协议 / 方法 / 服务名（带 appId，供级联）/ 接口名 / 报文格式，取库中真实出现过的值） |
 | POST | `/api/trace/logs/batch` | 批量上报调用日志（接入 SDK 使用） |
+| POST | `/api/trace/spans/batch` | 批量上报链路 span（接入 SDK / 网关使用） |
+| GET | `/api/trace/traces/{traceId}` | 链路详情：按 traceId 取全量 span（前端组树画瀑布图） |
 
 ## 构建与启动
 
