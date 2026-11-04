@@ -1,5 +1,11 @@
 <template>
   <div class="page">
+    <!-- 时间区间：指标卡、趋势、分布、Top 榜统一口径 -->
+    <div class="range-bar">
+      <span class="gw-sm gw-muted">统计区间：{{ rangeLabel }}</span>
+      <TimeRangePicker v-model="range" @change="switchRange" />
+    </div>
+
     <!-- 维度过滤 -->
     <section class="gw-card">
       <div class="gw-card-bd">
@@ -16,12 +22,8 @@
           <el-select v-model="query.method" placeholder="全部方法" clearable style="width: 125px;">
             <el-option v-for="m in methods" :key="m" :label="m" :value="m" />
           </el-select>
-          <el-select v-model="query.hours" style="width: 130px;">
-            <el-option v-for="h in hourOptions" :key="h.value" :label="h.label" :value="h.value" />
-          </el-select>
           <el-button type="primary" @click="load">查询</el-button>
           <el-button @click="reset">重置</el-button>
-          <span class="gw-sm gw-muted">指标区间：{{ rangeLabel }}</span>
         </div>
       </div>
     </section>
@@ -43,15 +45,7 @@
       <section class="gw-card">
         <div class="gw-card-hd">
           <span>请求量趋势</span>
-          <div class="trend-switch">
-            <button
-              v-for="g in granularities"
-              :key="g.step"
-              class="trend-btn"
-              :class="{ active: activeStep === g.step }"
-              @click="switchStep(g.step)"
-            >{{ g.label }}</button>
-          </div>
+          <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
         </div>
         <div class="gw-card-bd">
           <TrendChart
@@ -148,26 +142,23 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { TrendChart } from '@zimo/ui'
+import { TrendChart, TimeRangePicker } from '@zimo/ui'
+import { DEFAULT_TIME_RANGE, timeRangeLabel, timeRangeOf } from '@zimo/shared'
 import { fetchStatsFilters, fetchStatsSummary, fetchStatsTrend } from '../api'
 import {
   DataAnalysis, TrendCharts, Timer, Warning, Download, Upload, CircleCheck, User, Document, Files
 } from '@element-plus/icons-vue'
 
+/** 统一时间区间：指标卡 / 趋势 / 分布 / Top 榜共用同一个 range */
+const range = ref(DEFAULT_TIME_RANGE)
+const sampleDesc = computed(() => timeRangeOf(range.value).desc)
+
 const query = reactive({
   appId: '',
   serviceName: '',
   api: '',
-  method: '',
-  hours: 24
+  method: ''
 })
-
-const hourOptions = [
-  { value: 1, label: '近 1 小时' },
-  { value: 6, label: '近 6 小时' },
-  { value: 12, label: '近 12 小时' },
-  { value: 24, label: '近 24 小时' }
-]
 
 // 筛选项：兜底空数组，接口失败时下拉为空但不阻塞页面
 const apps = ref([])
@@ -176,7 +167,7 @@ const apis = ref([])
 const methods = ref(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
 
 const data = ref({
-  range: { hours: 24, label: '近 24 小时' },
+  range: { code: DEFAULT_TIME_RANGE, label: timeRangeLabel(DEFAULT_TIME_RANGE) },
   summary: {},
   statusDist: [],
   methodDist: [],
@@ -184,30 +175,12 @@ const data = ref({
   topApis: []
 })
 
-/* --------------------------------------------------- 趋势粒度切换 */
-
-/** step = 桶宽分钟数；desc = 时间轴覆盖范围（后端固定 120 个点），与总览 QPS 趋势一致 */
-const granularities = [
-  { step: 1,    label: '1分钟',  desc: '1 分钟 / 点 · 近 2 小时' },
-  { step: 5,    label: '5分钟',  desc: '5 分钟 / 点 · 近 6 小时' },
-  { step: 10,   label: '10分钟', desc: '10 分钟 / 点 · 近 12 小时' },
-  { step: 30,   label: '30分钟', desc: '30 分钟 / 点 · 近 24 小时' },
-  { step: 60,   label: '1小时',  desc: '1 小时 / 点 · 近 3 天' },
-  { step: 120,  label: '2小时',  desc: '2 小时 / 点 · 近 7 天' },
-  { step: 1440, label: '24小时', desc: '24 小时 / 点 · 近 30 天' }
-]
-
-const activeStep = ref(1)
-const activeDesc = computed(() =>
-  (granularities.find(g => g.step === activeStep.value) || granularities[0]).desc)
-
-// 趋势独立请求：切换粒度只重算趋势，不重算指标卡
 const trend = ref({ times: [], values: [] })
 const statusDist = computed(() => data.value.statusDist || [])
 const methodDist = computed(() => data.value.methodDist || [])
 const topServices = computed(() => data.value.topServices || [])
 const topApis = computed(() => data.value.topApis || [])
-const rangeLabel = computed(() => data.value.range?.label || '')
+const rangeLabel = computed(() => data.value.range?.label || timeRangeLabel(range.value))
 const statusMax = computed(() => Math.max(1, ...statusDist.value.map((d) => d.count)))
 const methodMax = computed(() => Math.max(1, ...methodDist.value.map((d) => d.count)))
 
@@ -253,9 +226,9 @@ const loadFilters = async () => {
   } catch (e) { /* 字典不可用不阻塞 */ }
 }
 
-/** 过滤栏参数：hours 只作用于指标卡，趋势窗口由 step 决定 */
+/** 请求参数：维度过滤 + 统一时间区间，指标卡与趋势共用 */
 const buildParams = () => {
-  const params = {}
+  const params = { range: range.value }
   Object.keys(query).forEach((k) => {
     const v = query[k]
     if (v !== '' && v !== null && v !== undefined) params[k] = v
@@ -264,10 +237,8 @@ const buildParams = () => {
 }
 
 const loadTrend = async () => {
-  const params = buildParams()
-  delete params.hours
   try {
-    trend.value = await fetchStatsTrend({ ...params, step: activeStep.value })
+    trend.value = await fetchStatsTrend(buildParams())
   } catch (e) {
     trend.value = { times: [], values: [] }
   }
@@ -278,25 +249,22 @@ const load = async () => {
     data.value = await fetchStatsSummary(buildParams())
   } catch (e) {
     data.value = {
-      range: { hours: query.hours, label: '近 ' + query.hours + ' 小时' },
+      range: { code: range.value, label: timeRangeLabel(range.value) },
       summary: {}, statusDist: [], methodDist: [], topServices: [], topApis: []
     }
   }
   await loadTrend()
 }
 
-const switchStep = async (step) => {
-  if (activeStep.value === step) return
-  activeStep.value = step
-  await loadTrend()
-}
+/** 切换区间：指标卡与趋势一起重算，保证页面只有一个时间口径 */
+const switchRange = () => load()
 
 const reset = () => {
   query.appId = ''
   query.serviceName = ''
   query.api = ''
   query.method = ''
-  query.hours = 24
+  range.value = DEFAULT_TIME_RANGE
   load()
 }
 
@@ -307,36 +275,14 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 粒度切换按钮组：与网关总览 QPS 趋势保持一致 */
-.trend-switch {
-  display: inline-flex;
-  gap: 2px;
-  background: var(--gw-bg-page, #f2f3f5);
-  border-radius: 6px;
-  padding: 2px;
-}
-
-.trend-btn {
-  border: none;
-  background: transparent;
-  color: var(--gw-text-secondary, #606266);
-  font-size: 12px;
-  line-height: 20px;
-  padding: 0 8px;
-  border-radius: 4px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.trend-btn:hover {
-  color: var(--gw-primary, #409eff);
-}
-
-.trend-btn.active {
-  background: #fff;
-  color: var(--gw-primary, #409eff);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+/* 顶部时间区间工具条：与网关总览、服务发现、服务拓扑保持同一视觉 */
+.range-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
 }
 
 /* 折线图已抽到 @zimo/ui 的 TrendChart（含 Y 轴刻度、X 轴时间、悬浮 tooltip） */

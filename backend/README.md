@@ -403,23 +403,48 @@ chmod +x scripts/*.sh
 | PUT | `/api/users/{id}/status` | 启用 / 禁用 |
 | POST | `/api/users/{id}/unlock` | 解锁账号登录（清除连续失败计数） |
 
+### 统一时间区间（`range` 参数）
+
+网关总览 / 数据统计 / 服务发现 / 服务拓扑四个页面共用同一套时间维度，
+后端统一由 `com.zimo.gateway.common.util.TimeRange` 解析，前端由 `@zimo/shared` 的 `TIME_RANGES` 提供：
+
+| code | 含义 | 窗口 | 趋势桶宽 |
+| --- | --- | --- | --- |
+| `1m` | 1 分钟 | 60 秒 | 1 秒/点 |
+| `5m` | 5 分钟 | 300 秒 | 5 秒/点 |
+| `10m` | 10 分钟 | 600 秒 | 10 秒/点 |
+| `30m` | 30 分钟 | 1800 秒 | 30 秒/点 |
+| `1h` | 1 小时 | 3600 秒 | 1 分钟/点 |
+| `2h` | 2 小时 | 7200 秒 | 2 分钟/点 |
+| `24h` | 24 小时（滚动） | 86400 秒 | 24 分钟/点 |
+| `1d` | 1 天（自然日，今日 00:00 起） | 视当前时刻 | 24 分钟/点 |
+| `7d` | 7 天 | 604800 秒 | 2.8 小时/点 |
+| `30d` | 30 天 | 2592000 秒 | 12 小时/点 |
+
+约定：
+
+- 趋势图固定切 60 个点，桶宽 = 窗口 / 60，因此任何区间的时间轴密度一致
+- 标签随跨度自适应：跨天带日期（`MM-dd HH:mm`）、≥7 天只到日（`MM-dd`）、桶宽 <60 秒带秒（`HH:mm:ss`）
+- `24h` 与 `1d` 跨度相同但语义不同：前者滚动 24 小时，后者从自然日 00:00 起，两者图表结果不同
+- 非法或缺失的 `range` 一律兜底 `24h`，不抛异常
+
 ### jv-gateway-overview（28082）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/overview/summary` | 核心指标汇总（含 `avgRt` / `p95` / `p99`，均为今日调用，单位 ms） |
-| GET | `/api/overview/trend` | QPS 趋势，`?step=` 粒度（分钟，可选 `1/5/10/30/60/120/1440`，默认 1，窗口固定 120 点） |
+| GET | `/api/overview/summary` | 核心指标汇总（含 `avgRt` / `p95` / `p99`，单位 ms），`?range=` 统一时间区间，默认 `24h` |
+| GET | `/api/overview/trend` | QPS 趋势，`?range=` 统一时间区间；桶宽随区间自动推导（区间内固定 60 点） |
 | GET | `/api/overview/runtime` | 运行时信息 |
-| GET | `/api/overview/instances` | 已接入服务实例列表（含近 5 分钟调用次数 `calls`、QPS、平均耗时；**按近 5 分钟调用量降序**取前 8） |
+| GET | `/api/overview/instances` | 已接入服务实例列表（`calls` / 平均耗时按 `?range=` 区间统计，QPS 恒为近 60 秒；按区间调用量降序取前 8） |
 | GET | `/api/stats/filters` | 数据统计筛选项（应用 / 服务 / 接口 / 方法） |
-| GET | `/api/stats/summary` | 数据统计聚合：指标卡（含 `avgRt` / `p95` / `p99`）+ 状态码/方法分布 + Top 服务/接口，支持 `appId`、`serviceName`、`api`、`method`、`hours`（1~24）过滤 |
-| GET | `/api/stats/trend` | 请求量趋势，`?step=` 粒度与总览 QPS 趋势完全一致（7 档，固定 120 点），同样支持四个维度过滤；返回桶内请求量（总览返回 QPS） |
+| GET | `/api/stats/summary` | 数据统计聚合：指标卡（含 `avgRt` / `p95` / `p99`）+ 状态码/方法分布 + Top 服务/接口，支持 `appId`、`serviceName`、`api`、`method`、`range` 过滤 |
+| GET | `/api/stats/trend` | 请求量趋势，`?range=` 与总览 QPS 趋势完全一致（固定 60 点），同样支持四个维度过滤；返回桶内请求量（总览返回 QPS） |
 
 ### jv-gateway-discovery（28083）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤） |
+| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤；`?range=` 决定平均耗时与流量的聚合窗口） |
 | GET | `/api/discovery/filters` | 筛选项字典：应用（appId+appName）、服务（appId+serviceName）、语言类型 |
 | GET | `/api/discovery/services/{id}` | 服务详情 |
 | POST | `/api/discovery/services/register` | 服务实例注册（自动接入） |
@@ -446,8 +471,8 @@ chmod +x scripts/*.sh
 | POST | `/api/trace/logs/batch` | 批量上报调用日志（接入 SDK 使用） |
 | POST | `/api/trace/spans/batch` | 批量上报链路 span（接入 SDK / 网关使用） |
 | GET | `/api/trace/traces/{traceId}` | 链路详情：按 traceId 取全量 span（前端组树画瀑布图） |
-| GET | `/api/trace/topology` | 服务拓扑：时间窗内调用边 + 节点（`hours` 默认 24，查 tb_gw_service_edge 预聚合表） |
-| GET | `/api/trace/slow` | 慢链路 TopN：按链路总耗时降序（`hours` / `limit`），含入口服务与接口 |
+| GET | `/api/trace/topology` | 服务拓扑：区间内调用边 + 节点（`?range=` 默认 24h；≤30 分钟直接对 span 表实时聚合，更长区间查 tb_gw_service_edge） |
+| GET | `/api/trace/slow` | 慢链路 TopN：按链路总耗时降序（`range` / `limit`），含入口服务与接口 |
 
 ## 构建与启动
 

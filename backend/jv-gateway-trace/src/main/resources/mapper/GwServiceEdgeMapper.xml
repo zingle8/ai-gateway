@@ -54,6 +54,25 @@
     </select>
 
     <!--
+      分钟级区间的拓扑：直接对 span 表实时聚合 CLIENT span。
+      idx_edge(service_name, peer_service, start_time) + 天分区裁剪，短区间代价很小。
+    -->
+    <select id="selectEdgesRealtime" resultType="map">
+        SELECT service_name AS src,
+               peer_service AS dst,
+               COUNT(*)      AS calls,
+               SUM(CASE WHEN status_code &gt;= 400 THEN 1 ELSE 0 END) AS errors,
+               ROUND(AVG(cost)) AS avgCost,
+               COALESCE(MAX(cost), 0) AS maxCost
+        FROM tb_gw_trace_span
+        WHERE kind = 'CLIENT'
+          AND peer_service IS NOT NULL
+          AND start_time &gt;= #{since}
+        GROUP BY service_name, peer_service
+        ORDER BY calls DESC
+    </select>
+
+    <!--
       慢链路 TopN：链路总耗时 = 最晚 span 终点 − 最早 span 起点（真实墙钟时间，
       不是 SUM(cost) —— 后者会把并行的兄弟 span 重复计入）。
       cost 单位毫秒，DATE_ADD 按 MICROSECOND 加；列别名用驼峰，controller/前端直接取。

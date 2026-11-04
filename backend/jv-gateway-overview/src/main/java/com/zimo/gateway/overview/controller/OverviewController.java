@@ -1,6 +1,7 @@
 package com.zimo.gateway.overview.controller;
 
 import com.zimo.gateway.common.result.R;
+import com.zimo.gateway.common.util.TimeRange;
 import com.zimo.gateway.overview.mapper.OverviewMapper;
 import com.zimo.gateway.overview.model.StatsAgg;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.lang.management.GarbageCollectorMXBean;
+import java.time.Duration;
+import java.time.LocalDateTime;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryUsage;
 import java.lang.management.OperatingSystemMXBean;
@@ -37,38 +40,47 @@ public class OverviewController {
     private final OverviewMapper overviewMapper;
 
     /**
-     * 汇总指标：应用 / 服务 / 接口个数、实时 QPS、今日请求数、延迟、错误率、流量。
+     * 汇总指标：应用 / 服务 / 接口个数、区间 QPS、请求数、延迟、错误率、流量。
+     *
+     * @param range 统一时间区间：1m / 5m / 10m / 30m / 1h / 2h / 24h / 1d / 7d / 30d，默认 24h
      */
     @GetMapping("/summary")
-    public R<Map<String, Object>> summary() {
+    public R<Map<String, Object>> summary(@RequestParam(defaultValue = "24h") String range) {
+        TimeRange timeRange = TimeRange.of(range);
+        long windowSeconds = Math.max(1, Duration.between(timeRange.since(), LocalDateTime.now()).getSeconds());
+
         long appCount = overviewMapper.countApps();
         long serviceCount = overviewMapper.countServices();
         long onlineCount = overviewMapper.countOnlineServices();
         long apiCount = overviewMapper.countApis();
 
-        // 实时 QPS：最近 60 秒的请求数折算到每秒
-        long lastMinute = overviewMapper.countLastMinute();
-        BigDecimal qps = BigDecimal.valueOf(lastMinute)
-                .divide(BigDecimal.valueOf(60), 1, RoundingMode.HALF_UP);
+        // 区间请求数折算到每秒，即为该区间的平均 QPS
+        long requests = overviewMapper.rangeCount(windowSeconds);
+        BigDecimal qps = BigDecimal.valueOf(requests)
+                .divide(BigDecimal.valueOf(windowSeconds), 2, RoundingMode.HALF_UP);
 
-        StatsAgg today = overviewMapper.todayStats();
-        long total = number(today.getTotal()).longValue();
-        long errors = number(today.getErrors()).longValue();
-        double avgRt = number(today.getAvgRt()).doubleValue();
-        long reqBytes = number(today.getReqBytes()).longValue();
-        long resBytes = number(today.getResBytes()).longValue();
+        StatsAgg agg = overviewMapper.rangeStats(windowSeconds);
+        long total = number(agg.getTotal()).longValue();
+        long errors = number(agg.getErrors()).longValue();
+        double avgRt = number(agg.getAvgRt()).doubleValue();
+        long reqBytes = number(agg.getReqBytes()).longValue();
+        long resBytes = number(agg.getResBytes()).longValue();
         double errorRate = total == 0 ? 0d : errors * 100d / total;
 
         Map<String, Object> data = new LinkedHashMap<>();
+        data.put("range", Map.of("code", timeRange.getCode(), "label", timeRange.getRangeLabel(),
+                "seconds", windowSeconds));
         data.put("appCount", appCount);
         data.put("serviceCount", serviceCount);
         data.put("onlineCount", onlineCount);
         data.put("apiCount", apiCount);
         data.put("qps", qps.doubleValue());
+        data.put("requests", total);
+        // 兼容原字段：前端已统一按「区间请求数」展示
         data.put("todayRequests", total);
         data.put("avgRt", Math.round(avgRt));
-        data.put("p95", todayPercentile(total, 0.95));
-        data.put("p99", todayPercentile(total, 0.99));
+        data.put("p95", percentile(windowSeconds, total, 0.95));
+        data.put("p99", percentile(windowSeconds, total, 0.99));
         data.put("errorRate", round2(errorRate));
         data.put("healthScore", healthScore(serviceCount, onlineCount, errorRate));
         data.put("inbound", humanBytes(reqBytes));
@@ -77,15 +89,18 @@ public class OverviewController {
     }
 
     /**
-     * QPS 趋势，粒度可选：1 / 5 / 10 / 30 / 60 / 120 / 1440 分钟一桶。
+     * QPS 趋势：按统一时间区间（{@link TimeRange}）取窗口，区间内固定切 60 个点。
      *
-     * <p>每个粒度固定 120 个点，窗口随粒度放大：1 分钟看近 2 小时，
-     * 24 小时一桶看近 30 天。与数据统计页共用 TrendQuery / OverviewMapper.trendBuckets。
+     * <p>区间越短桶越细（1 分钟区间 1 秒/点），区间越长桶越粗（30 天 12 小时/点），
+     * 与数据统计页共用 TrendQuery / OverviewMapper.trendBuckets。
+     *
+     * @param range 1m / 5m / 10m / 30m / 1h / 2h / 24h / 1d / 7d / 30d，默认 24h
      */
     @GetMapping("/trend")
-    public R<Map<String, Object>> trend(@RequestParam(defaultValue = "1") int step) {
+    public R<Map<String, Object>> trend(@RequestParam(defaultValue = "24h") String range) {
+        TimeRange timeRange = TimeRange.of(range);
         return R.ok(TrendQuery.build(
-                overviewMapper.trendBuckets(TrendQuery.query(step)), step, true));
+                overviewMapper.trendBuckets(TrendQuery.query(timeRange)), timeRange, true));
     }
 
     /**
@@ -133,11 +148,15 @@ public class OverviewController {
     }
 
     /**
-     * 服务实例：真实注册在平台上的服务（按状态排序）。
+     * 服务实例：真实注册在平台上的服务，调用量与耗时按所选区间统计。
+     *
+     * @param range 统一时间区间（同 summary）
      */
     @GetMapping("/instances")
-    public R<List<Map<String, Object>>> instances() {
-        List<Map<String, Object>> rows = overviewMapper.instances();
+    public R<List<Map<String, Object>>> instances(@RequestParam(defaultValue = "24h") String range) {
+        long windowSeconds = Math.max(1,
+                Duration.between(TimeRange.of(range).since(), LocalDateTime.now()).getSeconds());
+        List<Map<String, Object>> rows = overviewMapper.instances(windowSeconds);
         List<Map<String, Object>> list = new ArrayList<>(rows.size());
         for (Map<String, Object> row : rows) {
             Map<String, Object> item = new LinkedHashMap<>();
@@ -159,7 +178,17 @@ public class OverviewController {
 
     // ------------------------------------------------------------------ 内部方法
 
-    /** 今日 P95 / P99：MySQL 5.7 没有窗口函数，用「排序 + 偏移量」取分位点 */
+    /** 区间 P95 / P99：MySQL 5.7 没有窗口函数，用「排序 + 偏移量」取分位点 */
+    private int percentile(long windowSeconds, long total, double quantile) {
+        if (total <= 0) {
+            return 0;
+        }
+        int offset = Math.min((int) Math.floor(total * quantile), (int) total - 1);
+        Long value = overviewMapper.rangePercentile(windowSeconds, offset);
+        return value == null ? 0 : value.intValue();
+    }
+
+    /** 今日 P95 / P99：运行时指标区仍按自然日口径 */
     private int todayPercentile(long total, double quantile) {
         if (total <= 0) {
             return 0;

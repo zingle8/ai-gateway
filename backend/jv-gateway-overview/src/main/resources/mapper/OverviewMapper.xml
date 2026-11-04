@@ -63,12 +63,32 @@
         FROM tb_gw_trace_log WHERE deleted = 0 AND req_time >= CURDATE()
     </select>
 
+    <!-- 按所选时间区间聚合（总览页指标卡）：1 分钟 ~ 30 天，走 idx_reqtime + 天分区裁剪 -->
+    <select id="rangeStats" resultType="com.zimo.gateway.overview.model.StatsAgg">
+        SELECT <include refid="aggCols"/>
+        FROM tb_gw_trace_log
+        WHERE deleted = 0 AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND)
+    </select>
+
+    <!-- 区间内的请求总数：QPS 折算用 -->
+    <select id="rangeCount" resultType="long">
+        SELECT COUNT(*) FROM tb_gw_trace_log
+        WHERE deleted = 0 AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND)
+    </select>
+
+    <select id="rangePercentile" resultType="long">
+        SELECT cost FROM tb_gw_trace_log
+        WHERE deleted = 0 AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND)
+        ORDER BY cost LIMIT 1 OFFSET #{offset}
+    </select>
+
     <select id="todayPercentile" resultType="long">
         SELECT cost FROM tb_gw_trace_log
         WHERE deleted = 0 AND req_time >= CURDATE()
         ORDER BY cost LIMIT 1 OFFSET #{offset}
     </select>
 
+    <!-- 服务实例榜：calls / avg_cost 按所选区间统计，qps 恒取近 60 秒（瞬时速率语义） -->
     <select id="instances" resultType="map">
         SELECT s.service_name, s.app_name, s.ip, s.port, s.status, s.last_heartbeat_time,
                COALESCE(t.qps, 0) AS qps, COALESCE(t.calls, 0) AS calls, COALESCE(t.avg_cost, 0) AS avg_cost
@@ -79,11 +99,11 @@
                    COUNT(*) AS calls,
                    AVG(cost) AS avg_cost
             FROM tb_gw_trace_log
-            WHERE req_time >= DATE_SUB(NOW(), INTERVAL 300 SECOND) AND service_name IS NOT NULL
+            WHERE req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND) AND service_name IS NOT NULL
             GROUP BY service_name
         ) t ON t.service_name = s.service_name
         WHERE s.deleted = 0
-        <!-- 按近 5 分钟真实调用量排名（无调用的服务排在后面，再按健康状态、注册先后兜底） -->
+        <!-- 按所选区间的真实调用量排名（无调用的服务排在后面，再按健康状态、注册先后兜底） -->
         ORDER BY COALESCE(t.calls, 0) DESC, COALESCE(t.qps, 0) DESC,
                  CASE WHEN s.status = '健康' THEN 0 ELSE 1 END, s.id DESC
         LIMIT 8

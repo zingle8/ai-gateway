@@ -2,6 +2,7 @@ package com.zimo.gateway.discovery.controller;
 
 import com.zimo.gateway.client.common.dto.ServiceInstanceDTO;
 import com.zimo.gateway.common.result.PageResult;
+import com.zimo.gateway.common.util.TimeRange;
 import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.discovery.entity.GwService;
 import com.zimo.gateway.discovery.model.ServiceQuery;
@@ -23,6 +24,9 @@ public class DiscoveryController {
 
     /**
      * 服务分页列表
+     *
+     * @param range 运行指标统计区间：1m / 5m / 10m / 30m / 1h / 2h / 24h / 1d / 7d / 30d，
+     *              决定平均耗时与流量的聚合窗口（默认 24h，与其它页面一致）
      */
     @GetMapping("/services")
     public R<PageResult<GwService>> page(@RequestParam(required = false) String keyword,
@@ -30,6 +34,7 @@ public class DiscoveryController {
                                          @RequestParam(required = false) String serviceName,
                                          @RequestParam(required = false) String status,
                                          @RequestParam(required = false) String language,
+                                         @RequestParam(defaultValue = "24h") String range,
                                          @RequestParam(defaultValue = "1") long current,
                                          @RequestParam(defaultValue = "10") long size) {
         ServiceQuery query = new ServiceQuery();
@@ -38,6 +43,7 @@ public class DiscoveryController {
         query.setServiceName(serviceName);
         query.setStatus(status);
         query.setLanguage(language);
+        query.setWindowSeconds((int) Math.min(Integer.MAX_VALUE, TimeRange.of(range).getWindowSeconds()));
         query.setCurrent(current);
         query.setSize(size);
         return R.ok(PageResult.of(discoveryService.pageServices(query)));

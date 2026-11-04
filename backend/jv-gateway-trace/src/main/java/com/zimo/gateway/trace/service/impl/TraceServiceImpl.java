@@ -5,6 +5,7 @@ import com.zimo.gateway.client.common.enums.ErrType;
 import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
+import com.zimo.gateway.common.util.TimeRange;
 import com.zimo.gateway.trace.entity.GwTraceLog;
 import com.zimo.gateway.trace.entity.GwTraceSpan;
 import com.zimo.gateway.trace.mapper.GwServiceEdgeMapper;
@@ -120,9 +121,14 @@ public class TraceServiceImpl implements TraceService {
     }
 
     @Override
-    public Map<String, Object> topology(int hours) {
-        LocalDateTime since = LocalDateTime.now().minusHours(clampHours(hours));
-        List<Map<String, Object>> edges = edgeMapper.selectEdges(since);
+    public Map<String, Object> topology(String range) {
+        TimeRange timeRange = TimeRange.of(range);
+        LocalDateTime since = timeRange.since();
+        // 预聚合表是小时窗口，分钟级区间直接查 span 表才能保证精度；
+        // 30 分钟以内的 span 量很小，走 idx_edge 实时聚合成本可接受
+        List<Map<String, Object>> edges = timeRange.getWindowSeconds() <= 1800
+                ? edgeMapper.selectEdgesRealtime(since)
+                : edgeMapper.selectEdges(since);
 
         // 节点在 edge 基础上推导：入调用 / 出调用次数，前端免二次汇总
         Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
@@ -134,14 +140,16 @@ public class TraceServiceImpl implements TraceService {
             addCalls(nodeOf(nodes, dst), "inCalls", calls);
         }
         Map<String, Object> result = new LinkedHashMap<>();
+        result.put("range", timeRange.getCode());
+        result.put("realtime", timeRange.getWindowSeconds() <= 1800);
         result.put("edges", edges);
         result.put("nodes", new ArrayList<>(nodes.values()));
         return result;
     }
 
     @Override
-    public List<Map<String, Object>> slowTraces(int hours, int limit) {
-        LocalDateTime since = LocalDateTime.now().minusHours(clampHours(hours));
+    public List<Map<String, Object>> slowTraces(String range, int limit) {
+        LocalDateTime since = TimeRange.of(range).since();
         int top = Math.min(Math.max(1, limit), 50);
         List<Map<String, Object>> traces = edgeMapper.selectSlowTraces(since, top);
         if (traces.isEmpty()) {
@@ -176,10 +184,6 @@ public class TraceServiceImpl implements TraceService {
     private void addCalls(Map<String, Object> node, String key, long delta) {
         long cur = ((Number) node.get(key)).longValue();
         node.put(key, cur + delta);
-    }
-
-    private int clampHours(int hours) {
-        return Math.min(Math.max(1, hours), 24 * 7);
     }
 
     @Override

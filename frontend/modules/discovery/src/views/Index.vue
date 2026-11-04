@@ -1,5 +1,11 @@
 <template>
   <div class="page">
+    <!-- 时间区间：列表与详情的平均耗时 / 流量按所选区间统计 -->
+    <div class="range-bar">
+      <span class="gw-sm gw-muted">统计区间：{{ rangeDesc }}（平均耗时 / 流量）</span>
+      <TimeRangePicker v-model="range" @change="switchRange" />
+    </div>
+
     <section class="gw-card">
       <div class="gw-card-hd">
         <span>服务发现</span>
@@ -89,14 +95,23 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { TimeRangePicker } from '@zimo/ui'
+import { DEFAULT_TIME_RANGE, fmtTime, dotClass, timeRangeLabel } from '@zimo/shared'
 import { fetchServices, fetchServiceFilters } from '../api'
-import { fmtTime, dotClass } from '@zimo/shared'
 
 const rows = ref([])
 const total = ref(0)
 const pages = ref(1)
 const detailVisible = ref(false)
 const detail = ref({})
+
+/** 统一时间区间：决定列表与详情里平均耗时 / 流量的聚合窗口 */
+const range = ref(DEFAULT_TIME_RANGE)
+const rangeDesc = computed(() => timeRangeLabel(range.value))
+const switchRange = () => {
+  query.current = 1
+  load()
+}
 
 const query = reactive({
   keyword: '',
@@ -136,7 +151,7 @@ const onAppChange = () => {
 
 const load = async () => {
   try {
-    const page = await fetchServices(query)
+    const page = await fetchServices({ ...query, range: range.value })
     rows.value = page.records || []
     total.value = page.total || 0
     pages.value = page.pages || 1
@@ -182,8 +197,8 @@ const detailFields = computed(() => {
     { label: '端口', value: d.port },
     { label: '语言类型', value: d.language },
     { label: '版本号', value: d.version },
-    { label: 'QPS', value: d.qps },
-    { label: '平均 RT', value: d.avgRt + ' ms' },
+    { label: 'QPS（近 60 秒）', value: d.qps },
+    { label: '平均 RT（' + rangeDesc.value + '）', value: d.avgRt + ' ms' },
     { label: '健康状态', value: d.status },
     { label: '入站 / 出网流量', value: (d.inFlow || '-') + ' / ' + (d.outFlow || '-') },
     { label: '实例数', value: d.instances },

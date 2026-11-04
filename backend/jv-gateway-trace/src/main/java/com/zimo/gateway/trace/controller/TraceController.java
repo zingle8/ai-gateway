@@ -107,19 +107,23 @@ public class TraceController {
     }
 
     /**
-     * 服务拓扑：时间窗内调用边 + 节点（来自 tb_gw_service_edge 预聚合表）
+     * 服务拓扑：区间内调用边 + 节点。
+     *
+     * @param range 统一时间区间：1m / 5m / ... / 30d，默认 24h
      */
     @GetMapping("/topology")
-    public R<Map<String, Object>> topology(@RequestParam(defaultValue = "24") int hours) {
-        return R.ok(traceService.topology(hours));
+    public R<Map<String, Object>> topology(@RequestParam(defaultValue = "24h") String range) {
+        return R.ok(traceService.topology(range));
     }
 
     /**
-     * 慢链路 TopN：时间窗内按链路总耗时降序
+     * 慢链路 TopN：区间内按链路总耗时降序
+     *
+     * @param range 统一时间区间（同 topology）
      */
     @GetMapping("/slow")
-    public R<List<Map<String, Object>>> slow(@RequestParam(defaultValue = "24") int hours,
+    public R<List<Map<String, Object>>> slow(@RequestParam(defaultValue = "24h") String range,
                                              @RequestParam(defaultValue = "10") int limit) {
-        return R.ok(traceService.slowTraces(hours, limit));
+        return R.ok(traceService.slowTraces(range, limit));
     }
 }

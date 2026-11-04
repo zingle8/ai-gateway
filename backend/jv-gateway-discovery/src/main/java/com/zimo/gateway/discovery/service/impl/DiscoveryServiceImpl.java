@@ -25,8 +25,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DiscoveryServiceImpl implements DiscoveryService {
 
-    /** 服务列表里的 QPS / 平均耗时统计窗口（秒），与总览页口径一致取近 5 分钟 */
-    private static final int STAT_WINDOW_SECONDS = 300;
+    /** 未指定区间时的默认统计窗口（秒）：近 5 分钟 */
+    private static final int DEFAULT_WINDOW_SECONDS = 300;
 
     private final GwServiceMapper serviceMapper;
 
@@ -41,7 +41,8 @@ public class DiscoveryServiceImpl implements DiscoveryService {
         long current = Math.max(1, query.getCurrent());
         long size = Math.max(1, query.getSize());
         List<GwService> records = total == 0 ? List.of() : serviceMapper.selectPage(query);
-        fillRuntimeStats(records);
+        int window = query.getWindowSeconds() > 0 ? query.getWindowSeconds() : DEFAULT_WINDOW_SECONDS;
+        fillRuntimeStats(records, window);
         return Page.of(records, total, current, size);
     }
 
@@ -49,14 +50,16 @@ public class DiscoveryServiceImpl implements DiscoveryService {
      * 用 tb_gw_trace_log 的真实调用记录覆盖注册时写入的 qps / avgRt / 流量。
      *
      * <p>tb_gw_service 里这几个字段只在注册瞬间写过一次，之后没人更新；
-     * 这里按服务名聚合：QPS 取近 60 秒计数，耗时与流量取近 5 分钟。
+     * 这里按服务名聚合：QPS 恒取近 60 秒（瞬时速率语义），耗时与流量按页面所选区间统计。
+     *
+     * @param windowSeconds 平均耗时 / 流量的聚合窗口（秒），由统一时间区间换算
      */
-    private void fillRuntimeStats(List<GwService> services) {
+    private void fillRuntimeStats(List<GwService> services, int windowSeconds) {
         if (services == null || services.isEmpty()) {
             return;
         }
         Map<String, double[]> stats = new HashMap<>();
-        for (Map<String, Object> row : serviceMapper.selectRuntimeStats(STAT_WINDOW_SECONDS)) {
+        for (Map<String, Object> row : serviceMapper.selectRuntimeStats(windowSeconds)) {
             Object name = row.get("service_name");
             if (name == null) {
                 continue;

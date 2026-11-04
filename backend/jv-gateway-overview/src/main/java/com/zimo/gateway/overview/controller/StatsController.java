@@ -1,6 +1,7 @@
 package com.zimo.gateway.overview.controller;
 
 import com.zimo.gateway.common.result.R;
+import com.zimo.gateway.common.util.TimeRange;
 import com.zimo.gateway.overview.mapper.OverviewMapper;
 import com.zimo.gateway.overview.model.StatsAgg;
 import com.zimo.gateway.overview.model.StatsQuery;
@@ -21,7 +22,8 @@ import java.util.Map;
  *
  * <p>所有数字都来自 tb_gw_trace_log 的实时聚合，SQL 由 {@link OverviewMapper}（原生 MyBatis）维护，
  * 动态条件集中在 XML 的 statsFilters 片段，杜绝字符串拼 SQL。
- * 指标卡 / 分布 / Top 榜按「近 N 小时」（1~24）窗口，趋势则与总览共用 7 档粒度。
+ * 指标卡 / 分布 / Top 榜与趋势共用同一套时间区间（{@link TimeRange}，1分钟 ~ 30天 共 10 档），
+ * 保证「所选区间」与页面上的每个数字口径一致。
  */
 @RestController
 @RequestMapping("/stats")
@@ -46,7 +48,7 @@ public class StatsController {
     /**
      * 统计主体：指标卡、状态码/方法分布、Top 服务与接口。
      *
-     * @param hours 时间窗口（小时，1~24，默认 24）
+     * @param range 统一时间区间：1m / 5m / 10m / 30m / 1h / 2h / 24h / 1d / 7d / 30d，默认 24h
      */
     @GetMapping("/summary")
     public R<Map<String, Object>> summary(
@@ -54,11 +56,12 @@ public class StatsController {
             @RequestParam(required = false) String serviceName,
             @RequestParam(required = false) String api,
             @RequestParam(required = false) String method,
-            @RequestParam(defaultValue = "24") int hours) {
+            @RequestParam(defaultValue = "24h") String range) {
 
-        int span = Math.min(Math.max(hours, 1), 24);
+        TimeRange timeRange = TimeRange.of(range);
+        int windowMinutes = TrendQuery.windowMinutes(timeRange);
         StatsQuery query = filters(appId, serviceName, api, method);
-        query.setHours(span);
+        query.setWindowMinutes(windowMinutes);
 
         StatsAgg agg = overviewMapper.statsAgg(query);
         long total = num(agg.getTotal()).longValue();
@@ -75,7 +78,8 @@ public class StatsController {
         summary.put("avgRt", round2(num(agg.getAvgRt()).doubleValue()));
         summary.put("p95", percentile(query, total, 0.95));
         summary.put("p99", percentile(query, total, 0.99));
-        summary.put("qps", round2(total / (span * 3600d)));
+        // QPS 按所选区间折算，1 分钟窗口下即为该分钟的每秒请求数
+        summary.put("qps", round2(total / Math.max(1, windowMinutes * 60d)));
         summary.put("inbound", humanBytes(reqBytes));
         summary.put("outbound", humanBytes(resBytes));
         summary.put("inboundBytes", reqBytes);
@@ -86,7 +90,9 @@ public class StatsController {
         summary.put("apiCount", overviewMapper.statsApiCount());
 
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("range", Map.of("hours", span, "label", "近 " + span + " 小时"));
+        data.put("range", Map.of("code", timeRange.getCode(),
+                "label", timeRange.getRangeLabel(),
+                "minutes", windowMinutes));
         data.put("summary", summary);
         data.put("statusDist", overviewMapper.statusDist(query));
         data.put("methodDist", overviewMapper.methodDist(query));
@@ -96,10 +102,10 @@ public class StatsController {
     }
 
     /**
-     * 请求量趋势：粒度档位 / 时间窗口 / 桶对齐与网关总览的 QPS 趋势完全一致，
+     * 请求量趋势：时间区间 / 桶对齐与网关总览的 QPS 趋势完全一致，
      * 区别只在于这里返回桶内请求量（总览返回 QPS），并且同样支持四个维度过滤。
      *
-     * @param step 桶宽分钟数：1 / 5 / 10 / 30 / 60 / 120 / 1440，固定 120 个点
+     * @param range 统一时间区间（同 summary），固定切 60 个点
      */
     @GetMapping("/trend")
     public R<Map<String, Object>> trend(
@@ -107,12 +113,13 @@ public class StatsController {
             @RequestParam(required = false) String serviceName,
             @RequestParam(required = false) String api,
             @RequestParam(required = false) String method,
-            @RequestParam(defaultValue = "1") int step) {
+            @RequestParam(defaultValue = "24h") String range) {
+        TimeRange timeRange = TimeRange.of(range);
         StatsQuery query = filters(appId, serviceName, api, method);
-        StatsQuery trend = TrendQuery.query(step);
+        StatsQuery trend = TrendQuery.query(timeRange);
         query.setBucketSec(trend.getBucketSec());
         query.setWindowMinutes(trend.getWindowMinutes());
-        return R.ok(TrendQuery.build(overviewMapper.trendBuckets(query), step, false));
+        return R.ok(TrendQuery.build(overviewMapper.trendBuckets(query), timeRange, false));
     }
 
     // ------------------------------------------------------------------ 内部工具

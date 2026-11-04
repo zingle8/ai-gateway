@@ -35,8 +35,16 @@ public interface OverviewMapper {
     /** 今日 P95 / P99：MySQL 5.7 无窗口函数，用排序 + 偏移量 */
     Long todayPercentile(@Param("offset") int offset);
 
-    /** 已注册服务实例 + 近 5 分钟真实调用聚合 */
-    List<Map<String, Object>> instances();
+    /** 按时间区间（秒）聚合：总览页指标卡随所选区间变化 */
+    StatsAgg rangeStats(@Param("windowSeconds") long windowSeconds);
+
+    /** 区间内请求总数，用于折算 QPS */
+    long rangeCount(@Param("windowSeconds") long windowSeconds);
+
+    Long rangePercentile(@Param("windowSeconds") long windowSeconds, @Param("offset") int offset);
+
+    /** 已注册服务实例 + 所选区间内的真实调用聚合 */
+    List<Map<String, Object>> instances(@Param("windowSeconds") long windowSeconds);
 
     // ---------------------------------------------------------------- 趋势（总览 / 统计共用）
 

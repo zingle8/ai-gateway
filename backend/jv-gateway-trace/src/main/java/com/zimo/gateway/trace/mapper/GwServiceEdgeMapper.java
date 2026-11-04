@@ -33,6 +33,14 @@ public interface GwServiceEdgeMapper {
     /** 时间窗内的调用边（拓扑图）：按 src/dst 跨窗口汇总 */
     List<Map<String, Object>> selectEdges(@Param("since") LocalDateTime since);
 
+    /**
+     * 分钟级区间直接对 span 表实时聚合调用边。
+     *
+     * <p>预聚合表是小时窗口，1~30 分钟区间查它会拿到整小时的累计值；
+     * 短区间内 span 量很小，走 idx_edge(service_name, peer_service, start_time) 成本可接受。
+     */
+    List<Map<String, Object>> selectEdgesRealtime(@Param("since") LocalDateTime since);
+
     /** 慢链路 TopN：时间窗内按链路总耗时（首 span 起点到最晚 span 终点）降序 */
     List<Map<String, Object>> selectSlowTraces(@Param("since") LocalDateTime since,
                                                @Param("limit") int limit);

@@ -5,11 +5,7 @@
       <div class="gw-card-hd">
         <span>服务调用拓扑</span>
         <div class="topo-tools">
-          <el-radio-group v-model="hours" size="small" @change="load">
-            <el-radio-button :value="1">近1小时</el-radio-button>
-            <el-radio-button :value="24">近24小时</el-radio-button>
-            <el-radio-button :value="168">近7天</el-radio-button>
-          </el-radio-group>
+          <TimeRangePicker v-model="range" size="sm" @change="load" />
           <el-button size="small" :icon="Refresh" circle @click="load" />
         </div>
       </div>
@@ -73,7 +69,7 @@
     <div class="gw-card">
       <div class="gw-card-hd">
         <span>慢链路 Top {{ slowLimit }}</span>
-        <span class="gw-sm gw-muted">按链路总耗时（首 span 起点→最晚 span 终点）排名，点击行看瀑布图</span>
+        <span class="gw-sm gw-muted">{{ rangeDesc }} · 按链路总耗时（首 span 起点→最晚 span 终点）排名，点击行看瀑布图</span>
       </div>
       <div class="gw-card-bd">
         <el-table :data="slowRows" size="small" v-loading="slowLoading" @row-click="openTrace"
@@ -110,6 +106,8 @@
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { Refresh } from '@element-plus/icons-vue'
+import { TimeRangePicker } from '@zimo/ui'
+import { DEFAULT_TIME_RANGE, timeRangeLabel } from '@zimo/shared'
 import { fetchTopology, fetchSlowTraces } from '../api'
 
 const router = useRouter()
@@ -119,7 +117,8 @@ const NODE_H = 46
 const COL_GAP = 96   // 列间距减去节点宽：留给边和标注
 const ROW_H = 78
 
-const hours = ref(24)
+const range = ref(DEFAULT_TIME_RANGE)
+const rangeDesc = computed(() => timeRangeLabel(range.value))
 const slowLimit = 10
 const loading = ref(false)
 const slowLoading = ref(false)
@@ -135,8 +134,8 @@ const load = async () => {
   slowLoading.value = true
   try {
     const [topo, slow] = await Promise.all([
-      fetchTopology({ hours: hours.value }),
-      fetchSlowTraces({ hours: hours.value, limit: slowLimit })
+      fetchTopology({ range: range.value }),
+      fetchSlowTraces({ range: range.value, limit: slowLimit })
     ])
     edges.value = topo.edges || []
     rawNodes.value = topo.nodes || []

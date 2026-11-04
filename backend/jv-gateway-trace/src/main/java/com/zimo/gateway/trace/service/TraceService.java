@@ -38,14 +38,18 @@ public interface TraceService {
     List<SpanDTO> listSpans(String traceId);
 
     /**
-     * 服务拓扑：时间窗内调用边列表（调用对聚合，来自 tb_gw_service_edge 预聚合表）
+     * 服务拓扑：区间内调用边列表。
      *
+     * <p>短区间（≤30 分钟）直接对 tb_gw_trace_span 实时聚合以保证分钟级精度，
+     * 更长区间查 tb_gw_service_edge 预聚合表（小时窗口）避免大表 GROUP BY。
+     *
+     * @param range 统一时间区间 code（1m ~ 30d）
      * @return {edges: [{src,dst,calls,errors,avgCost,maxCost}], nodes: [{name,inCalls,outCalls}]}
      */
-    Map<String, Object> topology(int hours);
+    Map<String, Object> topology(String range);
 
-    /** 慢链路 TopN：时间窗内按链路总耗时降序（含根服务/根接口信息） */
-    List<Map<String, Object>> slowTraces(int hours, int limit);
+    /** 慢链路 TopN：区间内按链路总耗时降序（含根服务/根接口信息） */
+    List<Map<String, Object>> slowTraces(String range, int limit);
 
     /**
      * 筛选项字典：协议 / 服务名 / 请求格式 / 返回格式，取库中真实出现过的值。

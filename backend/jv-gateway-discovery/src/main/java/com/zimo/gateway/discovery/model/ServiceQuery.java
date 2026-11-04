@@ -23,6 +23,12 @@ public class ServiceQuery {
     /** 语言类型 */
     private String language;
 
+    /**
+     * 运行指标统计窗口（秒）：由统一时间区间（1m ~ 30d）换算而来，
+     * 决定列表里平均耗时 / 流量按多长时间聚合，默认 300 秒（近 5 分钟）。
+     */
+    private int windowSeconds = 300;
+
     private long current = 1;
 
     private long size = 10;
