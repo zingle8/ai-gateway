@@ -4,6 +4,8 @@ import com.zimo.gateway.client.common.dto.ServiceInstanceDTO;
 import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
+import com.zimo.gateway.common.util.TimeRange;
+import com.zimo.gateway.common.util.TrendBuckets;
 import com.zimo.gateway.discovery.entity.GwService;
 import com.zimo.gateway.discovery.mapper.GwServiceMapper;
 import com.zimo.gateway.discovery.model.ServiceQuery;
@@ -43,7 +45,18 @@ public class DiscoveryServiceImpl implements DiscoveryService {
         List<GwService> records = total == 0 ? List.of() : serviceMapper.selectPage(query);
         int window = query.getWindowSeconds() > 0 ? query.getWindowSeconds() : DEFAULT_WINDOW_SECONDS;
         fillRuntimeStats(records, window);
+
         return Page.of(records, total, current, size);
+    }
+
+    @Override
+    public Map<String, Object> trend(String range, String appId, String serviceName) {
+        TimeRange timeRange = TimeRange.of(range);
+        List<Map<String, Object>> rows = serviceMapper.selectTrendBuckets(
+                timeRange.since(), timeRange.getBucketSeconds(), appId, serviceName);
+        // qps=true：一次查询同时返回 QPS 序列（values）与请求量序列（requestValues），
+        // 页面上「请求量趋势 / QPS 趋势」两张图共用这份数据，口径天然一致
+        return TrendBuckets.build(rows, timeRange, true);
     }
 
     /**

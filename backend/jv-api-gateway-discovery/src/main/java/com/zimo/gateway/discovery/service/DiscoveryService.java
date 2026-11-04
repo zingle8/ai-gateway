@@ -21,6 +21,16 @@ public interface DiscoveryService {
     Page<GwService> pageServices(ServiceQuery query);
 
     /**
+     * 调用趋势：区间内请求量与 QPS 两条序列（一次查询同时产出）。
+     *
+     * @param range       统一时间区间 code（1m ~ 30d）
+     * @param appId       应用过滤（可选）
+     * @param serviceName 服务过滤（可选）
+     * @return {range, bucket, points, times, requestValues, values(QPS)}
+     */
+    Map<String, Object> trend(String range, String appId, String serviceName);
+
+    /**
      * 服务详情
      */
     GwService getDetail(Long id);

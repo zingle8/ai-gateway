@@ -49,7 +49,7 @@
 ## 四、鉴权时序
 
 ```
-浏览器                         jv-gateway-user (28081)
+浏览器                         jv-api-gateway-user (28081)
   │  POST /api/auth/login  ───────►  校验账号 + BCrypt 比对密码
   │  ◄─────  { code:200, data:{ token, id, username, nickname, role } }
   │  Pinia 持久化 token（local/session）
@@ -72,13 +72,13 @@
 
 | 文件 | 职责 |
 | --- | --- |
-| `jv-gateway-common/.../util/JwtUtil.java` | 签发（含 `tv` 声明）、解析、取版本号 |
-| `jv-gateway-user/.../interceptor/AuthInterceptor.java` | 签名/过期 → 账号状态 → 令牌版本 三段校验 |
-| `jv-gateway-user/.../config/WebMvcConfig.java` | CORS + 拦截器白名单（仅放行 `/auth/login`） |
-| `jv-gateway-user/.../controller/AuthController.java` | `/auth/login`、`/auth/logout`、`/auth/info` |
-| `jv-gateway-user/.../service/impl/UserServiceImpl.java` | 密码校验、失败锁定、退出自增版本 |
-| `jv-gateway-user/.../config/PasswordEncoderConfig`（common） | BCrypt 加密器 |
-| `jv-gateway-user/src/main/resources/application.yml` | `gateway.jwt.*` 配置 |
+| `jv-api-gateway-common/.../util/JwtUtil.java` | 签发（含 `tv` 声明）、解析、取版本号 |
+| `jv-api-gateway-user/.../interceptor/AuthInterceptor.java` | 签名/过期 → 账号状态 → 令牌版本 三段校验 |
+| `jv-api-gateway-user/.../config/WebMvcConfig.java` | CORS + 拦截器白名单（仅放行 `/auth/login`） |
+| `jv-api-gateway-user/.../controller/AuthController.java` | `/auth/login`、`/auth/logout`、`/auth/info` |
+| `jv-api-gateway-user/.../service/impl/UserServiceImpl.java` | 密码校验、失败锁定、退出自增版本 |
+| `jv-api-gateway-user/.../config/PasswordEncoderConfig`（common） | BCrypt 加密器 |
+| `jv-api-gateway-user/src/main/resources/application.yml` | `gateway.jwt.*` 配置 |
 
 ### 前端
 

@@ -2,11 +2,11 @@
 """
 JV Gateway Python 客户端（自动接入）。
 
-对标 Java 版 ``jv-gateway-client-starter``，做三件事：
+对标 Java 版 ``jv-api-gateway-client-starter``，做三件事：
 
-1. 启动时把自身实例注册到平台（jv-gateway-discovery），定期心跳，退出时下线；
+1. 启动时把自身实例注册到平台（jv-api-gateway-discovery），定期心跳，退出时下线；
 2. 采集请求 / 响应，组装成平台约定的日志模型；
-3. 内存队列 + 后台线程异步批量上报（jv-gateway-trace），队列满直接丢弃。
+3. 内存队列 + 后台线程异步批量上报（jv-api-gateway-trace），队列满直接丢弃。
 
 设计原则与 Java 版一致：**任何采集、上报失败都不能影响业务**。
 全部使用标准库，无第三方依赖。
@@ -201,10 +201,10 @@ class GatewayClient:
 
         if self.registry_enabled:
             self.register()
-            self._spawn("jv-gateway-heartbeat", self._heartbeat_loop)
+            self._spawn("jv-api-gateway-heartbeat", self._heartbeat_loop)
 
         if self.trace_enabled:
-            self._spawn("jv-gateway-reporter", self._flush_loop)
+            self._spawn("jv-api-gateway-reporter", self._flush_loop)
 
         if not self._atexit_registered:
             atexit.register(self._atexit_stop)

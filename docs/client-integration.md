@@ -5,15 +5,15 @@
 
 | 模块 | 说明 | 是否依赖 Spring |
 | --- | --- | --- |
-| `jv-gateway-client-common` | 公共模块：上报模型（TraceLogDTO）、服务实例模型（ServiceInstanceDTO）、常量、错误枚举 | 否，纯 POJO |
-| `jv-gateway-client-starter` | 网关子模块：Spring Boot 自动装配，负责自动注册、请求/响应采集与异步上报 | 是 |
+| `jv-api-gateway-client-common` | 公共模块：上报模型（TraceLogDTO）、服务实例模型（ServiceInstanceDTO）、常量、错误枚举 | 否，纯 POJO |
+| `jv-api-gateway-client-starter` | 网关子模块：Spring Boot 自动装配，负责自动注册、请求/响应采集与异步上报 | 是 |
 
 ## 一、引入依赖
 
 ```xml
 <dependency>
   <groupId>com.zimo.gateway</groupId>
-  <artifactId>jv-gateway-client-starter</artifactId>
+  <artifactId>jv-api-gateway-client-starter</artifactId>
   <version>1.0.0</version>
 </dependency>
 ```
@@ -23,7 +23,7 @@
 ```xml
 <dependency>
   <groupId>com.zimo.gateway</groupId>
-  <artifactId>jv-gateway-client-common</artifactId>
+  <artifactId>jv-api-gateway-client-common</artifactId>
   <version>1.0.0</version>
 </dependency>
 ```
@@ -43,8 +43,8 @@ bash scripts/build-sdk-jar.sh
 
 ```
 lib/api-gateway-1.0.0.pom          ← parent pom，解析依赖版本必需
-lib/jv-gateway-client-common.jar   + .pom
-lib/jv-gateway-client-starter.jar  + .pom
+lib/jv-api-gateway-client-common.jar   + .pom
+lib/jv-api-gateway-client-starter.jar  + .pom
 install.sh                         ← 业务方一条命令装好
 pom-snippet.xml
 ```
@@ -61,11 +61,11 @@ cd dist/sdk-jar && ./install.sh
 mvn install:install-file -Dfile=api-gateway-1.0.0.pom \
   -DgroupId=com.zimo.gateway -DartifactId=api-gateway -Dversion=1.0.0 -Dpackaging=pom
 
-mvn install:install-file -Dfile=jv-gateway-client-common.jar \
-  -DpomFile=jv-gateway-client-common.pom
+mvn install:install-file -Dfile=jv-api-gateway-client-common.jar \
+  -DpomFile=jv-api-gateway-client-common.pom
 
-mvn install:install-file -Dfile=jv-gateway-client-starter.jar \
-  -DpomFile=jv-gateway-client-starter.pom
+mvn install:install-file -Dfile=jv-api-gateway-client-starter.jar \
+  -DpomFile=jv-api-gateway-client-starter.pom
 ```
 
 三个坑，都会导致启动失败：
@@ -112,10 +112,10 @@ zimo:
 >
 > | 前缀 | 目标微服务 | 端口 |
 > | --- | --- | --- |
-> | `/api/trace/**` | jv-gateway-trace | 28084 |
-> | `/api/discovery/**` | jv-gateway-discovery | 28083 |
-> | `/api/users`、`/api/auth` | jv-gateway-user | 28081 |
-> | `/api/overview` | jv-gateway-overview | 28082 |
+> | `/api/trace/**` | jv-api-gateway-trace | 28084 |
+> | `/api/discovery/**` | jv-api-gateway-discovery | 28083 |
+> | `/api/users`、`/api/auth` | jv-api-gateway-user | 28081 |
+> | `/api/overview` | jv-api-gateway-overview | 28082 |
 >
 > 所以 `server-addr` 必须填**统一入口**地址，而不是某个微服务的端口，
 > 否则注册与上报会打到不提供该接口的服务上而返回 404。

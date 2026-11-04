@@ -41,7 +41,7 @@ MySQL 密码目前硬编码在 `application.yml`，改法：直接改各服务 y
 | 端口 | `6379` | `REDIS_PORT`（`6379`） |
 | 密码 | `Redis@123456` | `REDIS_PASSWORD`（`Redis@123456`） |
 
-配置位置：`jv-gateway-user/src/main/resources/application.yml` → `spring.data.redis.*`。
+配置位置：`jv-api-gateway-user/src/main/resources/application.yml` → `spring.data.redis.*`。
 
 运维排查：
 
@@ -59,11 +59,11 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 | 服务地址（客户端连接） | `127.0.0.1:8848`（**必须用 8848**，v2.x 按 8848+1000 推算 gRPC 端口 9848；用控制台 8080 会导致注册失败） |
 | 控制台 | `http://localhost:8080/nacos`，账号 `nacos` / `nacos` |
 | 模式 | standalone |
-| 挂载的配置文件 | `api-jv-gateway-common.yaml`、`api-jv-gateway-user.yaml`、`api-jv-gateway-overview.yaml`、`api-jv-gateway-discovery.yaml`、`api-jv-gateway-trace.yaml`（均为 optional，可不存在） |
+| 挂载的配置文件 | `api-jv-api-gateway-common.yaml`、`api-jv-api-gateway-user.yaml`、`api-jv-api-gateway-overview.yaml`、`api-jv-api-gateway-discovery.yaml`、`api-jv-api-gateway-trace.yaml`（均为 optional，可不存在） |
 
 配置位置：各服务 yml → `spring.config.import` 与 `spring.cloud.nacos.*`。
 
-## 5. JWT 与内置账号（jv-gateway-user）
+## 5. JWT 与内置账号（jv-api-gateway-user）
 
 | 项 | 默认值 | 环境变量 |
 | --- | --- | --- |
@@ -79,11 +79,11 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 | 服务 | 端口 | context-path |
 | --- | --- | --- |
 | 控制台前端（Vite dev） | 28080 | `/`（`/api` 代理到 28090） |
-| jv-gateway-user（账号权限） | 28081 | `/api` |
-| jv-gateway-overview（总览统计） | 28082 | `/api` |
-| jv-gateway-discovery（服务/路由） | 28083 | `/api` |
-| jv-gateway-trace（日志追踪） | 28084 | `/api` |
-| jv-gateway-proxy（网关入口） | 28090 | `/` |
+| jv-api-gateway-user（账号权限） | 28081 | `/api` |
+| jv-api-gateway-overview（总览统计） | 28082 | `/api` |
+| jv-api-gateway-discovery（服务/路由） | 28083 | `/api` |
+| jv-api-gateway-trace（日志追踪） | 28084 | `/api` |
+| jv-api-gateway-proxy（网关入口） | 28090 | `/` |
 
 ## 7. 环境变量速查
 
@@ -97,5 +97,5 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 ## 8. 修改配置的三种方式（优先级从高到低）
 
 1. **环境变量**：如 `GATEWAY_JWT_SECRET=xxx ./scripts/start.sh`（已支持 `${VAR:default}` 占位符的项）；
-2. **Nacos 配置中心**：在控制台修改 `api-jv-gateway-<service>.yaml`，服务重启后生效（当前为 optional 引入）；
+2. **Nacos 配置中心**：在控制台修改 `api-jv-api-gateway-<service>.yaml`，服务重启后生效（当前为 optional 引入）；
 3. **直接改 `application.yml`**：改完需 `./scripts/restart.sh backend --build` 重新构建生效。

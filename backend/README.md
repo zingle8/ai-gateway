@@ -435,7 +435,7 @@ chmod +x scripts/*.sh
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/overview/summary` | 核心指标汇总（含 `avgRt` / `p95` / `p99`，单位 ms），`?range=` 统一时间区间，默认 `24h` |
-| GET | `/api/overview/trend` | QPS 趋势，`?range=` 统一时间区间；桶宽随区间自动推导（区间内固定 60 点） |
+| GET | `/api/overview/trend` | QPS 与请求量趋势（一次查询返回两套序列：`values`=QPS、`requestValues`=请求量），`?range=` 统一时间区间；桶宽随区间自动推导（区间内固定 60 点） |
 | GET | `/api/overview/runtime` | 运行时信息 |
 | GET | `/api/overview/instances` | 已接入服务实例列表（`calls` / 平均耗时按 `?range=` 区间统计，QPS 恒为近 60 秒；按区间调用量降序取前 8） |
 | GET | `/api/stats/filters` | 数据统计筛选项（应用 / 服务 / 接口 / 方法） |
@@ -447,6 +447,7 @@ chmod +x scripts/*.sh
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
 | GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤；`?range=` 决定平均耗时与流量的聚合窗口；返回 `calls`（区间调用次数）与 `apiCount`（已登记接口数） |
+| GET | `/api/discovery/trend` | 调用趋势：区间内请求量 + QPS 双序列（`requestValues` / `values`），支持 `?appId=` `?serviceName=` 过滤、`?range=` 统一时间区间 |
 | GET | `/api/discovery/filters` | 筛选项字典：应用（appId+appName）、服务（appId+serviceName）、语言类型 |
 | GET | `/api/discovery/services/{id}` | 服务详情 |
 | POST | `/api/discovery/services/register` | 服务实例注册（自动接入） |

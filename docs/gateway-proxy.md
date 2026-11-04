@@ -19,7 +19,7 @@
 ## 二、架构
 
 ```
-业务方调用 ──► jv-gateway-proxy :28090 ──► 上游服务 10.20.3.11:8080
+业务方调用 ──► jv-api-gateway-proxy :28090 ──► 上游服务 10.20.3.11:8080
                     │
                     │ TraceGlobalFilter 记录
                     ▼
@@ -33,14 +33,14 @@
 ```bash
 bash scripts/restart.sh backend      # 会一并启动 5 个服务（含 proxy 28090）
 bash scripts/status.sh               # 查看端口占用
-tail -f logs/jv-gateway-proxy.log    # 网关日志
+tail -f logs/jv-api-gateway-proxy.log    # 网关日志
 ```
 
 单独调试：
 
 ```bash
-cd backend && mvn -pl jv-gateway-proxy -am package
-java -jar backend/jv-gateway-proxy/target/jv-gateway-proxy.jar
+cd backend && mvn -pl jv-api-gateway-proxy -am package
+java -jar backend/jv-api-gateway-proxy/target/jv-api-gateway-proxy.jar
 ```
 
 ## 四、配置规则

@@ -33,6 +33,15 @@ public interface GwServiceMapper {
     /** 已登记接口数（tb_gw_api 按服务名汇总），返回列 service_name / api_count */
     List<Map<String, Object>> selectApiCounts();
 
+    /**
+     * 趋势分桶：区间内按桶起点聚合请求数（稀疏桶，b = 桶起点 epoch 秒 / c = 请求数），
+     * 支持按应用 / 服务过滤，补点由 TrendBuckets 完成。
+     */
+    List<Map<String, Object>> selectTrendBuckets(@Param("since") java.time.LocalDateTime since,
+                                                 @Param("bucketSec") long bucketSec,
+                                                 @Param("appId") String appId,
+                                                 @Param("serviceName") String serviceName);
+
     /** 注册 / 心跳按服务名定位 */
     GwService selectByServiceName(@Param("serviceName") String serviceName);
 

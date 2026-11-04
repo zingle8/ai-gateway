@@ -1,9 +1,43 @@
 <template>
   <div class="page">
-    <!-- 时间区间：列表与详情的平均耗时 / 流量按所选区间统计 -->
+    <!-- 时间区间：趋势、列表与详情共用同一口径 -->
     <div class="range-bar">
-      <span class="gw-sm gw-muted">统计区间：{{ rangeDesc }}（平均耗时 / 流量）</span>
+      <span class="gw-sm gw-muted">统计区间：{{ rangeDesc }}</span>
       <TimeRangePicker v-model="range" @change="switchRange" />
+    </div>
+
+    <!-- 调用趋势：请求量在前、QPS 在后，随上方筛选（应用 / 服务）联动 -->
+    <div class="trend-stack">
+      <section class="gw-card">
+        <div class="gw-card-hd">
+          <span>请求量趋势</span>
+          <span class="gw-sm gw-muted">{{ trendScope }}</span>
+        </div>
+        <div class="gw-card-bd">
+          <TrendChart
+            :times="discoTrend.times"
+            :values="discoTrend.requestValues || []"
+            unit=" 次"
+            series-name="请求量"
+            :height="150"
+          />
+        </div>
+      </section>
+
+      <section class="gw-card">
+        <div class="gw-card-hd">
+          <span>QPS 趋势</span>
+          <span class="gw-sm gw-muted">{{ trendScope }}</span>
+        </div>
+        <div class="gw-card-bd">
+          <TrendChart
+            :times="discoTrend.times"
+            :values="discoTrend.values"
+            series-name="QPS"
+            :height="150"
+          />
+        </div>
+      </section>
     </div>
 
     <section class="gw-card">
@@ -101,9 +135,9 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { TimeRangePicker } from '@zimo/ui'
+import { TimeRangePicker, TrendChart } from '@zimo/ui'
 import { DEFAULT_TIME_RANGE, fmtTime, dotClass, timeRangeLabel } from '@zimo/shared'
-import { fetchServices, fetchServiceFilters } from '../api'
+import { fetchServices, fetchServiceFilters, fetchDiscoveryTrend } from '../api'
 
 const rows = ref([])
 const total = ref(0)
@@ -111,12 +145,35 @@ const pages = ref(1)
 const detailVisible = ref(false)
 const detail = ref({})
 
-/** 统一时间区间：决定列表与详情里平均耗时 / 流量的聚合窗口 */
+/** 统一时间区间：趋势、列表与详情共用同一口径 */
 const range = ref(DEFAULT_TIME_RANGE)
 const rangeDesc = computed(() => timeRangeLabel(range.value))
 const switchRange = () => {
   query.current = 1
   load()
+}
+
+/** 调用趋势（请求量 + QPS 同源双序列），随区间与「应用 / 服务」筛选联动 */
+const discoTrend = ref({ times: [], values: [], requestValues: [] })
+const trendScope = computed(() => {
+  const parts = []
+  if (query.appId) {
+    const app = appOptions.value.find((a) => a.appId === query.appId)
+    parts.push(app?.appName || query.appId)
+  }
+  if (query.serviceName) parts.push(query.serviceName)
+  return (parts.length ? parts.join(' · ') : '全部服务') + ' · ' + rangeDesc.value
+})
+const loadTrend = async () => {
+  try {
+    discoTrend.value = await fetchDiscoveryTrend({
+      range: range.value,
+      appId: query.appId || undefined,
+      serviceName: query.serviceName || undefined
+    })
+  } catch (e) {
+    discoTrend.value = { times: [], values: [], requestValues: [] }
+  }
 }
 
 const query = reactive({
@@ -156,6 +213,7 @@ const onAppChange = () => {
 }
 
 const load = async () => {
+  loadTrend()
   try {
     const page = await fetchServices({ ...query, range: range.value })
     rows.value = page.records || []
@@ -217,6 +275,14 @@ const detailFields = computed(() => {
 
 <style scoped>
 /* .filter-bar 布局由 @zimo/shared 全局样式统一提供（含窄屏两列网格），此处不再重复定义 */
+
+/* 两张趋势卡纵向堆叠：趋势图需要横向空间，全宽比并排更易读峰值 */
+.trend-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 12px;
+}
 
 .status-dot {
   display: inline-block;

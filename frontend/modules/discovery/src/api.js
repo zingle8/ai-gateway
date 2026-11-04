@@ -14,3 +14,8 @@ export function fetchServiceDetail(id) {
 export function fetchServiceFilters() {
   return request.get('/discovery/filters')
 }
+
+/** 服务发现：调用趋势（请求量 + QPS 双序列，支持应用 / 服务过滤） */
+export function fetchDiscoveryTrend(params) {
+  return request.get('/discovery/trend', { params })
+}

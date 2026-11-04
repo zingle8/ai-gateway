@@ -1,7 +1,7 @@
 # JV Gateway Python SDK（自动接入）
 
 业务系统引入后**启动即自动注册**到网关平台，并持续采集请求/响应上报调用日志，
-效果等同于 Java 版的 `jv-gateway-client-starter`。
+效果等同于 Java 版的 `jv-api-gateway-client-starter`。
 
 **零第三方依赖**，只用标准库，Python 3.8+ 可用。
 
@@ -134,8 +134,8 @@ SDK 在 `server_addr` 之后拼接不同前缀，分别打到**不同微服务**
 
 | 前缀 | 目标微服务 |
 | --- | --- |
-| `/discovery/**` | jv-gateway-discovery |
-| `/trace/**` | jv-gateway-trace |
+| `/discovery/**` | jv-api-gateway-discovery |
+| `/trace/**` | jv-api-gateway-trace |
 
 所以不能填某个微服务的端口，否则另一半请求必然 404。
 
@@ -161,7 +161,7 @@ open http://127.0.0.1:28080/discovery
 
 ## 与 Java SDK 的差异
 
-| 能力 | Java (`jv-gateway-client-starter`) | Python (`jv_gateway`) |
+| 能力 | Java (`jv-api-gateway-client-starter`) | Python (`jv_gateway`) |
 | --- | --- | --- |
 | 注册 / 心跳 / 下线 | ✅ | ✅ |
 | 自动采集 | Servlet Filter | WSGI / ASGI 中间件 |

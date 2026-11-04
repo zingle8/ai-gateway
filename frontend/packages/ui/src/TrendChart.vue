@@ -134,14 +134,17 @@ const areaPath = computed(() => {
   return `${linePath.value} L${last.x.toFixed(1)} ${baseY} L${first.x.toFixed(1)} ${baseY} Z`
 })
 
-/** Y 轴 5 档刻度：0 / 1/4 / 1/2 / 3/4 / 上界 */
+/**
+ * Y 轴 5 档刻度：0 / 1/4 / 1/2 / 3/4 / 上界。
+ * 上界 < 10 时保留 1 位小数：QPS 量级常在 0~3，直接取整会出现「1、1、0」重复刻度。
+ */
 const yTicks = computed(() =>
   [0, 0.25, 0.5, 0.75, 1].map((r) => {
     const v = yMax.value * r
     return {
       v: r,
       y: pad.top + innerH.value - r * innerH.value,
-      label: formatNum(Math.round(v))
+      label: formatNum(yMax.value < 10 ? Math.round(v * 10) / 10 : Math.round(v))
     }
   })
 )

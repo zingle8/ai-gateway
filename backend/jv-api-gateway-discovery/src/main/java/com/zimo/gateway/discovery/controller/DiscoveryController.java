@@ -50,6 +50,17 @@ public class DiscoveryController {
     }
 
     /**
+     * 调用趋势：区间内请求量与 QPS 两条序列，支持按应用 / 服务过滤（默认全局）。
+     * 与服务列表的区间选择器共用同一 range，口径一致。
+     */
+    @GetMapping("/trend")
+    public R<Map<String, Object>> trend(@RequestParam(defaultValue = "24h") String range,
+                                        @RequestParam(required = false) String appId,
+                                        @RequestParam(required = false) String serviceName) {
+        return R.ok(discoveryService.trend(range, appId, serviceName));
+    }
+
+    /**
      * 筛选项字典：应用 / 服务 / 语言类型（全部取自库中真实出现过的值）。
      * 注：必须声明在 {@code /services/{id}} 之前语义等价——Spring 按字面量优先匹配，不会被 {id} 吞掉。
      */

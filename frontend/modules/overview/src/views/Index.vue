@@ -19,7 +19,25 @@
     </div>
 
     <div class="grid-2">
-      <!-- QPS 趋势 -->
+      <!-- 请求量趋势（区间内每桶请求数） -->
+      <section class="gw-card">
+        <div class="gw-card-hd">
+          <span>请求量趋势</span>
+          <span class="gw-sm gw-muted">{{ rangeDesc }}</span>
+        </div>
+        <div class="gw-card-bd">
+          <TrendChart
+            :times="trend.times"
+            :values="requestTrend"
+            unit=" 次"
+            series-name="请求量"
+            :height="160"
+          />
+          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ sampleDesc }}</div>
+        </div>
+      </section>
+
+      <!-- QPS 趋势（同一份数据按桶宽折算） -->
       <section class="gw-card">
         <div class="gw-card-hd">
           <span>QPS 趋势</span>
@@ -29,27 +47,26 @@
           <TrendChart
             :times="trend.times"
             :values="trend.values"
-            unit=" 次"
-            series-name="请求数"
+            series-name="QPS"
             :height="160"
           />
           <div class="gw-sm gw-muted" style="margin-top: 4px">{{ sampleDesc }}</div>
         </div>
       </section>
+    </div>
 
-      <!-- 运行时指标 -->
-      <section class="gw-card">
-        <div class="gw-card-hd"><span>Spring Boot 运行时指标</span></div>
-        <div class="gw-card-bd">
-          <div class="kv-grid">
-            <div v-for="m in runtime" :key="m.label" class="kv-item">
-              <span class="gw-sm gw-muted">{{ m.label }}</span>
-              <b>{{ m.value }} <span class="gw-sm gw-muted">{{ m.hint }}</span></b>
-            </div>
+    <!-- 运行时指标 -->
+    <section class="gw-card">
+      <div class="gw-card-hd"><span>Spring Boot 运行时指标</span></div>
+      <div class="gw-card-bd">
+        <div class="kv-grid">
+          <div v-for="m in runtime" :key="m.label" class="kv-item">
+            <span class="gw-sm gw-muted">{{ m.label }}</span>
+            <b>{{ m.value }} <span class="gw-sm gw-muted">{{ m.hint }}</span></b>
           </div>
         </div>
-      </section>
-    </div>
+      </div>
+    </section>
 
     <!-- 已接入服务实例 -->
     <section class="gw-card">
@@ -104,7 +121,9 @@ const summary = ref({
   outbound: '0 B'
 })
 
-const trend = ref({ times: [], values: [] })
+const trend = ref({ times: [], values: [], requestValues: [] })
+// 请求量趋势与 QPS 趋势同源：后端一次查询返回两套序列，这里取请求数那份
+const requestTrend = computed(() => trend.value.requestValues || [])
 const runtime = ref([])
 const instances = ref([])
 

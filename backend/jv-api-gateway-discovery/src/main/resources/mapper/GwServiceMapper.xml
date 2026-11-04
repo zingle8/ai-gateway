@@ -54,6 +54,17 @@
         GROUP BY service_name
     </select>
 
+    <!-- 趋势分桶：tb_gw_trace_log 按桶起点聚合请求数（稀疏桶，补点在 Java 层） -->
+    <select id="selectTrendBuckets" resultType="map">
+        SELECT FLOOR(UNIX_TIMESTAMP(req_time) / #{bucketSec}) * #{bucketSec} AS b, COUNT(*) AS c
+        FROM tb_gw_trace_log
+        WHERE deleted = 0
+          AND req_time &gt;= #{since}
+        <if test="appId != null and appId != ''">AND app_id = #{appId}</if>
+        <if test="serviceName != null and serviceName != ''">AND service_name = #{serviceName}</if>
+        GROUP BY b
+    </select>
+
     <select id="selectById" resultType="com.zimo.gateway.discovery.entity.GwService">
         SELECT <include refid="cols"/> FROM tb_gw_service WHERE deleted = 0 AND id = #{id}
     </select>

@@ -296,7 +296,7 @@ function commonPrefix(names) {
   if (names.length < 2) return ''
   const groups = {}
   names.forEach((n) => {
-    // 按前两段分组（jv-gateway / jv-regtech）：只按首段 'jv' 分组会把
+    // 按前两段分组（jv-api-gateway / jv-regtech）：只按首段 'jv' 分组会把
     // jv-regtech-* 也算进来，公共前缀被拉短成 'jv-'
     const seg = n.split('-').slice(0, 2).join('-')
     ;(groups[seg] = groups[seg] || []).push(n)
