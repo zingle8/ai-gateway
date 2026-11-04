@@ -9,6 +9,8 @@ import com.zimo.gateway.discovery.service.DiscoveryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * 服务发现接口
  */
@@ -39,6 +41,15 @@ public class DiscoveryController {
         query.setCurrent(current);
         query.setSize(size);
         return R.ok(PageResult.of(discoveryService.pageServices(query)));
+    }
+
+    /**
+     * 筛选项字典：应用 / 服务 / 语言类型（全部取自库中真实出现过的值）。
+     * 注：必须声明在 {@code /services/{id}} 之前语义等价——Spring 按字面量优先匹配，不会被 {id} 吞掉。
+     */
+    @GetMapping("/filters")
+    public R<Map<String, Object>> filters() {
+        return R.ok(discoveryService.filterOptions());
     }
 
     /**

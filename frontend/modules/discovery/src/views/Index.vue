@@ -10,8 +10,16 @@
       <div class="gw-card-bd">
         <div class="filter-bar">
           <el-input v-model="query.keyword" placeholder="应用ID / 应用名 / 服务名" clearable style="width: 220px;" />
-          <el-select v-model="query.appId" placeholder="全部应用" clearable style="width: 180px;">
-            <el-option v-for="app in appOptions" :key="app" :label="app" :value="app" />
+          <el-select v-model="query.appId" placeholder="全部应用" clearable filterable style="width: 200px;" @change="onAppChange">
+            <el-option
+              v-for="app in appOptions"
+              :key="app.appId"
+              :label="app.appName ? `${app.appName}（${app.appId}）` : app.appId"
+              :value="app.appId"
+            />
+          </el-select>
+          <el-select v-model="query.serviceName" placeholder="全部服务" clearable filterable style="width: 190px;">
+            <el-option v-for="s in serviceOptions" :key="s.serviceName" :label="s.serviceName" :value="s.serviceName" />
           </el-select>
           <el-select v-model="query.status" placeholder="全部状态" clearable style="width: 130px;">
             <el-option label="健康" value="健康" />
@@ -83,7 +91,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { fetchServices } from '../api'
+import { fetchServices, fetchServiceFilters } from '../api'
 import { fmtTime, dotClass } from '@zimo/shared'
 
 const rows = ref([])
@@ -95,17 +103,38 @@ const detail = ref({})
 const query = reactive({
   keyword: '',
   appId: '',
+  serviceName: '',
   status: '',
   language: '',
   current: 1,
   size: 10
 })
 
-const appOptions = [
-  'app-order', 'app-user', 'app-search', 'app-file', 'app-pay', 'app-auth',
-  'app-msg', 'app-inventory', 'app-coupon', 'app-settle', 'app-report', 'app-open'
-]
-const langOptions = ['Java 17', 'Go 1.22', 'Node.js 20']
+// 下拉选项均由 /discovery/filters 按库中真实数据填充
+const appOptions = ref([])        // [{ appId, appName }]
+const allServices = ref([])       // [{ appId, serviceName }]
+const langOptions = ref([])
+
+// 「全部服务」选项随已选应用级联：选了应用只列该应用下的服务
+const serviceOptions = computed(() =>
+  query.appId ? allServices.value.filter((s) => s.appId === query.appId) : allServices.value
+)
+
+const loadFilters = async () => {
+  try {
+    const d = await fetchServiceFilters()
+    appOptions.value = d.apps || []
+    allServices.value = d.services || []
+    langOptions.value = d.languages || []
+  } catch (e) { /* 字典不可用不阻塞列表查询 */ }
+}
+
+// 切换应用后，原选中的服务若不属于新应用则清空，避免「应用 A + 服务 B」组合查空
+const onAppChange = () => {
+  if (query.serviceName && !serviceOptions.value.some((s) => s.serviceName === query.serviceName)) {
+    query.serviceName = ''
+  }
+}
 
 const load = async () => {
   try {
@@ -119,12 +148,16 @@ const load = async () => {
   }
 }
 
-// 首屏加载：原先漏了这一步，进入页面时不会查询，只有手动点「查询」才有数据
-onMounted(load)
+// 首屏加载：先取筛选项字典，再查列表（字典失败不影响列表）
+onMounted(() => {
+  loadFilters()
+  load()
+})
 
 const reset = () => {
   query.keyword = ''
   query.appId = ''
+  query.serviceName = ''
   query.status = ''
   query.language = ''
   query.current = 1

@@ -1,6 +1,7 @@
 package com.zimo.gateway.discovery.mapper;
 
 import com.zimo.gateway.discovery.entity.GwService;
+import com.zimo.gateway.discovery.model.FilterOption;
 import com.zimo.gateway.discovery.model.ServiceQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -31,6 +32,15 @@ public interface GwServiceMapper {
 
     /** 注册 / 心跳按服务名定位 */
     GwService selectByServiceName(@Param("serviceName") String serviceName);
+
+    /** 筛选项字典：应用列表（app_id + app_name），供「全部应用」下拉 */
+    List<FilterOption> selectDistinctApps();
+
+    /** 筛选项字典：服务列表（app_id + service_name），供「全部服务」下拉并按应用级联 */
+    List<FilterOption> selectDistinctServices();
+
+    /** 筛选项字典：语言类型列表 */
+    List<String> selectDistinctLanguages();
 
     /** 新增，主键自增回填到 entity.id */
     int insert(GwService service);

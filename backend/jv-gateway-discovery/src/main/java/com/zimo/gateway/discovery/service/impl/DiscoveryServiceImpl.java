@@ -14,6 +14,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -94,6 +95,15 @@ public class DiscoveryServiceImpl implements DiscoveryService {
             return String.format("%.1f KB", bytes / 1024);
         }
         return String.format("%.1f MB", bytes / 1024 / 1024);
+    }
+
+    @Override
+    public Map<String, Object> filterOptions() {
+        Map<String, Object> options = new LinkedHashMap<>();
+        options.put("apps", serviceMapper.selectDistinctApps());
+        options.put("services", serviceMapper.selectDistinctServices());
+        options.put("languages", serviceMapper.selectDistinctLanguages());
+        return options;
     }
 
     @Override

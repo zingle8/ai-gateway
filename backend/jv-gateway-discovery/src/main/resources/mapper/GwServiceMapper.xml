@@ -54,6 +54,26 @@
         WHERE deleted = 0 AND service_name = #{serviceName} LIMIT 1
     </select>
 
+    <!-- 筛选项字典：「全部应用」下拉，取库中真实出现过的应用 -->
+    <select id="selectDistinctApps" resultType="com.zimo.gateway.discovery.model.FilterOption">
+        SELECT DISTINCT app_id, app_name FROM tb_gw_service
+        WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+        ORDER BY app_id
+    </select>
+
+    <!-- 筛选项字典：「全部服务」下拉，带 app_id 供前端按应用级联过滤 -->
+    <select id="selectDistinctServices" resultType="com.zimo.gateway.discovery.model.FilterOption">
+        SELECT DISTINCT app_id, service_name FROM tb_gw_service
+        WHERE deleted = 0 AND service_name IS NOT NULL AND service_name != ''
+        ORDER BY service_name
+    </select>
+
+    <select id="selectDistinctLanguages" resultType="string">
+        SELECT DISTINCT language FROM tb_gw_service
+        WHERE deleted = 0 AND language IS NOT NULL AND language != ''
+        ORDER BY language
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO tb_gw_service (app_id, app_name, service_name, ip, port, language, version,
                                    qps, avg_rt, status, in_flow, out_flow, instances, register_time,

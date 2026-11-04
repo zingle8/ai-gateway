@@ -358,7 +358,8 @@ chmod +x scripts/*.sh
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/discovery/services` | 服务分页列表 |
+| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤） |
+| GET | `/api/discovery/filters` | 筛选项字典：应用（appId+appName）、服务（appId+serviceName）、语言类型 |
 | GET | `/api/discovery/services/{id}` | 服务详情 |
 | POST | `/api/discovery/services/register` | 服务实例注册（自动接入） |
 | POST | `/api/discovery/services/heartbeat` | 服务心跳 |
