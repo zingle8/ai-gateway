@@ -147,6 +147,8 @@ public class OverviewController {
             item.put("port", row.get("port"));
             // QPS 取近 60 秒计数，平均耗时取近 5 分钟，均为真实调用记录
             item.put("qps", number(row.get("qps")).intValue());
+            // 近 5 分钟调用次数：实例列表的排序依据（调用排名靠前的服务排前面）
+            item.put("calls", number(row.get("calls")).intValue());
             item.put("avgRt", Math.round(number(row.get("avg_cost")).doubleValue()));
             item.put("lastHeartbeat", row.get("last_heartbeat_time"));
             item.put("status", row.get("status"));

@@ -71,18 +71,22 @@
 
     <select id="instances" resultType="map">
         SELECT s.service_name, s.app_name, s.ip, s.port, s.status, s.last_heartbeat_time,
-               COALESCE(t.qps, 0) AS qps, COALESCE(t.avg_cost, 0) AS avg_cost
+               COALESCE(t.qps, 0) AS qps, COALESCE(t.calls, 0) AS calls, COALESCE(t.avg_cost, 0) AS avg_cost
         FROM tb_gw_service s
         LEFT JOIN (
             SELECT service_name,
                    SUM(CASE WHEN req_time >= DATE_SUB(NOW(), INTERVAL 60 SECOND) THEN 1 ELSE 0 END) AS qps,
+                   COUNT(*) AS calls,
                    AVG(cost) AS avg_cost
             FROM tb_gw_trace_log
             WHERE req_time >= DATE_SUB(NOW(), INTERVAL 300 SECOND) AND service_name IS NOT NULL
             GROUP BY service_name
         ) t ON t.service_name = s.service_name
         WHERE s.deleted = 0
-        ORDER BY CASE WHEN s.status = '健康' THEN 0 ELSE 1 END, s.id DESC LIMIT 8
+        <!-- 按近 5 分钟真实调用量排名（无调用的服务排在后面，再按健康状态、注册先后兜底） -->
+        ORDER BY COALESCE(t.calls, 0) DESC, COALESCE(t.qps, 0) DESC,
+                 CASE WHEN s.status = '健康' THEN 0 ELSE 1 END, s.id DESC
+        LIMIT 8
     </select>
 
     <!-- ============================================================ 趋势 -->

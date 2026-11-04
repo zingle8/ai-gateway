@@ -55,7 +55,10 @@
 
     <!-- 已接入服务实例 -->
     <section class="gw-card">
-      <div class="gw-card-hd"><span>已接入服务实例</span></div>
+      <div class="gw-card-hd">
+        <span>已接入服务实例</span>
+        <span class="gw-sm gw-muted">按近 5 分钟调用量排名</span>
+      </div>
       <div class="gw-card-bd no-pad">
         <el-table :data="instances" size="small" style="width: 100%">
           <el-table-column prop="name" label="服务名" min-width="160" />
@@ -63,6 +66,7 @@
             <template #default="{ row }">{{ row.ip }}:{{ row.port }}</template>
           </el-table-column>
           <el-table-column prop="appName" label="归属应用" width="140" />
+          <el-table-column prop="calls" label="近5分钟调用" width="110" />
           <el-table-column prop="qps" label="QPS" width="90" />
           <el-table-column label="平均耗时" width="110">
             <template #default="{ row }">{{ row.avgRt }} ms</template>

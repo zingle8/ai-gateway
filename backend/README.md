@@ -349,7 +349,7 @@ chmod +x scripts/*.sh
 | GET | `/api/overview/summary` | 核心指标汇总（含 `avgRt` / `p95` / `p99`，均为今日调用，单位 ms） |
 | GET | `/api/overview/trend` | QPS 趋势，`?step=` 粒度（分钟，可选 `1/5/10/30/60/120/1440`，默认 1，窗口固定 120 点） |
 | GET | `/api/overview/runtime` | 运行时信息 |
-| GET | `/api/overview/instances` | 网关实例列表 |
+| GET | `/api/overview/instances` | 已接入服务实例列表（含近 5 分钟调用次数 `calls`、QPS、平均耗时；**按近 5 分钟调用量降序**取前 8） |
 | GET | `/api/stats/filters` | 数据统计筛选项（应用 / 服务 / 接口 / 方法） |
 | GET | `/api/stats/summary` | 数据统计聚合：指标卡（含 `avgRt` / `p95` / `p99`）+ 状态码/方法分布 + Top 服务/接口，支持 `appId`、`serviceName`、`api`、`method`、`hours`（1~24）过滤 |
 | GET | `/api/stats/trend` | 请求量趋势，`?step=` 粒度与总览 QPS 趋势完全一致（7 档，固定 120 点），同样支持四个维度过滤；返回桶内请求量（总览返回 QPS） |
