@@ -205,6 +205,28 @@ docker exec -it redis redis-cli -a 'Redis@123456' ping   # 返回 PONG
   - `req_params`：URL 上的原始 query string；表单（`x-www-form-urlencoded`）参数原文在 `req_body`
   - `req_bytes` / `res_bytes`：真实流经字节数（不再用截断后字符数）
 - `tb_gw_trace_span`：调用链路 span（`trace_span.sql`），一跳两个 span：`SERVER`（服务端处理）+ `CLIENT`（发起调用）
+- `tb_gw_service_edge`：服务调用拓扑预聚合（`service_edge.sql`），按小时窗口存调用对
+
+#### 服务拓扑聚合（阶段二）
+
+`EdgeAggregator`（jv-gateway-trace，依赖 `@EnableScheduling`）每 60s 对**最近 3 个整点小时窗口**
+做「先删后插」重算，把 `tb_gw_trace_span` 的 CLIENT span 汇成 `tb_gw_service_edge`：
+
+```sql
+-- 窗口内 CLIENT span 按调用对聚合，peer_service 即被调方
+SELECT service_name, peer_service, COUNT(*), SUM(status_code >= 400), SUM(cost), MAX(cost)
+FROM tb_gw_trace_span
+WHERE kind = 'CLIENT' AND start_time >= :ws AND start_time < :ws + 1h
+GROUP BY service_name, peer_service
+```
+
+- 重算而非增量累加：同一窗口重复执行幂等，批量上报的迟到 span 会在下一轮被纠正
+- **先删后插**：span 被清理/修正后，已消失的边不会残留在聚合表里（仅覆盖 3 小时窗口内）
+- 拓扑接口只查 `uk_edge_window(src, dst, window_start)` 覆盖的小表，不在 span 大表上实时 GROUP BY
+- 窗口数据保留 30 天，任务内顺带清理
+
+慢链路 TopN 直接查 span 表（`idx_start` 命中分区 + `GROUP BY trace_id`），
+总耗时取「最晚 span 终点 − 最早 span 起点」而非 `SUM(cost)`，避免并行兄弟 span 重复计入。
 
 ### 日志/链路表分区（每天一个分区）
 
@@ -234,6 +256,7 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
 
 - 协议：W3C `traceparent: 00-<traceId:32hex>-<spanId:16hex>-01`，同时兼容旧 `X-Gateway-Trace-Id`
 - 网关 `TraceGlobalFilter`：有上游 traceparent 就继承（否则作为链路根），转发时注入新的 CLIENT spanId
+  与 `X-Gateway-Served-By`（网关服务名，供下游 SDK 记录 peer_service，拓扑图节点因此能与服务发现对齐）
 - 服务侧 SDK：`GatewayTraceFilter` 读 traceparent 记 SERVER span；`TracePropagationInterceptor`
   在通过 Spring 自动装配的 `RestClient.Builder` 发起调用时记 CLIENT span 并注入 header
 - SDK 自身的注册/心跳/上报路径已在 `excludePaths` 默认排除，避免自引用噪音
@@ -243,6 +266,8 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
 mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' < sql/api_gateway.sql
 # 链路 span 表 + 日志表按天分区改造（新环境必跑）
 mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/trace_span.sql
+# 服务拓扑预聚合表（阶段二，依赖上一步的 tb_gw_trace_span）
+mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/service_edge.sql
 ```
 
 ## Redis
@@ -421,6 +446,8 @@ chmod +x scripts/*.sh
 | POST | `/api/trace/logs/batch` | 批量上报调用日志（接入 SDK 使用） |
 | POST | `/api/trace/spans/batch` | 批量上报链路 span（接入 SDK / 网关使用） |
 | GET | `/api/trace/traces/{traceId}` | 链路详情：按 traceId 取全量 span（前端组树画瀑布图） |
+| GET | `/api/trace/topology` | 服务拓扑：时间窗内调用边 + 节点（`hours` 默认 24，查 tb_gw_service_edge 预聚合表） |
+| GET | `/api/trace/slow` | 慢链路 TopN：按链路总耗时降序（`hours` / `limit`），含入口服务与接口 |
 
 ## 构建与启动
 

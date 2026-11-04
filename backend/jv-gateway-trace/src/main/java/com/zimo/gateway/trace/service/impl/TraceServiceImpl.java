@@ -7,6 +7,7 @@ import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.trace.entity.GwTraceLog;
 import com.zimo.gateway.trace.entity.GwTraceSpan;
+import com.zimo.gateway.trace.mapper.GwServiceEdgeMapper;
 import com.zimo.gateway.trace.mapper.GwTraceLogMapper;
 import com.zimo.gateway.trace.mapper.GwTraceSpanMapper;
 import com.zimo.gateway.trace.model.SpanDTO;
@@ -33,6 +34,8 @@ public class TraceServiceImpl implements TraceService {
     private final GwTraceLogMapper traceLogMapper;
 
     private final GwTraceSpanMapper traceSpanMapper;
+
+    private final GwServiceEdgeMapper edgeMapper;
 
     @Override
     public Page<GwTraceLog> pageTraces(TraceQuery query) {
@@ -114,6 +117,69 @@ public class TraceServiceImpl implements TraceService {
 
     private boolean isBlank(String s) {
         return s == null || s.isBlank();
+    }
+
+    @Override
+    public Map<String, Object> topology(int hours) {
+        LocalDateTime since = LocalDateTime.now().minusHours(clampHours(hours));
+        List<Map<String, Object>> edges = edgeMapper.selectEdges(since);
+
+        // 节点在 edge 基础上推导：入调用 / 出调用次数，前端免二次汇总
+        Map<String, Map<String, Object>> nodes = new LinkedHashMap<>();
+        for (Map<String, Object> e : edges) {
+            String src = String.valueOf(e.get("src"));
+            String dst = String.valueOf(e.get("dst"));
+            long calls = ((Number) e.get("calls")).longValue();
+            addCalls(nodeOf(nodes, src), "outCalls", calls);
+            addCalls(nodeOf(nodes, dst), "inCalls", calls);
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("edges", edges);
+        result.put("nodes", new ArrayList<>(nodes.values()));
+        return result;
+    }
+
+    @Override
+    public List<Map<String, Object>> slowTraces(int hours, int limit) {
+        LocalDateTime since = LocalDateTime.now().minusHours(clampHours(hours));
+        int top = Math.min(Math.max(1, limit), 50);
+        List<Map<String, Object>> traces = edgeMapper.selectSlowTraces(since, top);
+        if (traces.isEmpty()) {
+            return traces;
+        }
+        // 补根 span 信息：哪个服务的哪个接口发起
+        List<String> traceIds = traces.stream().map(t -> String.valueOf(t.get("traceId"))).toList();
+        Map<String, Map<String, Object>> roots = new LinkedHashMap<>();
+        for (Map<String, Object> r : edgeMapper.selectRootSpans(traceIds)) {
+            roots.put(String.valueOf(r.get("traceId")), r);
+        }
+        for (Map<String, Object> t : traces) {
+            Map<String, Object> root = roots.get(String.valueOf(t.get("traceId")));
+            t.put("rootService", root == null ? "-" : root.get("rootService"));
+            t.put("rootApi", root == null ? "-" : root.get("rootApi"));
+        }
+        return traces;
+    }
+
+    private Map<String, Object> newNode(String name) {
+        Map<String, Object> n = new LinkedHashMap<>();
+        n.put("name", name);
+        n.put("inCalls", 0L);
+        n.put("outCalls", 0L);
+        return n;
+    }
+
+    private Map<String, Object> nodeOf(Map<String, Map<String, Object>> nodes, String name) {
+        return nodes.computeIfAbsent(name, this::newNode);
+    }
+
+    private void addCalls(Map<String, Object> node, String key, long delta) {
+        long cur = ((Number) node.get(key)).longValue();
+        node.put(key, cur + delta);
+    }
+
+    private int clampHours(int hours) {
+        return Math.min(Math.max(1, hours), 24 * 7);
     }
 
     @Override

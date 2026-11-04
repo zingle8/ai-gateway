@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.trace.mapper.GwServiceEdgeMapper">
+
+    <!-- 清空窗口旧结果：与 insertWindow 组合成「重算」，span 被删/修正后残留边一并消失 -->
+    <delete id="deleteWindow">
+        DELETE FROM tb_gw_service_edge WHERE window_start = #{windowStart}
+    </delete>
+
+    <!--
+      聚合一个小时窗口：[windowStart, windowStart+1h) 内的 CLIENT span 按调用对聚合。
+      idx_start(start_time) 命中天分区后按窗口过滤，代价为窗口内 span 数。
+    -->
+    <insert id="insertWindow">
+        INSERT INTO tb_gw_service_edge
+            (src_service, dst_service, window_start, calls, errors, total_cost, max_cost, update_time)
+        SELECT service_name, peer_service, #{windowStart},
+               COUNT(*),
+               SUM(CASE WHEN status_code &gt;= 400 THEN 1 ELSE 0 END),
+               COALESCE(SUM(cost), 0),
+               COALESCE(MAX(cost), 0),
+               NOW()
+        FROM tb_gw_trace_span
+        WHERE kind = 'CLIENT'
+          AND peer_service IS NOT NULL
+          AND start_time &gt;= #{windowStart}
+          AND start_time &lt; DATE_ADD(#{windowStart}, INTERVAL 1 HOUR)
+        GROUP BY service_name, peer_service
+        ON DUPLICATE KEY UPDATE
+            calls      = VALUES(calls),
+            errors     = VALUES(errors),
+            total_cost = VALUES(total_cost),
+            max_cost   = VALUES(max_cost),
+            update_time = NOW()
+    </insert>
+
+    <delete id="deleteBefore">
+        DELETE FROM tb_gw_service_edge WHERE window_start &lt; #{time}
+    </delete>
+
+    <!-- 拓扑图：跨窗口汇总成「调用对」粒度 -->
+    <select id="selectEdges" resultType="map">
+        SELECT src_service   AS src,
+               dst_service   AS dst,
+               SUM(calls)    AS calls,
+               SUM(errors)   AS errors,
+               CASE WHEN SUM(calls) &gt; 0 THEN ROUND(SUM(total_cost) / SUM(calls)) ELSE 0 END AS avgCost,
+               MAX(max_cost) AS maxCost
+        FROM tb_gw_service_edge
+        WHERE window_start &gt;= #{since}
+        GROUP BY src_service, dst_service
+        ORDER BY calls DESC
+    </select>
+
+    <!--
+      慢链路 TopN：链路总耗时 = 最晚 span 终点 − 最早 span 起点（真实墙钟时间，
+      不是 SUM(cost) —— 后者会把并行的兄弟 span 重复计入）。
+      cost 单位毫秒，DATE_ADD 按 MICROSECOND 加；列别名用驼峰，controller/前端直接取。
+    -->
+    <select id="selectSlowTraces" resultType="map">
+        SELECT trace_id AS traceId,
+               MIN(start_time) AS startTime,
+               COUNT(*)        AS spanCount,
+               SUM(CASE WHEN status_code &gt;= 400 THEN 1 ELSE 0 END) AS errorCount,
+               ROUND(TIMESTAMPDIFF(MICROSECOND,
+                      MIN(start_time),
+                      MAX(DATE_ADD(start_time, INTERVAL cost * 1000 MICROSECOND))) / 1000) AS totalCost
+        FROM tb_gw_trace_span
+        WHERE start_time &gt;= #{since}
+        GROUP BY trace_id
+        ORDER BY totalCost DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 根 span：链路入口（parent_span_id 为空），提供「哪个服务的哪个接口发起」 -->
+    <select id="selectRootSpans" resultType="map">
+        SELECT trace_id AS traceId, service_name AS rootService, api AS rootApi
+        FROM tb_gw_trace_span
+        WHERE parent_span_id IS NULL
+          AND trace_id IN
+        <foreach collection="traceIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+</mapper>

@@ -38,6 +38,16 @@ public interface TraceService {
     List<SpanDTO> listSpans(String traceId);
 
     /**
+     * 服务拓扑：时间窗内调用边列表（调用对聚合，来自 tb_gw_service_edge 预聚合表）
+     *
+     * @return {edges: [{src,dst,calls,errors,avgCost,maxCost}], nodes: [{name,inCalls,outCalls}]}
+     */
+    Map<String, Object> topology(int hours);
+
+    /** 慢链路 TopN：时间窗内按链路总耗时降序（含根服务/根接口信息） */
+    List<Map<String, Object>> slowTraces(int hours, int limit);
+
+    /**
      * 筛选项字典：协议 / 服务名 / 请求格式 / 返回格式，取库中真实出现过的值。
      *
      * @return key 为 protocols / services / reqFormats / resFormats

@@ -105,4 +105,21 @@ public class TraceController {
     public R<List<SpanDTO>> trace(@PathVariable String traceId) {
         return R.ok(traceService.listSpans(traceId));
     }
+
+    /**
+     * 服务拓扑：时间窗内调用边 + 节点（来自 tb_gw_service_edge 预聚合表）
+     */
+    @GetMapping("/topology")
+    public R<Map<String, Object>> topology(@RequestParam(defaultValue = "24") int hours) {
+        return R.ok(traceService.topology(hours));
+    }
+
+    /**
+     * 慢链路 TopN：时间窗内按链路总耗时降序
+     */
+    @GetMapping("/slow")
+    public R<List<Map<String, Object>>> slow(@RequestParam(defaultValue = "24") int hours,
+                                             @RequestParam(defaultValue = "10") int limit) {
+        return R.ok(traceService.slowTraces(hours, limit));
+    }
 }

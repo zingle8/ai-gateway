@@ -19,3 +19,13 @@ export function fetchTraceFilters() {
 export function fetchTraceSpans(traceId) {
   return request.get(`/trace/traces/${traceId}`)
 }
+
+/** 服务拓扑：时间窗内调用边 + 节点（tb_gw_service_edge 预聚合） */
+export function fetchTopology(params) {
+  return request.get('/trace/topology', { params })
+}
+
+/** 慢链路 TopN：时间窗内按链路总耗时降序 */
+export function fetchSlowTraces(params) {
+  return request.get('/trace/slow', { params })
+}

@@ -54,22 +54,24 @@ public class TracePropagationInterceptor implements ClientHttpRequestInterceptor
         LocalDateTime startTime = LocalDateTime.now();
         try {
             ClientHttpResponse response = execution.execute(request, body);
+            // 网关会在响应头回写自己的服务名，拓扑图的节点由此与服务发现对齐
+            String peer = response.getHeaders().getFirst("X-Gateway-Served-By");
             reportClientSpan(request.getURI(), request.getMethod().name(), traceId,
                     ctx == null ? null : ctx.spanId(), clientSpanId,
-                    response.getStatusCode().value(), start, startTime);
+                    response.getStatusCode().value(), start, startTime, peer);
             return response;
         } catch (IOException e) {
             reportClientSpan(request.getURI(), request.getMethod().name(), traceId,
                     ctx == null ? null : ctx.spanId(), clientSpanId,
-                    502, start, startTime);
+                    502, start, startTime, null);
             throw e;
         }
     }
 
-    /** CLIENT span：peerService 从目标地址提取（host:port，无法拿到服务名时以实例地址表示） */
+    /** CLIENT span：peerService 优先取网关回写的服务名，否则从目标地址提取（host:port） */
     private void reportClientSpan(URI uri, String method, String traceId,
                                   String parentSpanId, String spanId,
-                                  int statusCode, long start, LocalDateTime startTime) {
+                                  int statusCode, long start, LocalDateTime startTime, String peerHeader) {
         try {
             SpanRecordDTO span = new SpanRecordDTO();
             span.setTraceId(traceId);
@@ -80,9 +82,13 @@ public class TracePropagationInterceptor implements ClientHttpRequestInterceptor
             span.setAppName(properties.getAppName());
             span.setServiceName(properties.getServiceName());
             span.setApi(method + " " + uri.getRawPath());
-            int port = uri.getPort() > 0 ? uri.getPort()
-                    : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
-            span.setPeerService(uri.getHost() + ":" + port);
+            if (peerHeader != null && !peerHeader.isEmpty()) {
+                span.setPeerService(peerHeader);
+            } else {
+                int port = uri.getPort() > 0 ? uri.getPort()
+                        : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
+                span.setPeerService(uri.getHost() + ":" + port);
+            }
             span.setStatusCode(statusCode);
             span.setErrType(ErrType.resolve(statusCode));
             span.setCost((int) (System.currentTimeMillis() - start));

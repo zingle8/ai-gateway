@@ -195,8 +195,11 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { fetchTraceLogs, fetchTraceFilters, fetchTraceLogDetail, fetchTraceSpans } from '../api'
 import { fmtTime, fmtBytes, statusTagType, parseHeaders } from '@zimo/shared'
+
+const route = useRoute()
 
 const rows = ref([])
 const total = ref(0)
@@ -441,6 +444,14 @@ onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 onMounted(async () => {
   await loadFilters()
-  load()
+  // 支持从服务拓扑的慢链路列表跳转过来：?traceId=xxx 自动检索并打开详情瀑布图
+  const fromQuery = route.query.traceId
+  if (fromQuery) {
+    query.traceId = String(fromQuery)
+  }
+  await load()
+  if (fromQuery && rows.value.length) {
+    openDetail(rows.value[0])
+  }
 })
 </script>

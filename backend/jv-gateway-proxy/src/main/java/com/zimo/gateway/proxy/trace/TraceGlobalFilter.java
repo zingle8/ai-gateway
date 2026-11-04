@@ -118,9 +118,11 @@ public class TraceGlobalFilter implements GlobalFilter, Ordered {
                 new BodyCaptureResponse(exchange.getResponse(), maxBodySize, respCharset);
 
         // 转发请求携带链路上文：traceparent（W3C 标准，供新 SDK / OTel 兼容）+ 平台自有 header（供旧 SDK）
+        // X-Gateway-Served-By：下游 SDK 的 CLIENT span 据此把 peerService 记成服务名（而非 IP:port），拓扑图节点才能与服务发现对齐
         ServerHttpRequest propagated = requestDecorator.mutate()
                 .header("traceparent", TraceContextUtil.format(traceId, clientSpanId))
                 .header("X-Gateway-Trace-Id", traceId)
+                .header("X-Gateway-Served-By", gatewayServiceName)
                 .build();
 
         ServerWebExchange mutated = exchange.mutate()
