@@ -54,13 +54,13 @@
           </div>
         </div>
         <div class="gw-card-bd">
-          <svg class="line-chart" viewBox="0 0 600 130" preserveAspectRatio="none">
-            <polyline :points="areaPoints" class="area" />
-            <polyline :points="linePoints" class="line" />
-          </svg>
-          <div class="axis">
-            <span v-for="(t, i) in trend.times" :key="i">{{ i % labelEvery === 0 ? t : '' }}</span>
-          </div>
+          <TrendChart
+            :times="trend.times"
+            :values="trend.values"
+            unit=" 次"
+            series-name="请求数"
+            :height="160"
+          />
           <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
         </div>
       </section>
@@ -148,6 +148,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { TrendChart } from '@zimo/ui'
 import { fetchStatsFilters, fetchStatsSummary, fetchStatsTrend } from '../api'
 import {
   DataAnalysis, TrendCharts, Timer, Warning, Download, Upload, CircleCheck, User, Document, Files
@@ -227,32 +228,6 @@ const cards = computed(() => {
 })
 
 const num = (v) => Number(v ?? 0).toLocaleString()
-
-/** 趋势折线：与 overview 同一套算法，保证两页视觉一致 */
-const linePoints = computed(() => {
-  const values = trend.value.values || []
-  if (!values.length) return ''
-  const max = Math.max(...values)
-  const min = Math.min(...values)
-  const span = max - min || 1
-  return values
-    .map((v, i) => {
-      const x = (i / Math.max(1, values.length - 1)) * 600
-      const y = 118 - ((v - min) / span) * 100
-      return x.toFixed(1) + ',' + y.toFixed(1)
-    })
-    .join(' ')
-})
-
-const areaPoints = computed(() => {
-  const pts = linePoints.value
-  return pts ? '0,130 ' + pts + ' 600,130' : ''
-})
-
-const labelEvery = computed(() => {
-  const total = (trend.value.times || []).length
-  return Math.max(1, Math.ceil(total / 8))
-})
 
 const barWidth = (count, max) => Math.max(2, Math.round((count / max) * 100)) + '%'
 
@@ -364,30 +339,7 @@ onMounted(async () => {
   box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
 }
 
-.line-chart {
-  width: 100%;
-  height: 130px;
-  display: block;
-}
-
-.line {
-  fill: none;
-  stroke: var(--gw-info);
-  stroke-width: 1.6;
-}
-
-.area {
-  fill: rgba(37, 99, 235, .10);
-  stroke: none;
-}
-
-.axis {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--gw-text-tertiary);
-}
+/* 折线图已抽到 @zimo/ui 的 TrendChart（含 Y 轴刻度、X 轴时间、悬浮 tooltip） */
 
 /* 横向条形：状态码 / 方法分布 */
 .bar-row {

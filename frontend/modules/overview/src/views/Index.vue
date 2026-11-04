@@ -28,13 +28,13 @@
           </div>
         </div>
         <div class="gw-card-bd">
-          <svg class="line-chart" viewBox="0 0 600 130" preserveAspectRatio="none">
-            <polyline :points="areaPoints" class="area" />
-            <polyline :points="linePoints" class="line" />
-          </svg>
-          <div class="axis">
-            <span v-for="(t, i) in trend.times" :key="i">{{ i % labelEvery === 0 ? t : '' }}</span>
-          </div>
+          <TrendChart
+            :times="trend.times"
+            :values="trend.values"
+            unit=" 次"
+            series-name="请求数"
+            :height="160"
+          />
           <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
         </div>
       </section>
@@ -86,6 +86,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { TrendChart } from '@zimo/ui'
 import { fetchOverviewSummary, fetchOverviewTrend, fetchOverviewRuntime, fetchOverviewInstances } from '../api'
 import { Odometer, TrendCharts, Timer, Warning, Document, User, Files, Download, Upload } from '@element-plus/icons-vue'
 
@@ -129,27 +130,6 @@ const statusType = (status) => {
   return 'warning'
 }
 
-const linePoints = computed(() => {
-  const values = trend.value.values || []
-  if (!values.length) return ''
-  const max = Math.max.apply(null, values)
-  const min = Math.min.apply(null, values)
-  const span = max - min || 1
-  return values
-    .map((v, i) => {
-      const x = (i / (values.length - 1)) * 600
-      const y = 118 - ((v - min) / span) * 100
-      return x.toFixed(1) + ',' + y.toFixed(1)
-    })
-    .join(' ')
-})
-
-const areaPoints = computed(() => {
-  const pts = linePoints.value
-  if (!pts) return ''
-  return '0,130 ' + pts + ' 600,130'
-})
-
 const load = async () => {
   try {
     summary.value = await fetchOverviewSummary()
@@ -189,12 +169,6 @@ const granularities = [
 const activeStep = ref(1)
 const activeDesc = computed(() =>
   (granularities.find(g => g.step === activeStep.value) || granularities[0]).desc)
-
-/** X 轴标签间隔：120 个点最多露 8 个，避免挤成一团 */
-const labelEvery = computed(() => {
-  const total = (trend.value.times || []).length
-  return Math.max(1, Math.ceil(total / 8))
-})
 
 const switchStep = async (step) => {
   if (activeStep.value === step) return
@@ -242,30 +216,7 @@ onMounted(load)
   box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
 }
 
-.line-chart {
-  width: 100%;
-  height: 130px;
-  display: block;
-}
-
-.line {
-  fill: none;
-  stroke: var(--gw-info);
-  stroke-width: 1.6;
-}
-
-.area {
-  fill: rgba(37, 99, 235, .10);
-  stroke: none;
-}
-
-.axis {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 6px;
-  font-size: 10px;
-  color: var(--gw-text-tertiary);
-}
+/* 折线图已抽到 @zimo/ui 的 TrendChart（含 Y 轴刻度、X 轴时间、悬浮 tooltip） */
 
 .kv-grid {
   display: grid;

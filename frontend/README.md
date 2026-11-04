@@ -23,7 +23,7 @@ frontend/
 ├── package.json              # 根 workspace（@zimo/gateway-frontend，统一依赖与脚本）
 ├── packages/                 # 与业务无关的公共包
 │   ├── shared/               # @zimo/shared：request / store / utils / 基础样式
-│   └── ui/                   # @zimo/ui：Shell 布局外壳、侧边菜单、顶部栏、占位页
+│   └── ui/                   # @zimo/ui：Shell 布局外壳、侧边菜单、顶部栏、占位页、折线图 TrendChart
 ├── modules/                  # 业务模块（每个模块 = 一个前端微服务边界）
 │   ├── overview/             # @zimo/module-overview  网关总览
 │   ├── stats/                # @zimo/module-stats     数据统计（多维过滤）
@@ -114,6 +114,16 @@ npm run preview      # 预览构建产物
 ## UI 规范（`@zimo/shared/src/styles`）
 
 设计变量集中在 `packages/shared/src/styles/index.css` 的 `:root`，组件内只用 `var(--gw-*)`，不写死色值。
+
+折线图统一用 `@zimo/ui` 的 `TrendChart`（`packages/ui/src/TrendChart.vue`），**不要再手写 `<svg><polyline>`**：
+
+```vue
+<TrendChart :times="trend.times" :values="trend.values" unit=" 次" series-name="请求数" :height="160" />
+```
+
+内置能力：Y 轴 5 档刻度（步长自动归一到 1/2/5×10ⁿ）、X 轴时间标签抽稀（最多 7 个）、面积渐变、
+悬浮十字准线 + 数据点 + tooltip（跟随鼠标，靠右自动翻转）、全 0 时显示「该区间暂无调用数据」、
+宽度随容器自适应（`ResizeObserver`，SVG 用真实像素绘制，线宽不会像 `preserveAspectRatio="none"` 那样被拉伸变形）。
 
 侧边菜单三种状态的取色（`packages/ui/src/Sidebar.vue`）：
 
