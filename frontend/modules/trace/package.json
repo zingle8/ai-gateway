@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "可观测模块：日志追踪 / 数据统计查询 / 变更审计（对应后端 jv-gateway-trace 微服务）",
+  "description": "可观测模块：日志追踪 / 数据统计查询 / 变更审计（对应后端 jv-api-gateway-trace 微服务）",
   "main": "index.js",
   "exports": {
     ".": "./index.js"

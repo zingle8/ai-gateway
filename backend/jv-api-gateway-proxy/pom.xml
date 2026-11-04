@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.zimo.gateway</groupId>
+    <artifactId>api-gateway</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>jv-api-gateway-proxy</artifactId>
+  <name>jv-api-gateway-proxy</name>
+  <description>流量代理：按 tb_gw_route 转发请求，并记录完整调用详情</description>
+
+  <dependencies>
+    <!-- 响应式网关。注意：不能依赖 jv-api-gateway-common（它带 spring-boot-starter-web，
+         会让应用启动成 Servlet 应用，Gateway 直接失效） -->
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-gateway</artifactId>
+    </dependency>
+
+    <!-- 统一持久层：原生 MyBatis（只依赖 spring-jdbc，不引入 Servlet 栈，WebFlux 安全） -->
+    <dependency>
+      <groupId>org.mybatis.spring.boot</groupId>
+      <artifactId>mybatis-spring-boot-starter</artifactId>
+    </dependency>
+    <!-- DataSource / HikariCP 仍由 starter-jdbc 提供 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-jdbc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!-- 与其余模块保持一致：产出 target/jv-api-gateway-proxy.jar，供 scripts 启停脚本使用 -->
+    <finalName>jv-api-gateway-proxy</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

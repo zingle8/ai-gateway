@@ -1,6 +1,6 @@
 import request from '@zimo/shared/request'
 
-/** 日志追踪：调用日志列表（jv-gateway-trace 微服务） */
+/** 日志追踪：调用日志列表（jv-api-gateway-trace 微服务） */
 export function fetchTraceLogs(params) {
   return request.get('/trace/logs', { params })
 }

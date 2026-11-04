@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "系统管理模块：用户管理 / 角色管理（对应后端 jv-gateway-user 微服务）",
+  "description": "系统管理模块：用户管理 / 角色管理（对应后端 jv-api-gateway-user 微服务）",
   "main": "index.js",
   "exports": {
     ".": "./index.js"

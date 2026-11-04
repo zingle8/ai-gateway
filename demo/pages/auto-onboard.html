@@ -125,7 +125,7 @@
                 <div class="code-block" style="font-size:12px;">
 <span class="c-key">&lt;dependency&gt;</span>
   <span class="c-key">&lt;groupId&gt;</span>com.zimo.gateway<span class="c-key">&lt;/groupId&gt;</span>
-  <span class="c-key">&lt;artifactId&gt;</span>jv-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
+  <span class="c-key">&lt;artifactId&gt;</span>jv-api-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
   <span class="c-key">&lt;version&gt;</span>1.6.2<span class="c-key">&lt;/version&gt;</span>
 <span class="c-key">&lt;/dependency&gt;</span>
                 </div>
@@ -438,7 +438,7 @@
                 <div class="code-block" style="font-size:12px;">
 <span class="c-key">&lt;dependency&gt;</span>
   <span class="c-key">&lt;groupId&gt;</span>com.zimo.gateway<span class="c-key">&lt;/groupId&gt;</span>
-  <span class="c-key">&lt;artifactId&gt;</span>jv-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
+  <span class="c-key">&lt;artifactId&gt;</span>jv-api-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
   <span class="c-key">&lt;version&gt;</span>1.0.0<span class="c-key">&lt;/version&gt;</span>
 <span class="c-key">&lt;/dependency&gt;</span>
                 </div>
@@ -518,8 +518,8 @@ bash scripts/build-sdk-jar.sh
 <span class="c-cmt"># 产出 dist/sdk-jar/</span>
 <span class="c-cmt">#   install.sh                        一条命令装好</span>
 <span class="c-cmt">#   lib/api-gateway-1.0.0.pom         parent，解析依赖版本必需</span>
-<span class="c-cmt">#   lib/jv-gateway-client-common.jar  + .pom</span>
-<span class="c-cmt">#   lib/jv-gateway-client-starter.jar + .pom</span>
+<span class="c-cmt">#   lib/jv-api-gateway-client-common.jar  + .pom</span>
+<span class="c-cmt">#   lib/jv-api-gateway-client-starter.jar + .pom</span>
                   </div>
                   <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">2. 业务机器上安装</div>
                   <div class="code-block" style="font-size:12px;">
@@ -537,7 +537,7 @@ mvn install:install-file -Dfile=api-gateway-1.0.0.pom \
                   <div class="code-block" style="font-size:12px;">
 <span class="c-key">&lt;dependency&gt;</span>
   <span class="c-key">&lt;groupId&gt;</span>com.zimo.gateway<span class="c-key">&lt;/groupId&gt;</span>
-  <span class="c-key">&lt;artifactId&gt;</span>jv-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
+  <span class="c-key">&lt;artifactId&gt;</span>jv-api-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
   <span class="c-key">&lt;version&gt;</span>1.0.0<span class="c-key">&lt;/version&gt;</span>
 <span class="c-key">&lt;/dependency&gt;</span>
                   </div>
@@ -545,7 +545,7 @@ mvn install:install-file -Dfile=api-gateway-1.0.0.pom \
                     <div style="font-size:13px; font-weight:600; margin-bottom:8px;">三个文件缺一不可</div>
                     <ul style="margin:0; padding-left:18px; font-size:12.5px; line-height:1.95; color:#5a6472;">
                       <li><b>parent 必须装</b>：starter 的 pom 继承 <span class="code-inline">com.zimo.gateway:api-gateway:1.0.0</span>，缺它解析不到依赖版本，直接报 Could not find artifact</li>
-                      <li><b>要带 -DpomFile</b>：只给 jar 会生成空 pom，传递依赖 jv-gateway-client-common 丢失，启动报 NoClassDefFoundError</li>
+                      <li><b>要带 -DpomFile</b>：只给 jar 会生成空 pom，传递依赖 jv-api-gateway-client-common 丢失，启动报 NoClassDefFoundError</li>
                       <li><b>安装顺序</b>：parent → client-common → client-starter，install.sh 已按此顺序</li>
                       <li><b>web 依赖</b>：starter 内 spring-boot-starter-web 为 optional，Web 项目本身自备</li>
                     </ul>

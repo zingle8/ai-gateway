@@ -3,7 +3,7 @@
 -- 依赖：trace_span.sql（tb_gw_trace_span 必须先建）
 --
 -- 设计：
---   EdgeAggregator（jv-gateway-trace）每分钟对「最近 3 个整点小时窗口」
+--   EdgeAggregator（jv-api-gateway-trace）每分钟对「最近 3 个整点小时窗口」
 --   从 tb_gw_trace_span 的 CLIENT span 全量重算并 UPSERT 覆盖本表，
 --   幂等可重跑；拓扑图 / 依赖分析只查这张小表，不做 span 大表实时 GROUP BY。
 --   窗口数据保留 30 天，任务内顺带清理。

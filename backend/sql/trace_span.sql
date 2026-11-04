@@ -6,7 +6,7 @@
 -- 分区规范（两张表统一）：
 --   - 按天 RANGE(TO_DAYS(...)) 分区，分区名 pYYYYMMDD；
 --   - 分区键必须落在主键内：log 表 PK(id, req_time) / span 表 PK(id, start_time)；
---   - 由 jv-gateway-trace 的 PartitionMaintainer 每日维护：
+--   - 由 jv-api-gateway-trace 的 PartitionMaintainer 每日维护：
 --       滚动创建未来 3 天分区（缺则补），并删除 45 天前的历史分区（秒级 DROP）；
 --   - 因此这里只预建「历史兜底 + 近 4 天」分区，其余交给维护任务。
 -- =====================================================================

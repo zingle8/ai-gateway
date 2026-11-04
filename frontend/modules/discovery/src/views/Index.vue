@@ -46,6 +46,12 @@
           <el-table-column prop="appId" label="应用ID" width="120" />
           <el-table-column prop="appName" label="应用名" width="110" />
           <el-table-column prop="serviceName" label="服务名" min-width="160" show-overflow-tooltip />
+          <el-table-column label="接口数" width="80">
+            <template #default="{ row }">{{ row.apiCount ?? 0 }}</template>
+          </el-table-column>
+          <el-table-column label="调用次数" width="95">
+            <template #default="{ row }">{{ (row.calls ?? 0).toLocaleString() }}</template>
+          </el-table-column>
           <el-table-column prop="port" label="端口" width="80" />
           <el-table-column prop="language" label="语言类型" width="110" />
           <el-table-column prop="version" label="版本号" width="100" />
@@ -198,6 +204,8 @@ const detailFields = computed(() => {
     { label: '语言类型', value: d.language },
     { label: '版本号', value: d.version },
     { label: 'QPS（近 60 秒）', value: d.qps },
+    { label: '调用次数（' + rangeDesc.value + '）', value: (d.calls ?? 0).toLocaleString() },
+    { label: '已登记接口数', value: d.apiCount ?? 0 },
     { label: '平均 RT（' + rangeDesc.value + '）', value: d.avgRt + ' ms' },
     { label: '健康状态', value: d.status },
     { label: '入站 / 出网流量', value: (d.inFlow || '-') + ' / ' + (d.outFlow || '-') },

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.trace.mapper.GwTraceLogMapper">
+
+    <!-- 列表用列：含 query 参数（短文本，便于列表直接看到请求参数），不含 header / 报文体大字段 -->
+    <sql id="listCols">id, app_id, app_name, service_name, api, req_params, trace_id, protocol,
+        req_format, res_format, req_ip, req_port, res_ip, res_port, status_code, err_type,
+        cost, req_time, res_time, req_bytes, res_bytes, create_time</sql>
+
+    <!-- 详情用列：全部 -->
+    <sql id="detailCols"><include refid="listCols"/>, req_header, res_header, req_body, res_body</sql>
+
+    <!-- 分页过滤条件：selectPage 与 countPage 复用，保证条数与记录一致 -->
+    <sql id="pageWhere">
+        deleted = 0
+        <if test="traceId != null and traceId != ''">AND trace_id LIKE CONCAT('%', #{traceId}, '%')</if>
+        <if test="service != null and service != ''">AND service_name = #{service}</if>
+        <if test="appId != null and appId != ''">AND app_id = #{appId}</if>
+        <if test="api != null and api != ''">AND api = #{api}</if>
+        <!-- 按请求参数模糊检索：query string 与请求体一起匹配 -->
+        <if test="params != null and params != ''">
+            AND (req_params LIKE CONCAT('%', #{params}, '%') OR req_body LIKE CONCAT('%', #{params}, '%'))
+        </if>
+        <!-- api 形如 "GET /api/xxx"，方法过滤即匹配前缀 -->
+        <if test="method != null and method != ''">AND api LIKE CONCAT(#{method}, ' %')</if>
+        <if test="status != null">AND status_code = #{status}</if>
+        <if test="errType != null and errType != ''">AND err_type = #{errType}</if>
+        <if test="protocol != null and protocol != ''">AND protocol = #{protocol}</if>
+        <if test="reqFormat != null and reqFormat != ''">AND req_format = #{reqFormat}</if>
+        <if test="resFormat != null and resFormat != ''">AND res_format = #{resFormat}</if>
+        <if test="startTime != null and startTime != ''">AND req_time >= CONCAT(#{startTime}, ' 00:00:00')</if>
+        <if test="costMin != null">AND cost &gt; #{costMin}</if>
+    </sql>
+
+    <select id="selectPage" parameterType="com.zimo.gateway.trace.model.TraceQuery"
+            resultType="com.zimo.gateway.trace.entity.GwTraceLog">
+        SELECT <include refid="listCols"/> FROM tb_gw_trace_log
+        WHERE <include refid="pageWhere"/>
+        ORDER BY req_time DESC
+        LIMIT ${(current - 1) * size}, #{size}
+    </select>
+
+    <select id="countPage" parameterType="com.zimo.gateway.trace.model.TraceQuery" resultType="long">
+        SELECT COUNT(*) FROM tb_gw_trace_log WHERE <include refid="pageWhere"/>
+    </select>
+
+    <select id="selectDetailById" resultType="com.zimo.gateway.trace.entity.GwTraceLog">
+        SELECT <include refid="detailCols"/> FROM tb_gw_trace_log WHERE deleted = 0 AND id = #{id}
+    </select>
+
+    <!-- 以下 4 条为筛选项字典：只取库里真实存在的值，供前端下拉框填充 -->
+    <select id="selectDistinctProtocols" resultType="string">
+        SELECT DISTINCT protocol FROM tb_gw_trace_log
+        WHERE deleted = 0 AND protocol IS NOT NULL AND protocol != ''
+        ORDER BY protocol
+    </select>
+
+    <!-- 服务下拉字典：带 app_id 供前端按应用级联过滤 -->
+    <select id="selectDistinctServices" resultType="com.zimo.gateway.trace.model.FilterOption">
+        SELECT DISTINCT app_id, service_name FROM tb_gw_trace_log
+        WHERE deleted = 0 AND service_name IS NOT NULL AND service_name != ''
+        ORDER BY service_name
+    </select>
+
+    <!-- 某个应用下实际调用过的服务名集合（拓扑按应用过滤时用） -->
+    <select id="selectServiceNamesByApp" resultType="string">
+        SELECT DISTINCT service_name FROM tb_gw_trace_log
+        WHERE deleted = 0 AND app_id = #{appId}
+          AND service_name IS NOT NULL AND service_name != ''
+    </select>
+
+    <!-- 应用下拉字典：取库中真实出现过的应用 -->
+    <select id="selectDistinctApps" resultType="com.zimo.gateway.trace.model.FilterOption">
+        SELECT DISTINCT app_id, app_name FROM tb_gw_trace_log
+        WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+        ORDER BY app_id
+    </select>
+
+    <!-- 接口名下拉字典：api 形如 "GET /api/xxx"，与方法下拉组合即可定位到唯一接口 -->
+    <select id="selectDistinctApis" resultType="string">
+        SELECT DISTINCT api FROM tb_gw_trace_log
+        WHERE deleted = 0 AND api IS NOT NULL AND api != ''
+        ORDER BY api
+    </select>
+
+    <!-- 方法字典：api 首段即 HTTP 方法 -->
+    <select id="selectDistinctMethods" resultType="string">
+        SELECT DISTINCT SUBSTRING_INDEX(api, ' ', 1) FROM tb_gw_trace_log
+        WHERE deleted = 0 AND api LIKE '% %'
+        ORDER BY 1
+    </select>
+
+    <select id="selectDistinctReqFormats" resultType="string">
+        SELECT DISTINCT req_format FROM tb_gw_trace_log
+        WHERE deleted = 0 AND req_format IS NOT NULL AND req_format != ''
+        ORDER BY req_format
+    </select>
+
+    <select id="selectDistinctResFormats" resultType="string">
+        SELECT DISTINCT res_format FROM tb_gw_trace_log
+        WHERE deleted = 0 AND res_format IS NOT NULL AND res_format != ''
+        ORDER BY res_format
+    </select>
+
+    <!-- SDK 批量上报：一次往返写入，网关侧队列攒批后调用 -->
+    <insert id="batchInsert">
+        INSERT INTO tb_gw_trace_log (app_id, app_name, service_name, api, req_params, trace_id, protocol,
+            req_format, res_format, req_ip, req_port, res_ip, res_port, status_code, err_type,
+            cost, req_time, res_time, req_header, res_header, req_body, res_body,
+            req_bytes, res_bytes, create_time, deleted)
+        VALUES
+        <foreach collection="logs" item="l" separator=",">
+            (#{l.appId}, #{l.appName}, #{l.serviceName}, #{l.api}, #{l.reqParams}, #{l.traceId}, #{l.protocol},
+             #{l.reqFormat}, #{l.resFormat}, #{l.reqIp}, #{l.reqPort}, #{l.resIp}, #{l.resPort},
+             #{l.statusCode}, #{l.errType}, #{l.cost}, #{l.reqTime}, #{l.resTime},
+             #{l.reqHeader}, #{l.resHeader}, #{l.reqBody}, #{l.resBody},
+             #{l.reqBytes}, #{l.resBytes}, #{l.createTime}, #{l.deleted})
+        </foreach>
+    </insert>
+</mapper>

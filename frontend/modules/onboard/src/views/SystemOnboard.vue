@@ -12,8 +12,8 @@
         />
 
         <el-descriptions :column="1" border size="small" class="onboard-desc">
-          <el-descriptions-item label="公共模块">jv-gateway-client-common（DTO / 常量 / 枚举，无 Spring 依赖）</el-descriptions-item>
-          <el-descriptions-item label="接入子模块">jv-gateway-client-starter（Spring Boot 自动装配）</el-descriptions-item>
+          <el-descriptions-item label="公共模块">jv-api-gateway-client-common（DTO / 常量 / 枚举，无 Spring 依赖）</el-descriptions-item>
+          <el-descriptions-item label="接入子模块">jv-api-gateway-client-starter（Spring Boot 自动装配）</el-descriptions-item>
           <el-descriptions-item label="自动能力">实例注册、定时心跳、优雅下线、调用日志采集与批量上报</el-descriptions-item>
           <el-descriptions-item label="平台调用">GatewayPlatformClient（总览 / 服务 / 日志接口）</el-descriptions-item>
         </el-descriptions>

@@ -9,12 +9,12 @@ const r = (p) => fileURLToPath(new URL(p, import.meta.url))
  * dev 阶段通过 /api/<service> 前缀把请求转发到对应的微服务端口。
  */
 /**
- * 所有 /api 请求统一走 jv-gateway-proxy（28090）：
+ * 所有 /api 请求统一走 jv-api-gateway-proxy（28090）：
  * 一是让平台自己的流量也被网关采集（日志追踪里看得到控制台每次请求），
  * 二是路由集中在 tb_gw_route 管理，后端换端口不用动前端。
  */
 const SERVICES = {
-  '/api': 'http://127.0.0.1:28090' // jv-gateway-proxy（按 tb_gw_route 转发）
+  '/api': 'http://127.0.0.1:28090' // jv-api-gateway-proxy（按 tb_gw_route 转发）
 }
 
 export default defineConfig({

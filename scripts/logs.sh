@@ -3,11 +3,11 @@
 #
 # 用法:
 #   ./logs.sh                # 跟踪全部服务日志
-#   ./logs.sh jv-gateway-user   # 只跟踪指定服务
+#   ./logs.sh jv-api-gateway-user   # 只跟踪指定服务
 #   ./logs.sh -n 100         # 只看最近 100 行（不跟踪）
 #
-# 可选服务名: jv-gateway-user / jv-gateway-overview / jv-gateway-discovery /
-#             jv-gateway-trace / gateway-portal
+# 可选服务名: jv-api-gateway-user / jv-api-gateway-overview / jv-api-gateway-discovery /
+#             jv-api-gateway-trace / gateway-portal
 
 set -uo pipefail
 

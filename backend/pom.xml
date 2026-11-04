@@ -20,14 +20,14 @@
   <description>AI 网关平台 - 后端微服务聚合工程（Spring Boot 3.2.12 / Spring Cloud 2023 / Nacos / MySQL）</description>
 
   <modules>
-    <module>jv-gateway-common</module>
-    <module>jv-gateway-client-common</module>
-    <module>jv-gateway-client-starter</module>
-    <module>jv-gateway-user</module>
-    <module>jv-gateway-overview</module>
-    <module>jv-gateway-discovery</module>
-    <module>jv-gateway-trace</module>
-    <module>jv-gateway-proxy</module>
+    <module>jv-api-gateway-common</module>
+    <module>jv-api-gateway-client-common</module>
+    <module>jv-api-gateway-client-starter</module>
+    <module>jv-api-gateway-user</module>
+    <module>jv-api-gateway-overview</module>
+    <module>jv-api-gateway-discovery</module>
+    <module>jv-api-gateway-trace</module>
+    <module>jv-api-gateway-proxy</module>
   </modules>
 
   <properties>
@@ -64,17 +64,17 @@
       </dependency>
       <dependency>
         <groupId>com.zimo.gateway</groupId>
-        <artifactId>jv-gateway-common</artifactId>
+        <artifactId>jv-api-gateway-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>com.zimo.gateway</groupId>
-        <artifactId>jv-gateway-client-common</artifactId>
+        <artifactId>jv-api-gateway-client-common</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>com.zimo.gateway</groupId>
-        <artifactId>jv-gateway-client-starter</artifactId>
+        <artifactId>jv-api-gateway-client-starter</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

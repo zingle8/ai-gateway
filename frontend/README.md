@@ -56,19 +56,19 @@ modules/<name>/
 
 | 前端模块包 | 路由前缀 | 后端微服务 | 端口 |
 | --- | --- | --- | --- |
-| `@zimo/module-overview` | `/api/overview` | `jv-gateway-overview` | 28082 |
-| `@zimo/module-stats` | `/api/stats` | `jv-gateway-overview` | 28082 |
-| `@zimo/module-discovery` | `/api/discovery` | `jv-gateway-discovery` | 28083 |
-| `@zimo/module-trace` | `/api/trace` | `jv-gateway-trace` | 28084 |
-| `@zimo/module-system` + `@zimo/shared/api/auth` | `/api/users`、`/api/auth` | `jv-gateway-user` | 28081 |
-| `@zimo/module-onboard` | `/api/discovery` | `jv-gateway-discovery` | 28083 |
-| 全部模块（统一入口） | `/api/**` | `jv-gateway-proxy`（按路由转发） | 28090 |
+| `@zimo/module-overview` | `/api/overview` | `jv-api-gateway-overview` | 28082 |
+| `@zimo/module-stats` | `/api/stats` | `jv-api-gateway-overview` | 28082 |
+| `@zimo/module-discovery` | `/api/discovery` | `jv-api-gateway-discovery` | 28083 |
+| `@zimo/module-trace` | `/api/trace` | `jv-api-gateway-trace` | 28084 |
+| `@zimo/module-system` + `@zimo/shared/api/auth` | `/api/users`、`/api/auth` | `jv-api-gateway-user` | 28081 |
+| `@zimo/module-onboard` | `/api/discovery` | `jv-api-gateway-discovery` | 28083 |
+| 全部模块（统一入口） | `/api/**` | `jv-api-gateway-proxy`（按路由转发） | 28090 |
 
-> 后端另有对外复用模块 `jv-gateway-client-common`（公共模块）与 `jv-gateway-client-starter`（接入子模块），
+> 后端另有对外复用模块 `jv-api-gateway-client-common`（公共模块）与 `jv-api-gateway-client-starter`（接入子模块），
 > 业务系统引入后自动注册并上报调用日志，数据最终落到这里的服务发现与日志追踪里。
 > 详见 [../docs/client-integration.md](../docs/client-integration.md)。
 
-开发态由 `apps/portal/vite.config.js` 的 `server.proxy` 转发：**所有 `/api` 请求统一指向 `jv-gateway-proxy`（28090）**，
+开发态由 `apps/portal/vite.config.js` 的 `server.proxy` 转发：**所有 `/api` 请求统一指向 `jv-api-gateway-proxy`（28090）**，
 再由网关按 `tb_gw_route` 分发到各微服务。模块内只写相对路径（如 `/trace/logs`），跨域与地址变化对模块透明。
 
 这样控制台自身的每次请求也会被网关采集（日志追踪里可见），后端换端口只改路由表，前端无需改动。
@@ -102,7 +102,8 @@ npm run preview      # 预览构建产物
 - 网关总览：9 张指标卡（两排 5 + 4，含 P95 / P99 延迟分位）、QPS 趋势图、运行时信息、实例列表
   - 顶部区间选择器统一控制指标卡 / QPS 趋势 / 实例榜口径；`24小时` 为滚动窗口，`1天` 为自然日（从 00:00 起）
   - 趋势图 X 轴标签自适应：1 分钟内带秒、跨天带日期、≥7 天只到日
-- 服务发现 / 服务治理：9 列列表（应用ID、应用名、服务名、端口、语言类型、版本号、健康状态、入站/出网流量、操作）
+- 服务发现 / 服务治理：11 列列表（应用ID、应用名、服务名、**接口数**、**调用次数**、端口、语言类型、版本号、健康状态、入站/出网流量、操作）
+  + 接口数取 `tb_gw_api` 已登记记录，调用次数按顶部区间统计（未登记接口的服务显示 0，属真实数据）
   + 服务详情抽屉（含端口、实例数、QPS、平均 RT、注册时间）；顶部
   「全部应用 / 全部服务」双下拉筛选（选项来自 `/discovery/filters`，服务下拉随所选应用级联）
   + 顶部区间选择器决定平均耗时与流量的聚合窗口（QPS 恒为近 60 秒瞬时速率，详情里已标注）
@@ -113,11 +114,12 @@ npm run preview      # 预览构建产物
     以 `parentSpanId` 组树、层级缩进，条形 `left/width` 按全链路时长归一化，错误 span 标红；
     span 表无数据（阶段一上线前的历史日志）时不显示该区块
   - 支持 `?traceId=xxx` 直达：从服务拓扑的慢链路列表点击行跳转过来时，自动检索并打开详情
-- 服务拓扑（`/topology`）：`/trace/topology` 的调用边画成分层 SVG 拓扑图 ——
+- 服务拓扑（`/topology`）：`/trace/topology` 的调用边画成分层 SVG 拓扑图，**默认全局**（所有应用 × 所有服务的真实调用）——
+  + 顶部「全部应用 / 全部服务」双下拉过滤，服务随应用级联；过滤后节点由剩余边自动推导
   - 顶部区间选择器与其它三页统一 10 档；≤30 分钟区间后端直接对 span 表实时聚合，保证分钟级精度
   - 入口服务（无入边）在左，每沿一条边加深一层；同源多条边的起点按序分散，标签沿曲线错开
   - 线宽 = 调用量（对数压缩 2~6px）、颜色 = 错误率（绿 / 橙 <5% / 红 ≥5%）、箭头指向被调方
-  - 节点名剥离公共前缀（`jv-gateway-`）只显示有区分度的部分，完整名在悬浮提示里
+  - 节点名剥离公共前缀（`jv-api-gateway-`）只显示有区分度的部分，完整名在悬浮提示里
   - 透明宽描边做边命中区（真实线宽仅 2~6px，直接 hover 难点中），节点/边悬浮均有提示
   - 下方「慢链路 Top 10」表格：按链路总耗时排名，显示入口服务/接口、span 数、错误数；
     点击行跳到 `/trace?traceId=...` 看完整瀑布图

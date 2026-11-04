@@ -15,11 +15,11 @@ mkdir -p "$LOG_DIR"
 
 # 后端微服务：模块目录名 = finalName，数组顺序即启动顺序
 BACKEND_SERVICES=(
-  "jv-gateway-user|28081"
-  "jv-gateway-overview|28082"
-  "jv-gateway-discovery|28083"
-  "jv-gateway-trace|28084"
-  "jv-gateway-proxy|28090"
+  "jv-api-gateway-user|28081"
+  "jv-api-gateway-overview|28082"
+  "jv-api-gateway-discovery|28083"
+  "jv-api-gateway-trace|28084"
+  "jv-api-gateway-proxy|28090"
 )
 
 # 前端主应用
@@ -131,7 +131,7 @@ kill_port_owner() {
   [[ -n "$pids" ]] || return 0
   for pid in $pids; do
     cmd="$(ps -p "$pid" -o command= 2>/dev/null || true)"
-    if [[ "$cmd" == *"jv-gateway-"*".jar"* || "$cmd" == *vite* ]]; then
+    if [[ "$cmd" == *"jv-api-gateway-"*".jar"* || "$cmd" == *vite* ]]; then
       log_warn "端口 $port 存在残留进程 (pid=$pid)，正在清理"
       terminate_pid "$pid" 10
     else

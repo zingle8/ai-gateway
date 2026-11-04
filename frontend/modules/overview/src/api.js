@@ -1,6 +1,6 @@
 import request from '@zimo/shared/request'
 
-/** 网关总览：核心指标汇总（jv-gateway-overview 微服务），range 为统一时间区间 */
+/** 网关总览：核心指标汇总（jv-api-gateway-overview 微服务），range 为统一时间区间 */
 export function fetchOverviewSummary(range = '24h') {
   return request.get('/overview/summary', { params: { range } })
 }

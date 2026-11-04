@@ -1,7 +1,7 @@
 -- =============================================================
 --  AI 网关平台 - 数据库初始化脚本
 --  数据库：api_gateway
---  说明：账号不在此脚本写入，首次启动 jv-gateway-user 服务时自动初始化
+--  说明：账号不在此脚本写入，首次启动 jv-api-gateway-user 服务时自动初始化
 -- =============================================================
 
 CREATE DATABASE IF NOT EXISTS api_gateway
@@ -325,13 +325,13 @@ CREATE TABLE tb_gw_route (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='网关转发路由';
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark) VALUES
-('app-gateway', '网关平台', 'jv-gateway-discovery', '/gw-demo/**', 'http://127.0.0.1:28083', '/api', 1, 1, '自测路由：转发到服务发现接口'),
-('app-gateway', 'API网关平台', 'jv-gateway-user',      '/api/auth/**',      'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：认证服务'),
-('app-gateway', 'API网关平台', 'jv-gateway-user',      '/api/users/**',     'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：用户管理'),
-('app-gateway', 'API网关平台', 'jv-gateway-overview',  '/api/overview/**',  'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：总览统计'),
-('app-gateway', 'API网关平台', 'jv-gateway-overview',  '/api/stats/**',     'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：数据统计'),
-('app-gateway', 'API网关平台', 'jv-gateway-discovery', '/api/discovery/**', 'http://127.0.0.1:28083', NULL, 0, 1, '平台自身：服务发现'),
-('app-gateway', 'API网关平台', 'jv-gateway-trace',     '/api/trace/**',     'http://127.0.0.1:28084', NULL, 0, 1, '平台自身：日志上报');
+('app-gateway', '网关平台', 'jv-api-gateway-discovery', '/gw-demo/**', 'http://127.0.0.1:28083', '/api', 1, 1, '自测路由：转发到服务发现接口'),
+('app-gateway', 'API网关平台', 'jv-api-gateway-user',      '/api/auth/**',      'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：认证服务'),
+('app-gateway', 'API网关平台', 'jv-api-gateway-user',      '/api/users/**',     'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：用户管理'),
+('app-gateway', 'API网关平台', 'jv-api-gateway-overview',  '/api/overview/**',  'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：总览统计'),
+('app-gateway', 'API网关平台', 'jv-api-gateway-overview',  '/api/stats/**',     'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：数据统计'),
+('app-gateway', 'API网关平台', 'jv-api-gateway-discovery', '/api/discovery/**', 'http://127.0.0.1:28083', NULL, 0, 1, '平台自身：服务发现'),
+('app-gateway', 'API网关平台', 'jv-api-gateway-trace',     '/api/trace/**',     'http://127.0.0.1:28084', NULL, 0, 1, '平台自身：日志上报');
 
 -- 默认管理员：admin / Admin@123（首次登录后请立即修改）
 INSERT INTO tb_sys_user (username, password, nickname, email, phone, role, status, token_version, deleted) VALUES

@@ -1,6 +1,6 @@
 import request from '@zimo/shared/request'
 
-/** 用户管理：分页列表（jv-gateway-user 微服务） */
+/** 用户管理：分页列表（jv-api-gateway-user 微服务） */
 export function fetchUsers(params) {
   return request.get('/users', { params })
 }

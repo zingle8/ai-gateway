@@ -5,6 +5,15 @@
       <div class="gw-card-hd">
         <span>服务调用拓扑</span>
         <div class="topo-tools">
+          <el-select v-model="filterApp" placeholder="全部应用" clearable filterable
+                     size="small" style="width: 170px;" @change="onAppChange">
+            <el-option v-for="a in appOptions" :key="a.appId"
+                       :label="a.appName ? `${a.appName}（${a.appId}）` : a.appId" :value="a.appId" />
+          </el-select>
+          <el-select v-model="filterService" placeholder="全部服务" clearable filterable
+                     size="small" style="width: 190px;" @change="load">
+            <el-option v-for="s in serviceOptions" :key="s" :label="s" :value="s" />
+          </el-select>
           <TimeRangePicker v-model="range" size="sm" @change="load" />
           <el-button size="small" :icon="Refresh" circle @click="load" />
         </div>
@@ -108,7 +117,7 @@ import { useRouter } from 'vue-router'
 import { Refresh } from '@element-plus/icons-vue'
 import { TimeRangePicker } from '@zimo/ui'
 import { DEFAULT_TIME_RANGE, timeRangeLabel } from '@zimo/shared'
-import { fetchTopology, fetchSlowTraces } from '../api'
+import { fetchTopology, fetchSlowTraces, fetchTraceFilters } from '../api'
 
 const router = useRouter()
 
@@ -129,12 +138,42 @@ const hoverNode = ref(null)
 const hoverEdge = ref(null)
 const mouse = ref({ x: 0, y: 0 })
 
+/* --------------------------------------------------- 应用 / 服务过滤（默认全局） */
+
+const filterApp = ref('')
+const filterService = ref('')
+const appOptions = ref([])      // [{ appId, appName }]
+const allServices = ref([])     // [{ appId, serviceName }]
+
+// 服务下拉随应用级联：选了应用只列该应用下实际调用过的服务
+const serviceOptions = computed(() =>
+  filterApp.value
+    ? allServices.value.filter((s) => s.appId === filterApp.value).map((s) => s.serviceName)
+    : [...new Set(allServices.value.map((s) => s.serviceName))]
+)
+
+const loadFilters = async () => {
+  try {
+    const d = await fetchTraceFilters()
+    appOptions.value = d.apps || []
+    allServices.value = d.services || []
+  } catch (e) { /* 字典不可用不阻塞拓扑查询 */ }
+}
+
+// 切应用后原选中服务若不属于新应用则清空，避免「应用 A + 服务 B」组合查空
+const onAppChange = () => {
+  if (filterService.value && !serviceOptions.value.includes(filterService.value)) {
+    filterService.value = ''
+  }
+  load()
+}
+
 const load = async () => {
   loading.value = true
   slowLoading.value = true
   try {
     const [topo, slow] = await Promise.all([
-      fetchTopology({ range: range.value }),
+      fetchTopology({ range: range.value, appId: filterApp.value || undefined, service: filterService.value || undefined }),
       fetchSlowTraces({ range: range.value, limit: slowLimit })
     ])
     edges.value = topo.edges || []
@@ -187,7 +226,7 @@ const layout = computed(() => {
     })
   })
 
-  // 服务名普遍带统一前缀（jv-gateway-*），直接截断会让节点名全都一样，
+  // 服务名普遍带统一前缀（jv-api-gateway-*），直接截断会让节点名全都一样，
   // 这里剥离公共前缀只显示有区分度的部分，完整名留到悬浮提示
   const common = commonPrefix(nodes.map((n) => n.name))
   const maxCalls = Math.max(...es.map((x) => x.calls), 1)
@@ -343,7 +382,10 @@ const openTrace = (row) => {
   router.push({ path: '/trace', query: { traceId: row.traceId } })
 }
 
-onMounted(load)
+onMounted(() => {
+  loadFilters()
+  load()
+})
 </script>
 
 <style scoped>

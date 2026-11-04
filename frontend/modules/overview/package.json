@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "网关总览模块（对应后端 jv-gateway-overview 微服务）",
+  "description": "网关总览模块（对应后端 jv-api-gateway-overview 微服务）",
   "main": "index.js",
   "exports": {
     ".": "./index.js"

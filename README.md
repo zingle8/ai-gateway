@@ -8,7 +8,7 @@
 浏览器 ──> 控制台前端 (Vite, 28080)
                 │ /api 反向代理
                 ▼
-         jv-gateway-proxy (Spring Cloud Gateway, 28090)
+         jv-api-gateway-proxy (Spring Cloud Gateway, 28090)
                 │ 按 tb_gw_route 匹配转发，旁路采集调用日志
                 ▼
  ┌──────────────┬────────────────┬────────────────┬──────────────┐
@@ -20,7 +20,7 @@
    （业务数据）  （服务发现/配置，可选）（登录限流/账号解锁，可选）
 ```
 
-业务系统也可作为**客户端**接入：引入 `jv-gateway-client-starter` 自动注册实例并上报调用日志，
+业务系统也可作为**客户端**接入：引入 `jv-api-gateway-client-starter` 自动注册实例并上报调用日志，
 或使用 Python SDK（Flask / FastAPI / 裸 WSGI、ASGI），详见 [文档索引](#文档索引)。
 
 ## 技术栈
@@ -39,14 +39,14 @@
 ```
 ai-gateway/
 ├── backend/                  # Maven 多模块后端（8 个模块，5 个可启动）
-│   ├── jv-gateway-common/        # R 响应体、分页、全局异常、JWT 工具
-│   ├── jv-gateway-user/          # 28081 账号、角色、登录（JWT）、Redis 限流
-│   ├── jv-gateway-overview/      # 28082 网关总览、数据统计（聚合 SQL 全部走 MyBatis）
-│   ├── jv-gateway-discovery/     # 28083 服务实例、路由配置、API 清单
-│   ├── jv-gateway-trace/         # 28084 调用日志分页 / 详情 / 字典
-│   ├── jv-gateway-proxy/         # 28090 网关转发 + 调用日志旁路采集（WebFlux）
-│   ├── jv-gateway-client-common/ # SDK 公共模型（纯 POJO，可复用）
-│   ├── jv-gateway-client-starter/# SDK Spring Boot Starter（自动注册 + 采集上报）
+│   ├── jv-api-gateway-common/        # R 响应体、分页、全局异常、JWT 工具
+│   ├── jv-api-gateway-user/          # 28081 账号、角色、登录（JWT）、Redis 限流
+│   ├── jv-api-gateway-overview/      # 28082 网关总览、数据统计（聚合 SQL 全部走 MyBatis）
+│   ├── jv-api-gateway-discovery/     # 28083 服务实例、路由配置、API 清单
+│   ├── jv-api-gateway-trace/         # 28084 调用日志分页 / 详情 / 字典
+│   ├── jv-api-gateway-proxy/         # 28090 网关转发 + 调用日志旁路采集（WebFlux）
+│   ├── jv-api-gateway-client-common/ # SDK 公共模型（纯 POJO，可复用）
+│   ├── jv-api-gateway-client-starter/# SDK Spring Boot Starter（自动注册 + 采集上报）
 │   └── sql/api_gateway.sql       # 建库建表 + 演示数据（自包含、可重复执行）
 ├── frontend/                 # npm workspaces：portal 主应用 + @zimo/module-* 业务模块
 │   ├── apps/portal/              # 主应用（Vite 28080，/api 代理到 28090 网关）
@@ -88,7 +88,7 @@ chmod +x scripts/*.sh
 | `scripts/stop.sh` | 一键关闭（先按 PID 优雅停止，再按端口兜底） |
 | `scripts/restart.sh` | 重启（= stop + start，参数同 start） |
 | `scripts/status.sh` | 各服务运行状态一览 |
-| `scripts/logs.sh` | 查看 / 跟踪日志（`logs.sh` 跟踪全部，`logs.sh jv-gateway-proxy -n 200` 看单个服务） |
+| `scripts/logs.sh` | 查看 / 跟踪日志（`logs.sh` 跟踪全部，`logs.sh jv-api-gateway-proxy -n 200` 看单个服务） |
 | `scripts/build-sdk-jar.sh` | 构建 Java SDK 分发包到 `dist/sdk-jar/`（含 install.sh） |
 
 端口被占用且无本脚本 PID 记录时，脚本会跳过并提示排查命令，不会强杀其他进程。
@@ -99,11 +99,11 @@ chmod +x scripts/*.sh
 | 服务 | 端口 | 说明 |
 | --- | --- | --- |
 | 控制台前端 | 28080 | Vite dev server，`/api` 全部代理到 28090 |
-| jv-gateway-proxy | 28090 | 流量入口：按路由表转发 + 采集调用日志 |
-| jv-gateway-user | 28081 | 账号 / 角色 / 登录认证 |
-| jv-gateway-overview | 28082 | 网关总览 / 数据统计 |
-| jv-gateway-discovery | 28083 | 服务实例 / 路由配置 / API 清单 |
-| jv-gateway-trace | 28084 | 调用日志查询与详情 |
+| jv-api-gateway-proxy | 28090 | 流量入口：按路由表转发 + 采集调用日志 |
+| jv-api-gateway-user | 28081 | 账号 / 角色 / 登录认证 |
+| jv-api-gateway-overview | 28082 | 网关总览 / 数据统计 |
+| jv-api-gateway-discovery | 28083 | 服务实例 / 路由配置 / API 清单 |
+| jv-api-gateway-trace | 28084 | 调用日志查询与详情 |
 
 后端各服务统一 context-path `/api`；前端所有 `/api` 请求先到 proxy(28090)，
 再按 `tb_gw_route` 表二次分发到各微服务 —— 即前端联调依赖 proxy 与路由表数据（种子数据已含）。

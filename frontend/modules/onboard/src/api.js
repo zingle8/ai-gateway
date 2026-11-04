@@ -1,8 +1,8 @@
 import request from '@zimo/shared/request'
 
 /**
- * 接入中心只与 jv-gateway-discovery 微服务交互，
- * 读取业务系统通过 jv-gateway-client-starter 自动注册上来的实例。
+ * 接入中心只与 jv-api-gateway-discovery 微服务交互，
+ * 读取业务系统通过 jv-api-gateway-client-starter 自动注册上来的实例。
  */
 
 /** 已注册服务分页列表 */

@@ -10,26 +10,26 @@ Spring Boot 3.2.12 + 原生 MyBatis + MySQL + Nacos，Maven 多模块，
 
 | 模块 | 说明 | 端口 | 包名 |
 | --- | --- | --- | --- |
-| `jv-gateway-common` | 平台内部公共模块：统一响应、异常、分页封装（`Page` / `PageResult`）、JWT、IP 工具、密码器配置 | — | `com.zimo.gateway.common` |
-| `jv-gateway-client-common` | **对外公共模块**：上报模型、服务实例模型、常量、错误枚举（不依赖 Spring，业务系统可安全引入） | — | `com.zimo.gateway.client.common` |
-| `jv-gateway-client-starter` | **网关子模块（Spring Boot Starter）**：自动接入注册、请求与响应采集、异步批量上报 | — | `com.zimo.gateway.client` |
-| `jv-gateway-user` | 用户模块：登录 / 退出 / 当前用户、账号增删改查、鉴权拦截器、内置管理员初始化 | 28081 | `com.zimo.gateway.user` |
-| `jv-gateway-overview` | 网关总览：指标汇总、QPS 趋势、运行时信息、网关实例 | 28082 | `com.zimo.gateway.overview` |
-| `jv-gateway-discovery` | 服务发现：注册服务列表、服务详情（端口 / 实例数 / 注册时间）、心跳巡检、转发路由（`tb_gw_route`）增删改查 | 28083 | `com.zimo.gateway.discovery` |
-| `jv-gateway-trace` | 日志追踪：调用日志分页查询、请求/响应报文详情 | 28084 | `com.zimo.gateway.trace` |
-| `jv-gateway-proxy` | 流量代理：按 `tb_gw_route` 转发并记录调用详情（WebFlux，不依赖 common） | 28090 | `com.zimo.gateway.proxy` |
+| `jv-api-gateway-common` | 平台内部公共模块：统一响应、异常、分页封装（`Page` / `PageResult`）、JWT、IP 工具、密码器配置 | — | `com.zimo.gateway.common` |
+| `jv-api-gateway-client-common` | **对外公共模块**：上报模型、服务实例模型、常量、错误枚举（不依赖 Spring，业务系统可安全引入） | — | `com.zimo.gateway.client.common` |
+| `jv-api-gateway-client-starter` | **网关子模块（Spring Boot Starter）**：自动接入注册、请求与响应采集、异步批量上报 | — | `com.zimo.gateway.client` |
+| `jv-api-gateway-user` | 用户模块：登录 / 退出 / 当前用户、账号增删改查、鉴权拦截器、内置管理员初始化 | 28081 | `com.zimo.gateway.user` |
+| `jv-api-gateway-overview` | 网关总览：指标汇总、QPS 趋势、运行时信息、网关实例 | 28082 | `com.zimo.gateway.overview` |
+| `jv-api-gateway-discovery` | 服务发现：注册服务列表、服务详情（端口 / 实例数 / 注册时间）、心跳巡检、转发路由（`tb_gw_route`）增删改查 | 28083 | `com.zimo.gateway.discovery` |
+| `jv-api-gateway-trace` | 日志追踪：调用日志分页查询、请求/响应报文详情 | 28084 | `com.zimo.gateway.trace` |
+| `jv-api-gateway-proxy` | 流量代理：按 `tb_gw_route` 转发并记录调用详情（WebFlux，不依赖 common） | 28090 | `com.zimo.gateway.proxy` |
 
 所有服务统一 `context-path: /api`，路径前缀与前端模块的 `/api/<service>` 一一对应。
 
 ### 流量入口
 
-前端所有 `/api` 请求（含控制台自身的登录、列表）统一打 **`jv-gateway-proxy`（28090）**，
+前端所有 `/api` 请求（含控制台自身的登录、列表）统一打 **`jv-api-gateway-proxy`（28090）**，
 再由 `tb_gw_route` 转发到后端各微服务：
 
 ```
 浏览器 / 外部调用方
       ↓  /api/**
-jv-gateway-proxy :28090   按 tb_gw_route 匹配 path_prefix → upstream_url
+jv-api-gateway-proxy :28090   按 tb_gw_route 匹配 path_prefix → upstream_url
       ↓
 user :28081 / overview :28082 / discovery :28083 / trace :28084
 ```
@@ -45,7 +45,7 @@ user :28081 / overview :28082 / discovery :28083 / trace :28084
 
 | 模块 | 上报方式 |
 | --- | --- |
-| user / overview / discovery / trace | 引入 `jv-gateway-client-starter`，`zimo.gateway.client.*` 配置后自动注册 + 心跳（30 秒） |
+| user / overview / discovery / trace | 引入 `jv-api-gateway-client-starter`，`zimo.gateway.client.*` 配置后自动注册 + 心跳（30 秒） |
 | proxy | WebFlux 无 Servlet 过滤器，由 `ProxySelfRegistrar` 手写定时心跳 |
 
 - 各模块 `zimo.gateway.client.trace.enabled: false`：链路采集已由 proxy 在转发时完成，模块内不再重复埋点
@@ -61,11 +61,11 @@ user :28081 / overview :28082 / discovery :28083 / trace :28084
 
 | 模块 | 定位 | 依赖 |
 | --- | --- | --- |
-| `jv-gateway-client-common` | 公共模块：DTO / 常量 / 枚举，供所有项目复用，避免重复定义 | 无 Spring 依赖 |
-| `jv-gateway-client-starter` | 网关子模块：自动装配，零编码完成接入与采集 | Spring Boot 3 |
+| `jv-api-gateway-client-common` | 公共模块：DTO / 常量 / 枚举，供所有项目复用，避免重复定义 | 无 Spring 依赖 |
+| `jv-api-gateway-client-starter` | 网关子模块：自动装配，零编码完成接入与采集 | Spring Boot 3 |
 
-- 业务系统只引 `jv-gateway-client-starter` 即可；它传递依赖 `jv-gateway-client-common`。
-- 只想要模型（例如自己实现上报逻辑）时，单独引 `jv-gateway-client-common`。
+- 业务系统只引 `jv-api-gateway-client-starter` 即可；它传递依赖 `jv-api-gateway-client-common`。
+- 只想要模型（例如自己实现上报逻辑）时，单独引 `jv-api-gateway-client-common`。
 - 网关平台本身也是微服务，其他项目通过 `GatewayPlatformClient` 调用平台能力。
 
 详见 [../docs/client-integration.md](../docs/client-integration.md)。
@@ -73,6 +73,8 @@ user :28081 / overview :28082 / discovery :28083 / trace :28084
 ## 命名规范
 
 - Maven groupId：`com.zimo`
+- 模块目录 / artifactId / jar 名 / `spring.application.name`：统一 `jv-api-gateway-<模块>`
+  （如 `jv-api-gateway-overview`，注意是 `jv-api-gateway-` 而非 `jv-gateway-`）
 - Java 根包名：`com.zimo.gateway.<模块>`
   - 例：`com.zimo.gateway.user.entity`、`com.zimo.gateway.trace.service.impl`
 - Mapper XML：`classpath*:/mapper/**/*.xml`
@@ -148,9 +150,9 @@ Controller 再转 `PageResult` 输出。响应结构固定：
 
 | 模块 | 持久层实现 | 说明 |
 | --- | --- | --- |
-| `jv-gateway-user` / `jv-gateway-discovery` / `jv-gateway-trace` | `*Mapper` + XML | 增量维护 |
-| `jv-gateway-overview` | `OverviewMapper` + `OverviewMapper.xml` | 总览、数据统计、趋势的所有聚合 SQL |
-| `jv-gateway-proxy` | `RouteMapper` / `TraceLogMapper` + XML | WebFlux 下由 `TraceSink` 每秒批量 INSERT，SqlSession 随调用开启关闭，不跨线程 |
+| `jv-api-gateway-user` / `jv-api-gateway-discovery` / `jv-api-gateway-trace` | `*Mapper` + XML | 增量维护 |
+| `jv-api-gateway-overview` | `OverviewMapper` + `OverviewMapper.xml` | 总览、数据统计、趋势的所有聚合 SQL |
+| `jv-api-gateway-proxy` | `RouteMapper` / `TraceLogMapper` + XML | WebFlux 下由 `TraceSink` 每秒批量 INSERT，SqlSession 随调用开启关闭，不跨线程 |
 
 聚合查询返回 `Map` 时，别名直接写成前端/实体需要的字段名（`SELECT COUNT(*) AS \`count\``），
 列表类查询用 `StatsRow` / `StatsAgg` 这类轻量 DTO 承接，避免 `resultType="map"` 的 key 大小写踩坑。
@@ -209,7 +211,7 @@ docker exec -it redis redis-cli -a 'Redis@123456' ping   # 返回 PONG
 
 #### 服务拓扑聚合（阶段二）
 
-`EdgeAggregator`（jv-gateway-trace，依赖 `@EnableScheduling`）每 60s 对**最近 3 个整点小时窗口**
+`EdgeAggregator`（jv-api-gateway-trace，依赖 `@EnableScheduling`）每 60s 对**最近 3 个整点小时窗口**
 做「先删后插」重算，把 `tb_gw_trace_span` 的 CLIENT span 汇成 `tb_gw_service_edge`：
 
 ```sql
@@ -240,7 +242,7 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time
 )
 ```
 
-- 分区由 `jv-gateway-trace` 的 `PartitionMaintainer` 维护：启动即校验一次，之后每天 00:05
+- 分区由 `jv-api-gateway-trace` 的 `PartitionMaintainer` 维护：启动即校验一次，之后每天 00:05
   补建未来 3 天分区（缺分区会导致插入报 `Table has no partition for value`，直接丢数据）、
   删除 45 天前的分区（`DROP PARTITION` 秒级、不产生 binlog 峰值，替代 `DELETE` + 逻辑删除）
 - 索引与查询场景对应关系：
@@ -272,9 +274,9 @@ mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/service_edge.s
 
 ## Redis
 
-`jv-gateway-user` 使用 Redis 保存**登录失败计数**，使连续失败锁定在多实例部署下同样生效。
+`jv-api-gateway-user` 使用 Redis 保存**登录失败计数**，使连续失败锁定在多实例部署下同样生效。
 
-配置（`jv-gateway-user/src/main/resources/application.yml`，均可用环境变量覆盖）：
+配置（`jv-api-gateway-user/src/main/resources/application.yml`，均可用环境变量覆盖）：
 
 | 配置项 | 默认值 |
 | --- | --- |
@@ -306,7 +308,7 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'
 
 - 地址：`127.0.0.1:8848`（服务端口，gRPC 对应 9848），命名空间 `public`，分组 `DEFAULT_GROUP`
 - 各服务通过 `spring.config.import` 引入配置：
-  - `optional:nacos:api-jv-gateway-common.yaml`
+  - `optional:nacos:api-jv-api-gateway-common.yaml`
   - `optional:nacos:api-gateway-<模块>.yaml`
 
 `optional:` 前缀保证 **Nacos 未启动时也能正常启动**，自动回落本地 `application.yml`。
@@ -337,7 +339,7 @@ chmod +x scripts/*.sh
 ./scripts/start.sh all --build       # 强制重新构建后端后再启动
 ./scripts/status.sh                  # 查看状态
 ./scripts/logs.sh                    # 跟踪全部日志
-./scripts/logs.sh jv-gateway-user       # 只跟踪指定服务
+./scripts/logs.sh jv-api-gateway-user       # 只跟踪指定服务
 ./scripts/stop.sh                    # 关闭全部
 ./scripts/restart.sh                 # 重启全部
 ```
@@ -388,7 +390,7 @@ chmod +x scripts/*.sh
 
 ## 接口清单
 
-### jv-gateway-user（28081）
+### jv-api-gateway-user（28081）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -428,7 +430,7 @@ chmod +x scripts/*.sh
 - `24h` 与 `1d` 跨度相同但语义不同：前者滚动 24 小时，后者从自然日 00:00 起，两者图表结果不同
 - 非法或缺失的 `range` 一律兜底 `24h`，不抛异常
 
-### jv-gateway-overview（28082）
+### jv-api-gateway-overview（28082）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -440,11 +442,11 @@ chmod +x scripts/*.sh
 | GET | `/api/stats/summary` | 数据统计聚合：指标卡（含 `avgRt` / `p95` / `p99`）+ 状态码/方法分布 + Top 服务/接口，支持 `appId`、`serviceName`、`api`、`method`、`range` 过滤 |
 | GET | `/api/stats/trend` | 请求量趋势，`?range=` 与总览 QPS 趋势完全一致（固定 60 点），同样支持四个维度过滤；返回桶内请求量（总览返回 QPS） |
 
-### jv-gateway-discovery（28083）
+### jv-api-gateway-discovery（28083）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤；`?range=` 决定平均耗时与流量的聚合窗口） |
+| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤；`?range=` 决定平均耗时与流量的聚合窗口；返回 `calls`（区间调用次数）与 `apiCount`（已登记接口数） |
 | GET | `/api/discovery/filters` | 筛选项字典：应用（appId+appName）、服务（appId+serviceName）、语言类型 |
 | GET | `/api/discovery/services/{id}` | 服务详情 |
 | POST | `/api/discovery/services/register` | 服务实例注册（自动接入） |
@@ -461,7 +463,7 @@ chmod +x scripts/*.sh
 | DELETE | `/api/discovery/routes/{id}` | 删除路由（逻辑删除） |
 | POST | `/api/discovery/routes/{id}/toggle` | 启用 / 停用 |
 
-### jv-gateway-trace（28084）
+### jv-api-gateway-trace（28084）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
@@ -471,7 +473,7 @@ chmod +x scripts/*.sh
 | POST | `/api/trace/logs/batch` | 批量上报调用日志（接入 SDK 使用） |
 | POST | `/api/trace/spans/batch` | 批量上报链路 span（接入 SDK / 网关使用） |
 | GET | `/api/trace/traces/{traceId}` | 链路详情：按 traceId 取全量 span（前端组树画瀑布图） |
-| GET | `/api/trace/topology` | 服务拓扑：区间内调用边 + 节点（`?range=` 默认 24h；≤30 分钟直接对 span 表实时聚合，更长区间查 tb_gw_service_edge） |
+| GET | `/api/trace/topology` | 服务拓扑：默认**全局**（所有应用 × 所有服务的真实调用边）+ 节点；`?appId=` 按应用、`?service=` 按服务过滤；`?range=` 默认 24h，≤30 分钟直接对 span 表实时聚合，更长区间查 tb_gw_service_edge |
 | GET | `/api/trace/slow` | 慢链路 TopN：按链路总耗时降序（`range` / `limit`），含入口服务与接口 |
 
 ## 构建与启动
@@ -481,11 +483,11 @@ chmod +x scripts/*.sh
 mvn -DskipTests package
 
 # 分别启动（需先启动 MySQL / Nacos，或使用 optional 回落）
-java -jar jv-gateway-user/target/jv-gateway-user.jar
-java -jar jv-gateway-overview/target/jv-gateway-overview.jar
-java -jar jv-gateway-discovery/target/jv-gateway-discovery.jar
-java -jar jv-gateway-trace/target/jv-gateway-trace.jar
-java -jar jv-gateway-proxy/target/jv-gateway-proxy.jar      # 流量入口，需最后启动
+java -jar jv-api-gateway-user/target/jv-api-gateway-user.jar
+java -jar jv-api-gateway-overview/target/jv-api-gateway-overview.jar
+java -jar jv-api-gateway-discovery/target/jv-api-gateway-discovery.jar
+java -jar jv-api-gateway-trace/target/jv-api-gateway-trace.jar
+java -jar jv-api-gateway-proxy/target/jv-api-gateway-proxy.jar      # 流量入口，需最后启动
 ```
 
 > 说明：环境 JDK 为 25，而 Spring Boot 3.2.12 自带的 Lombok 1.18.36 在 JDK 21+ 上会抛

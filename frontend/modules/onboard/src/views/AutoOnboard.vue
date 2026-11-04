@@ -59,7 +59,7 @@
                 type="warning"
                 :closable="false"
                 show-icon
-                title="三个文件缺一不可：parent pom 缺失会导致依赖版本解析失败，模块 pom 不带上会丢失传递依赖，只装 jar 会缺 jv-gateway-client-common。"
+                title="三个文件缺一不可：parent pom 缺失会导致依赖版本解析失败，模块 pom 不带上会丢失传递依赖，只装 jar 会缺 jv-api-gateway-client-common。"
                 style="margin-top: 14px"
               />
             </template>
@@ -291,7 +291,7 @@ const faqOpen = ref(['0'])
 
 const javaDependency = `<dependency>
   <groupId>com.zimo.gateway</groupId>
-  <artifactId>jv-gateway-client-starter</artifactId>
+  <artifactId>jv-api-gateway-client-starter</artifactId>
   <version>1.0.0</version>
 </dependency>`
 
@@ -322,8 +322,8 @@ bash scripts/build-sdk-jar.sh
 #   install.sh                        业务方一条命令装好
 #   pom-snippet.xml
 #   lib/api-gateway-1.0.0.pom         parent pom（解析依赖版本必需）
-#   lib/jv-gateway-client-common.jar  + .pom
-#   lib/jv-gateway-client-starter.jar + .pom`
+#   lib/jv-api-gateway-client-common.jar  + .pom
+#   lib/jv-api-gateway-client-starter.jar + .pom`
 
 const jarInstallSnippet = `# 把 dist/sdk-jar 整个拷到业务机器，然后：
 cd dist/sdk-jar && ./install.sh
@@ -332,16 +332,16 @@ cd dist/sdk-jar && ./install.sh
 mvn install:install-file -Dfile=api-gateway-1.0.0.pom \\
   -DgroupId=com.zimo.gateway -DartifactId=api-gateway -Dversion=1.0.0 -Dpackaging=pom
 
-mvn install:install-file -Dfile=jv-gateway-client-common.jar \\
-  -DpomFile=jv-gateway-client-common.pom
+mvn install:install-file -Dfile=jv-api-gateway-client-common.jar \\
+  -DpomFile=jv-api-gateway-client-common.pom
 
-mvn install:install-file -Dfile=jv-gateway-client-starter.jar \\
-  -DpomFile=jv-gateway-client-starter.pom`
+mvn install:install-file -Dfile=jv-api-gateway-client-starter.jar \\
+  -DpomFile=jv-api-gateway-client-starter.pom`
 
 const jarDependencySnippet = `<!-- 装好之后，与方式一写法完全一致 -->
 <dependency>
   <groupId>com.zimo.gateway</groupId>
-  <artifactId>jv-gateway-client-starter</artifactId>
+  <artifactId>jv-api-gateway-client-starter</artifactId>
   <version>1.0.0</version>
 </dependency>
 
@@ -492,11 +492,11 @@ const faqs = [
   },
   {
     q: '引用 jar 包后启动报找不到 api-gateway:pom:1.0.0？',
-    a: 'parent pom 没装。jv-gateway-client-starter 的 pom 继承了 com.zimo.gateway:api-gateway:1.0.0，Maven 解析它的依赖版本时必须有这个 parent。分发包里的 api-gateway-1.0.0.pom 要单独用 -Dpackaging=pom 装一次，且必须在 starter 之前装。'
+    a: 'parent pom 没装。jv-api-gateway-client-starter 的 pom 继承了 com.zimo.gateway:api-gateway:1.0.0，Maven 解析它的依赖版本时必须有这个 parent。分发包里的 api-gateway-1.0.0.pom 要单独用 -Dpackaging=pom 装一次，且必须在 starter 之前装。'
   },
   {
     q: '装完 jar 启动报 NoClassDefFoundError（如 TraceLogDTO 找不到）？',
-    a: '多半是只装了 jar、没带 -DpomFile。install-file 不带 pom 时会生成一个只有坐标、没有 dependencies 的空 pom，传递依赖（jv-gateway-client-common）就丢了。请改用 -DpomFile=jv-gateway-client-starter.pom 安装，或直接执行分发包里的 install.sh。'
+    a: '多半是只装了 jar、没带 -DpomFile。install-file 不带 pom 时会生成一个只有坐标、没有 dependencies 的空 pom，传递依赖（jv-api-gateway-client-common）就丢了。请改用 -DpomFile=jv-api-gateway-client-starter.pom 安装，或直接执行分发包里的 install.sh。'
   },
   {
     q: '接入后接口响应变慢或响应体重复？',

@@ -6,8 +6,8 @@
 #
 # 产出 dist/sdk-jar/
 #   lib/api-gateway-1.0.0.pom              ← parent pom，业务方解析依赖时必须能拿到
-#   lib/jv-gateway-client-common.jar/.pom  ← 模型与常量
-#   lib/jv-gateway-client-starter.jar/.pom ← Starter 本体
+#   lib/jv-api-gateway-client-common.jar/.pom  ← 模型与常量
+#   lib/jv-api-gateway-client-starter.jar/.pom ← Starter 本体
 #   install.sh                             ← 业务方一条命令装入本地仓库
 #   pom-snippet.xml                        ← 直接粘进业务项目 pom 的依赖片段
 #
@@ -26,14 +26,14 @@ fi
 
 echo "==> 构建并安装到本地 Maven 仓库（含 parent pom）"
 cd "$BACKEND"
-mvn -B -q -DskipTests -pl jv-gateway-client-common,jv-gateway-client-starter -am install
+mvn -B -q -DskipTests -pl jv-api-gateway-client-common,jv-api-gateway-client-starter -am install
 
 echo "==> 收集分发包"
 rm -rf "$OUT"
 mkdir -p "$OUT/lib"
 
-cp "$BACKEND/jv-gateway-client-starter/target/jv-gateway-client-starter.jar" "$OUT/lib/"
-cp "$BACKEND/jv-gateway-client-common/target/jv-gateway-client-common.jar" "$OUT/lib/"
+cp "$BACKEND/jv-api-gateway-client-starter/target/jv-api-gateway-client-starter.jar" "$OUT/lib/"
+cp "$BACKEND/jv-api-gateway-client-common/target/jv-api-gateway-client-common.jar" "$OUT/lib/"
 # 只带模块自身 pom（去掉 <modules>），避免 install-file 解析到不存在的兄弟目录
 python3 - "$BACKEND" "$OUT" "$VERSION" <<'PY'
 import re, sys, pathlib
@@ -46,7 +46,7 @@ text = parent.read_text(encoding='utf-8')
 text = re.sub(r'\s*<modules>.*?</modules>', '', text, flags=re.S)
 (out / f'api-gateway-{version}.pom').write_text(text, encoding='utf-8')
 
-for mod in ('jv-gateway-client-common', 'jv-gateway-client-starter'):
+for mod in ('jv-api-gateway-client-common', 'jv-api-gateway-client-starter'):
     src = pathlib.Path(backend) / mod / 'pom.xml'
     body = src.read_text(encoding='utf-8')
     (out / f'{mod}.pom').write_text(body, encoding='utf-8')
@@ -62,10 +62,10 @@ cd "\$(dirname "\$0")/lib"
 mvn install:install-file -Dfile=api-gateway-$VERSION.pom \\
   -DgroupId=$GROUP -DartifactId=api-gateway -Dversion=$VERSION -Dpackaging=pom
 
-mvn install:install-file -Dfile=jv-gateway-client-common.jar -DpomFile=jv-gateway-client-common.pom
-mvn install:install-file -Dfile=jv-gateway-client-starter.jar -DpomFile=jv-gateway-client-starter.pom
+mvn install:install-file -Dfile=jv-api-gateway-client-common.jar -DpomFile=jv-api-gateway-client-common.pom
+mvn install:install-file -Dfile=jv-api-gateway-client-starter.jar -DpomFile=jv-api-gateway-client-starter.pom
 
-echo "安装完成：$GROUP:jv-gateway-client-starter:$VERSION"
+echo "安装完成：$GROUP:jv-api-gateway-client-starter:$VERSION"
 EOF
 chmod +x "$OUT/install.sh"
 
@@ -73,7 +73,7 @@ cat > "$OUT/pom-snippet.xml" <<EOF
 <!-- 装好上面三个文件后，业务项目直接声明依赖即可 -->
 <dependency>
   <groupId>$GROUP</groupId>
-  <artifactId>jv-gateway-client-starter</artifactId>
+  <artifactId>jv-api-gateway-client-starter</artifactId>
   <version>$VERSION</version>
 </dependency>
 <!-- 注意：starter 里的 spring-boot-starter-web 是 optional，
@@ -85,5 +85,5 @@ echo
 ls -1 "$OUT" "$OUT/lib" | sed 's/^/    /'
 echo
 echo "业务方两种用法："
-echo "  1) 本机已装好   → 直接引用 $GROUP:jv-gateway-client-starter:$VERSION"
+echo "  1) 本机已装好   → 直接引用 $GROUP:jv-api-gateway-client-starter:$VERSION"
 echo "  2) 只有 jar 包  → 把 dist/sdk-jar 整个拷过去，执行 ./install.sh"

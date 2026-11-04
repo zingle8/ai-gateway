@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "数据统计模块：按应用 / 服务 / 接口 / 方法维度分析网关指标（对应后端 jv-gateway-overview）",
+  "description": "数据统计模块：按应用 / 服务 / 接口 / 方法维度分析网关指标（对应后端 jv-api-gateway-overview）",
   "main": "index.js",
   "exports": {
     ".": "./index.js"
