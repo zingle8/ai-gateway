@@ -379,9 +379,9 @@ chmod +x scripts/*.sh
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/trace/logs` | 调用日志分页列表（含 `req_params`；支持 `params` 模糊检索 query / 请求体） |
+| GET | `/api/trace/logs` | 调用日志分页列表（含 `req_params`；支持 `appId` / `service` / `method` / `api` 精确过滤，`params` 模糊检索 query / 请求体） |
 | GET | `/api/trace/logs/{id}` | 日志详情（含 `req_params`、Header、请求体、响应体） |
-| GET | `/api/trace/logs/filters` | 筛选项字典（协议 / 方法 / 服务名 / **接口名** / 报文格式，取库中真实出现过的值） |
+| GET | `/api/trace/logs/filters` | 筛选项字典（**应用** / 协议 / 方法 / 服务名（带 appId，供级联）/ 接口名 / 报文格式，取库中真实出现过的值） |
 | POST | `/api/trace/logs/batch` | 批量上报调用日志（接入 SDK 使用） |
 
 ## 构建与启动

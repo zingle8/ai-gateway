@@ -35,5 +35,5 @@ public interface TraceService {
      *
      * @return key 为 protocols / services / reqFormats / resFormats
      */
-    Map<String, List<String>> filterOptions();
+    Map<String, Object> filterOptions();
 }

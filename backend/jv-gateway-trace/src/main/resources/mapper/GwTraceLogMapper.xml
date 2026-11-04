@@ -16,6 +16,7 @@
         deleted = 0
         <if test="traceId != null and traceId != ''">AND trace_id LIKE CONCAT('%', #{traceId}, '%')</if>
         <if test="service != null and service != ''">AND service_name = #{service}</if>
+        <if test="appId != null and appId != ''">AND app_id = #{appId}</if>
         <if test="api != null and api != ''">AND api = #{api}</if>
         <!-- 按请求参数模糊检索：query string 与请求体一起匹配 -->
         <if test="params != null and params != ''">
@@ -55,10 +56,18 @@
         ORDER BY protocol
     </select>
 
-    <select id="selectDistinctServices" resultType="string">
-        SELECT DISTINCT service_name FROM tb_gw_trace_log
+    <!-- 服务下拉字典：带 app_id 供前端按应用级联过滤 -->
+    <select id="selectDistinctServices" resultType="com.zimo.gateway.trace.model.FilterOption">
+        SELECT DISTINCT app_id, service_name FROM tb_gw_trace_log
         WHERE deleted = 0 AND service_name IS NOT NULL AND service_name != ''
         ORDER BY service_name
+    </select>
+
+    <!-- 应用下拉字典：取库中真实出现过的应用 -->
+    <select id="selectDistinctApps" resultType="com.zimo.gateway.trace.model.FilterOption">
+        SELECT DISTINCT app_id, app_name FROM tb_gw_trace_log
+        WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+        ORDER BY app_id
     </select>
 
     <!-- 接口名下拉字典：api 形如 "GET /api/xxx"，与方法下拉组合即可定位到唯一接口 -->

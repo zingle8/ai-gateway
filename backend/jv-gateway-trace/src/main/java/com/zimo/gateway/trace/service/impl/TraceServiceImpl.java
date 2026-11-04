@@ -69,8 +69,9 @@ public class TraceServiceImpl implements TraceService {
     }
 
     @Override
-    public Map<String, List<String>> filterOptions() {
-        Map<String, List<String>> options = new LinkedHashMap<>();
+    public Map<String, Object> filterOptions() {
+        Map<String, Object> options = new LinkedHashMap<>();
+        options.put("apps", traceLogMapper.selectDistinctApps());
         options.put("protocols", traceLogMapper.selectDistinctProtocols());
         options.put("methods", traceLogMapper.selectDistinctMethods());
         options.put("services", traceLogMapper.selectDistinctServices());

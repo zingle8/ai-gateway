@@ -1,6 +1,7 @@
 package com.zimo.gateway.trace.mapper;
 
 import com.zimo.gateway.trace.entity.GwTraceLog;
+import com.zimo.gateway.trace.model.FilterOption;
 import com.zimo.gateway.trace.model.TraceQuery;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -35,7 +36,10 @@ public interface GwTraceLogMapper {
     /** HTTP 方法字典（从 api 前缀解析） */
     List<String> selectDistinctMethods();
 
-    List<String> selectDistinctServices();
+    List<FilterOption> selectDistinctServices();
+
+    /** 筛选项字典：应用列表（app_id + app_name），供「全部应用」下拉 */
+    List<FilterOption> selectDistinctApps();
 
     List<String> selectDistinctApis();
 

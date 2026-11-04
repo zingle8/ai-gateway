@@ -10,6 +10,9 @@ public class TraceQuery {
 
     private String traceId;
 
+    /** 应用编码精确过滤（tb_gw_trace_log.app_id） */
+    private String appId;
+
     private String service;
 
     private String api;

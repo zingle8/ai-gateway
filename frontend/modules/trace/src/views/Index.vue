@@ -17,8 +17,16 @@
           <el-select v-model="query.api" placeholder="全部接口名" clearable filterable style="width: 240px;">
             <el-option v-for="a in apiOptions" :key="a" :label="a" :value="a" />
           </el-select>
-          <el-select v-model="query.service" placeholder="全部服务" clearable style="width: 170px;">
-            <el-option v-for="s in serviceOptions" :key="s" :label="s" :value="s" />
+          <el-select v-model="query.appId" placeholder="全部应用" clearable filterable style="width: 200px;" @change="onAppChange">
+            <el-option
+              v-for="a in appOptions"
+              :key="a.appId"
+              :label="a.appName ? `${a.appName}（${a.appId}）` : a.appId"
+              :value="a.appId"
+            />
+          </el-select>
+          <el-select v-model="query.service" placeholder="全部服务" clearable filterable style="width: 170px;">
+            <el-option v-for="s in serviceOptions" :key="s.serviceName" :label="s.serviceName" :value="s.serviceName" />
           </el-select>
           <el-select v-model="query.status" placeholder="全部状态码" clearable style="width: 150px;">
             <el-option v-for="s in statusOptions" :key="s" :label="String(s)" :value="s" />
@@ -174,6 +182,7 @@ const query = reactive({
   traceId: '',
   params: '',
   method: '',
+  appId: '',
   service: '',
   api: '',
   status: null,
@@ -188,7 +197,20 @@ const query = reactive({
 })
 
 // 筛选项默认值仅作兜底；真实值由 /trace/logs/filters 按库中数据动态填充
-const serviceOptions = ref([])
+const appOptions = ref([])      // [{ appId, appName }]
+const allServices = ref([])     // [{ appId, serviceName }]
+
+// 「全部服务」随已选应用级联：选了应用只列该应用下的服务
+const serviceOptions = computed(() =>
+  query.appId ? allServices.value.filter((s) => s.appId === query.appId) : allServices.value
+)
+
+// 切换应用后，原选中的服务若不属于新应用则清空，避免「应用 A + 服务 B」组合查空
+const onAppChange = () => {
+  if (query.service && !serviceOptions.value.some((s) => s.serviceName === query.service)) {
+    query.service = ''
+  }
+}
 const apiOptions = ref([])
 const methodOptions = ref(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
 const protocolOptions = ref(['HTTP/1.1', 'HTTP/2', 'gRPC', 'WebSocket'])
@@ -203,7 +225,8 @@ const loadFilters = async () => {
     const d = await fetchTraceFilters()
     if (d.protocols?.length) protocolOptions.value = d.protocols
     if (d.methods?.length) methodOptions.value = d.methods
-    if (d.services?.length) serviceOptions.value = d.services
+    if (d.apps?.length) appOptions.value = d.apps
+    if (d.services?.length) allServices.value = d.services
     if (d.apis?.length) apiOptions.value = d.apis
     if (d.reqFormats?.length) reqFormatOptions.value = d.reqFormats
     if (d.resFormats?.length) resFormatOptions.value = d.resFormats
@@ -231,6 +254,7 @@ const reset = () => {
   query.traceId = ''
   query.params = ''
   query.method = ''
+  query.appId = ''
   query.service = ''
   query.api = ''
   query.status = null

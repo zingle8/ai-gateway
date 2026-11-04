@@ -28,6 +28,7 @@ public class TraceController {
      */
     @GetMapping("/logs")
     public R<PageResult<GwTraceLog>> page(@RequestParam(required = false) String traceId,
+                                          @RequestParam(required = false) String appId,
                                           @RequestParam(required = false) String service,
                                           @RequestParam(required = false) String api,
                                           @RequestParam(required = false) String params,
@@ -43,6 +44,7 @@ public class TraceController {
                                           @RequestParam(defaultValue = "10") long size) {
         TraceQuery query = new TraceQuery();
         query.setTraceId(traceId);
+        query.setAppId(appId);
         query.setService(service);
         query.setApi(api);
         query.setParams(params);
@@ -74,7 +76,7 @@ public class TraceController {
      * 注：必须声明在 {@code /logs/{id}} 之前语义等价——Spring 按字面量优先匹配，不会被 {id} 吞掉。
      */
     @GetMapping("/logs/filters")
-    public R<Map<String, List<String>>> filters() {
+    public R<Map<String, Object>> filters() {
         return R.ok(traceService.filterOptions());
     }
 
