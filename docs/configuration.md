@@ -1,0 +1,101 @@
+# 配置信息一览（数据库 / 中间件 / 端口 / 密钥）
+
+> 本文汇总项目全部外部依赖的连接信息与配置方式，供开发与部署快速查阅。
+> 所有配置均有两层来源：`backend/*/src/main/resources/application.yml`（默认值）
+> 与**环境变量覆盖**（优先级更高）。生产环境务必用环境变量覆盖默认口令。
+
+> ⚠️ **安全提示**：本文与 `application.yml` 中的口令均为本机演示环境默认值。
+> 若仓库公开或口令在真实环境复用，请立即轮换，并通过环境变量注入新值。
+
+## 1. 总览
+
+| 组件 | 地址 | 账号 / 密码 | 容器名 / 镜像 | 是否必需 |
+| --- | --- | --- | --- | --- |
+| MySQL | `127.0.0.1:3306` | `root` / `Root@123456` | `mysql57`（`mysql:5.7`） | **必需** |
+| Redis | `127.0.0.1:6379` | 无用户名 / `Redis@123456` | `redis`（`redis:7.2-alpine`） | 可选（降级运行） |
+| Nacos | `127.0.0.1:8848`（控制台 `8080`） | `nacos` / `nacos` | `nacos`（`nacos/nacos-server:latest`，standalone） | 可选（降级运行） |
+
+容器统一由 `scripts/init-env.sh` 管理（幂等：存在则启动，不存在则按上述默认参数创建）。
+
+## 2. MySQL
+
+| 项 | 值 | 说明 |
+| --- | --- | --- |
+| 主机 / 端口 | `127.0.0.1:3306` | 本机端口映射，容器内 3306 |
+| 用户名 / 密码 | `root` / `Root@123456` | 所有后端服务共用 |
+| 数据库 | `api_gateway` | 唯一业务库，5 个微服务共用 |
+| JDBC URL | `jdbc:mysql://127.0.0.1:3306/api_gateway?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true` | proxy 额外加 `rewriteBatchedStatements=true`（调用日志批量写入） |
+| 初始化 | `./scripts/init-db.sh` | 建库 + 建表 + 种子数据；`--drop` 删库重建 |
+| 表 | `tb_sys_user` / `tb_gw_service` / `tb_gw_route` / `tb_gw_api` / `tb_gw_trace_log` | 见 `backend/sql/api_gateway.sql` |
+
+MySQL 密码目前硬编码在 `application.yml`，改法：直接改各服务 yml 的
+`spring.datasource.username/password`，或迁移到环境变量（推荐）。
+
+## 3. Redis
+
+用于登录限流计数（`gw:login:fail:*`）与账号解锁，**不可用时自动降级为单实例内存计数，不影响启动与登录**。
+
+| 项 | 值 | 环境变量（默认值） |
+| --- | --- | --- |
+| 主机 | `127.0.0.1` | `REDIS_HOST`（`127.0.0.1`） |
+| 端口 | `6379` | `REDIS_PORT`（`6379`） |
+| 密码 | `Redis@123456` | `REDIS_PASSWORD`（`Redis@123456`） |
+
+配置位置：`jv-gateway-user/src/main/resources/application.yml` → `spring.data.redis.*`。
+
+运维排查：
+
+```bash
+docker exec redis redis-cli -a 'Redis@123456' ping          # 期望 PONG
+docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁账号
+```
+
+## 4. Nacos（注册中心 / 配置中心）
+
+**以 `optional:` 方式引入，Nacos 挂掉不影响任何服务启动**，只失去动态配置能力。
+
+| 项 | 值 |
+| --- | --- |
+| 服务地址（客户端连接） | `127.0.0.1:8848`（**必须用 8848**，v2.x 按 8848+1000 推算 gRPC 端口 9848；用控制台 8080 会导致注册失败） |
+| 控制台 | `http://localhost:8080/nacos`，账号 `nacos` / `nacos` |
+| 模式 | standalone |
+| 挂载的配置文件 | `api-jv-gateway-common.yaml`、`api-jv-gateway-user.yaml`、`api-jv-gateway-overview.yaml`、`api-jv-gateway-discovery.yaml`、`api-jv-gateway-trace.yaml`（均为 optional，可不存在） |
+
+配置位置：各服务 yml → `spring.config.import` 与 `spring.cloud.nacos.*`。
+
+## 5. JWT 与内置账号（jv-gateway-user）
+
+| 项 | 默认值 | 环境变量 |
+| --- | --- | --- |
+| JWT 签名密钥 | `ai-gateway-platform-jwt-secret-key-change-me-please` | `GATEWAY_JWT_SECRET`（**生产必须覆盖**，≥ 32 字节） |
+| Token 有效期 | 8 小时 | yml `gateway.jwt.expire-hours` |
+| 内置超管账号 | `admin` / `Admin@123` | yml `gateway.default-admin.username/password` |
+
+说明：内置账号仅在 `tb_sys_user` **为空时**由 `AdminAccountInitializer` 写入；
+`init-db.sh` 初始化的种子数据已含 admin，故演示账号（dev/ops/viewer）不会自动创建。
+
+## 6. 服务端口清单
+
+| 服务 | 端口 | context-path |
+| --- | --- | --- |
+| 控制台前端（Vite dev） | 28080 | `/`（`/api` 代理到 28090） |
+| jv-gateway-user（账号权限） | 28081 | `/api` |
+| jv-gateway-overview（总览统计） | 28082 | `/api` |
+| jv-gateway-discovery（服务/路由） | 28083 | `/api` |
+| jv-gateway-trace（日志追踪） | 28084 | `/api` |
+| jv-gateway-proxy（网关入口） | 28090 | `/` |
+
+## 7. 环境变量速查
+
+| 变量 | 默认值 | 作用 |
+| --- | --- | --- |
+| `GATEWAY_JWT_SECRET` | `ai-gateway-platform-jwt-secret-key-change-me-please` | JWT 签名密钥（生产必改） |
+| `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `127.0.0.1` / `6379` / `Redis@123456` | Redis 连接 |
+| `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `127.0.0.1` / `3306` / `root` / `Root@123456` / `api_gateway` | 仅供 `scripts/init-db.sh` 等脚本使用（后端连接串在 yml 内） |
+| `JAVA_OPTS` | `-Xms256m -Xmx512m` | `scripts/start.sh` 启动 JVM 参数 |
+
+## 8. 修改配置的三种方式（优先级从高到低）
+
+1. **环境变量**：如 `GATEWAY_JWT_SECRET=xxx ./scripts/start.sh`（已支持 `${VAR:default}` 占位符的项）；
+2. **Nacos 配置中心**：在控制台修改 `api-jv-gateway-<service>.yaml`，服务重启后生效（当前为 optional 引入）；
+3. **直接改 `application.yml`**：改完需 `./scripts/restart.sh backend --build` 重新构建生效。
