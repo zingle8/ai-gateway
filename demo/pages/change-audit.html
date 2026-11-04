@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>变更审计与告警 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">变更审计与告警</div>
+              <div class="page-subtitle">支撑模块 · 谁在什么时候改了什么、改完有没有问题、出问题通知谁</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">导出审计</button>
+              <button class="btn btn-primary">新建告警规则</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">今日变更</div>
+                <div class="stat-value">38</div>
+                <div class="stat-trend up">▲ 2 次回滚</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">生效中告警规则</div>
+                <div class="stat-value">26</div>
+                <div class="stat-trend up">▲ 覆盖 14 个系统</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">未恢复告警</div>
+                <div class="stat-value">2</div>
+                <div class="stat-trend down">▼ file-api 熔断中</div>
+              </div>
+              <div class="stat-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">SLO 达标</div>
+                <div class="stat-value">99.94%</div>
+                <div class="stat-trend up">▲ 目标 99.9%</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">变更审计</div>
+                <div class="card-subtitle">所有配置变更留痕，支持按对象追溯与一键回滚</div>
+              </div>
+              <div class="filter-bar" style="margin:0;">
+                <div class="chips">
+                  <span class="chip active">全部</span>
+                  <span class="chip">路由</span>
+                  <span class="chip">鉴权</span>
+                  <span class="chip">限流</span>
+                  <span class="chip">插件</span>
+                  <span class="chip">仅回滚项</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:130px;">时间</th>
+                      <th style="width:90px;">操作人</th>
+                      <th style="width:110px;">变更类型</th>
+                      <th>变更对象</th>
+                      <th>变更内容</th>
+                      <th style="width:100px;">发布方式</th>
+                      <th style="width:90px;">状态</th>
+                      <th style="width:90px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">15:31</td><td>张运维</td><td><span class="tag tag-warning tag-solid">降级</span></td>
+                      <td class="mono">file-api</td><td>熔断阈值 50% → 40%，启用本地兜底</td>
+                      <td>灰度 2 台</td><td><span class="tag tag-warning">灰度中</span></td>
+                      <td><a style="color:var(--primary);" href="#">回滚</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">14:26</td><td>李开发</td><td><span class="tag tag-primary tag-solid">路由</span></td>
+                      <td class="mono">order-api</td><td>新增 Predicate Method=PUT，权重 v2 30%</td>
+                      <td>全量</td><td><span class="tag tag-success">已生效</span></td>
+                      <td><a style="color:var(--primary);" href="#">回滚</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">11:40</td><td>王 SRE</td><td><span class="tag tag-warning tag-solid">限流</span></td>
+                      <td class="mono">limit-order</td><td>200 QPS → 300 QPS，突发 400 → 600</td>
+                      <td>全量</td><td><span class="tag tag-success">已生效</span></td>
+                      <td><a style="color:var(--primary);" href="#">回滚</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10:12</td><td>赵安全</td><td><span class="tag tag-danger tag-solid">鉴权</span></td>
+                      <td class="mono">auth-trade</td><td>新增黑名单 203.0.113.0/24</td>
+                      <td>全量</td><td><span class="tag tag-success">已生效</span></td>
+                      <td><a style="color:var(--primary);" href="#">回滚</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">09:05</td><td>李开发</td><td><span class="tag tag-primary tag-solid">路由</span></td>
+                      <td class="mono">search-api</td><td>灰度批次 2 台（回滚：错误率超阈值）</td>
+                      <td>灰度 2 台</td><td><span class="tag tag-danger">已回滚</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">告警规则</div>
+                  <div class="card-subtitle">按项目等级默认继承，可覆盖；支持静默与升级</div>
+                </div>
+                <button class="btn btn-sm btn-secondary">通知渠道设置</button>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>告警项</th><th style="width:120px;">阈值</th><th style="width:90px;">持续</th><th style="width:110px;">通知方式</th><th style="width:80px;">状态</th></tr></thead>
+                    <tbody>
+                      <tr><td>错误率过高</td><td>&gt; 1%</td><td>2 分钟</td><td>企微 + 短信</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td>P99 延迟过高</td><td>&gt; 500 ms</td><td>5 分钟</td><td>企微</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td>限流触发激增</td><td>&gt; 500 次/分</td><td>1 分钟</td><td>企微</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td>熔断 OPEN</td><td>任一路由</td><td>立即</td><td>电话 + 短信</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td>实例健康检查失败</td><td>连续 3 次</td><td>立即</td><td>短信</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td>证书 30 天内到期</td><td>—</td><td>每天 09:00</td><td>邮件</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td>AppSecret 超期未轮换</td><td>&gt; 90 天</td><td>每周一</td><td>邮件</td><td><span class="tag tag-gray">静默中</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">当前告警与处置</div>
+                  <div class="card-subtitle">告警直接关联到具体路由 / 服务，点击直达</div>
+                </div>
+                <a class="text-sm" style="color:var(--primary);" href="data-query.html">查明细 →</a>
+              </div>
+              <div class="card-body">
+                <div class="timeline">
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--danger);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title"><b>file-api</b> 熔断 OPEN（已持续 11 分钟）</div>
+                      <div class="tl-meta">15:31 触发 · 慢调用比例 62% · 已电话通知负责人 · 已自动降级</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--warning);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title"><b>limit-order</b> 限流触发激增</div>
+                      <div class="tl-meta">15:20 触发 · 3 分钟内 1,286 次 429 · 建议提额或优化调用</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--success);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title"><b>search-api</b> 灰度批次 2 已达标</div>
+                      <div class="tl-meta">14:02 · 错误率 0.06% · RT 202 ms · 可继续下一批</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;">
+                  <div class="side-stack-title">SLO 定义</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>可用性</span><b>99.9%（5xx + 熔断计入）</b></div>
+                    <div class="side-stack-item"><span>延迟</span><b>P99 &lt; 400 ms</b></div>
+                    <div class="side-stack-item"><span>错误预算剩余</span><b>本月 62%</b></div>
+                    <div class="side-stack-item"><span>预算耗尽动作</span><b>冻结变更，仅允许回滚</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('audit');</script>
+</body>
+</html>

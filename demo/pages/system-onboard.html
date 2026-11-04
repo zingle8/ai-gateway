@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>平台接入 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">① 平台接入（手动）</div>
+              <div class="page-subtitle">把业务系统（微服务 / 单体 / 分布式）接入网关平台：建项目 → 选地域与等级 → 注册服务 → 绑定 Nacos 空间 → 生成凭证</div>
+            </div>
+            <div class="page-actions">
+              <a class="btn btn-secondary" href="auto-onboard.html">自动接入（配置即接入）→</a>
+              <button class="btn btn-secondary">批量导入</button>
+              <button class="btn btn-primary">接入新系统</button>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">接入方式：手动 还是 自动？</div>
+                <div class="card-subtitle">本页是手动填写；若应用能自己在启动时声明身份，用自动接入更快、且不容易配错</div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th style="width:150px;">对比项</th><th>手动接入（本页）</th><th>自动接入 · 配置即接入</th></tr></thead>
+                  <tbody>
+                    <tr><td>谁来填</td><td>人在控制台填全部字段</td><td>应用启动读 <span class="code-inline">bootstrap.yml</span> / <span class="code-inline">gateway.yaml</span> 自动注册</td></tr>
+                    <tr><td>需要填多少</td><td>项目 ID / 名称 / 地域 / 等级 / 语言-服务名 / 类型 / Nacos 空间等 10+ 项</td><td><b>最少 4 项</b>：appcode、服务名、地域、等级</td></tr>
+                    <tr><td>基础配置</td><td>需逐项手动设置</td><td><b>按等级下发默认模板</b>（QPS / 超时 / 重试 / 熔断 / 鉴权）</td></tr>
+                    <tr><td>耗时</td><td>15 ~ 30 分钟</td><td>约 12 秒（随应用启动完成）</td></tr>
+                    <tr><td>适用范围</td><td>兜底、临时接入、无法改造的存量系统</td><td>Spring Boot（Starter）、多语言（YAML）、K8s（注解）全覆盖</td></tr>
+                    <tr><td>两者关系</td><td colspan="2">最终落到同一份系统模型：手动接入 = 人替系统调用注册接口；控制台改过的字段会被<b>锁定</b>，自动接入不会覆盖</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div class="card-title">接入流程（八步）</div>
+              <div class="card-subtitle">侧边栏「网关管理」即按此顺序组织，跟着点一遍即可完成接入</div>
+            </div>
+            <div class="card-body">
+              <div class="pipeline">
+                <div class="pipe-step">
+                  <div class="pipe-name">① 平台接入</div>
+                  <div class="pipe-tech">项目 ID / 名称 + 地域 + 等级</div>
+                  <div class="pipe-metric">产出 appid / appcode / appname</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">② Nacos 空间</div>
+                  <div class="pipe-tech">namespace / group / dataId</div>
+                  <div class="pipe-metric">配置隔离与热更新</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">③ API 定义与发布</div>
+                  <div class="pipe-tech">方法 / 路径 / 版本 / Schema</div>
+                  <div class="pipe-metric">OpenAPI 导入与评审</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">④ 路由规则</div>
+                  <div class="pipe-tech">协议 / 路径 / 断言 / LB / SSL</div>
+                  <div class="pipe-metric">HTTP · gRPC · WebSocket</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">⑤ 鉴权与安全</div>
+                  <div class="pipe-tech">JWT / AK-SK / OAuth2 / mTLS</div>
+                  <div class="pipe-metric">黑白名单 · 脱敏 · 订阅授权</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">⑥ 流量治理</div>
+                  <div class="pipe-tech">限流 / 熔断 / 降级 / 配额</div>
+                  <div class="pipe-metric">按 appcode + 路由</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">⑦ 过滤器插件</div>
+                  <div class="pipe-tech">编排 / 协议转换 / 审计</div>
+                  <div class="pipe-metric">热插拔生效</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">⑧ 联调上线</div>
+                  <div class="pipe-tech">在线调试 + 灰度批次</div>
+                  <div class="pipe-metric">可回滚</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">接入表单 · 新建业务系统</div>
+                  <div class="card-subtitle">一份表单覆盖微服务 / 单体 / 分布式应用，接入即生成凭证</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="form-row row-2">
+                  <div>
+                    <label class="form-label">项目 ID<span class="required">*</span></label>
+                    <input class="form-input" value="PRJ-10086" />
+                    <div class="form-help">平台内唯一，后续路由 / 配额 / 账单按此聚合</div>
+                  </div>
+                  <div>
+                    <label class="form-label">项目名称<span class="required">*</span></label>
+                    <input class="form-input" value="交易中心" />
+                  </div>
+                </div>
+                <div class="form-row row-2">
+                  <div>
+                    <label class="form-label">地域<span class="required">*</span></label>
+                    <select class="form-input">
+                      <option>华东 1 区（上海）</option>
+                      <option>华北 2 区（北京）</option>
+                      <option>华南 1 区（广州）</option>
+                      <option>西南 1 区（成都）</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">项目等级<span class="required">*</span></label>
+                    <select class="form-input">
+                      <option>P0 · 核心（独立网关集群 + 专属限流）</option>
+                      <option>P1 · 重要（共享集群 + 独立配额）</option>
+                      <option>P2 · 一般（共享集群 + 默认配额）</option>
+                      <option>P3 · 内部（仅内网访问）</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row row-3">
+                  <div>
+                    <label class="form-label">语言类型</label>
+                    <select class="form-input">
+                      <option>java</option>
+                      <option>go</option>
+                      <option>node</option>
+                      <option>python</option>
+                      <option>cpp</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">服务名<span class="required">*</span></label>
+                    <input class="form-input" value="order-service" />
+                    <div class="form-help">命名：语言类型-服务名，如 java-order-service</div>
+                  </div>
+                  <div>
+                    <label class="form-label">系统类型<span class="required">*</span></label>
+                    <select class="form-input">
+                      <option>baseon · 基础服务（被依赖）</option>
+                      <option>application · 业务应用（对外提供能力）</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row row-3">
+                  <div>
+                    <label class="form-label">Nacos 命名空间<span class="required">*</span></label>
+                    <input class="form-input" value="ns-trade-prod" />
+                  </div>
+                  <div>
+                    <label class="form-label">Nacos Group</label>
+                    <input class="form-input" value="GATEWAY_GROUP" />
+                  </div>
+                  <div>
+                    <label class="form-label">注册方式</label>
+                    <select class="form-input">
+                      <option>Nacos 自动注册（推荐）</option>
+                      <option>静态实例列表手动录入</option>
+                      <option>K8s Service 发现</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-row row-3">
+                  <div>
+                    <label class="form-label">接入协议</label>
+                    <select class="form-input">
+                      <option>HTTP / HTTPS</option>
+                      <option>gRPC</option>
+                      <option>WebSocket</option>
+                      <option>HTTP + gRPC 双栈</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">架构形态</label>
+                    <select class="form-input">
+                      <option>微服务</option>
+                      <option>单体应用</option>
+                      <option>分布式集群</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="form-label">负责人</label>
+                    <input class="form-input" value="张运维 / SRE-交易" />
+                  </div>
+                </div>
+                <div class="flex gap-8" style="margin-top:14px;">
+                  <button class="btn btn-primary">创建并生成凭证</button>
+                  <button class="btn btn-secondary">校验连通性</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">凭证说明 · 三个标识各管一件事</div>
+                  <div class="card-subtitle">不要混用：标识不同，作用范围不同</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th style="width:110px;">标识</th><th style="width:150px;">示例</th><th>用途</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono"><b>appid</b></td><td class="mono">10086</td><td>系统级唯一 ID，平台内部主键，用于路由绑定、账单聚合</td></tr>
+                      <tr><td class="mono"><b>appcode</b></td><td class="mono">trade-order</td><td>调用方身份标识，随请求头 <span class="code-inline">X-App-Code</span> 传递，用于鉴权、限流、计量</td></tr>
+                      <tr><td class="mono"><b>appname</b></td><td class="mono">交易中心-订单服务</td><td>可读名称，用于控制台展示与告警通知</td></tr>
+                      <tr><td class="mono">AppSecret</td><td class="mono">ak_****</td><td>签名密钥，仅创建时明文展示一次，支持轮换</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="side-stack-title">接入后自动完成</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>创建 Nacos 命名空间与 Group</span><b>自动</b></div>
+                    <div class="side-stack-item"><span>下发默认路由模板（/api/{service}/**）</span><b>自动</b></div>
+                    <div class="side-stack-item"><span>默认鉴权：AK-SK + IP 白名单</span><b>自动</b></div>
+                    <div class="side-stack-item"><span>默认限流：按等级配额（P0 2000 QPS）</span><b>自动</b></div>
+                    <div class="side-stack-item"><span>实例注册与健康检查</span><b>Nacos 自动</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">已接入业务系统</div>
+                <div class="card-subtitle">14 个系统 · 3 个地域 · 支持 HTTP / gRPC / WebSocket 多协议</div>
+              </div>
+              <div class="filter-bar" style="margin:0;">
+                <input class="form-input" style="width:180px;height:34px;" placeholder="搜索 appcode / appname" />
+                <div class="chips">
+                  <span class="chip active">全部</span>
+                  <span class="chip">华东</span>
+                  <span class="chip">华北</span>
+                  <span class="chip">P0</span>
+                  <span class="chip">application</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:80px;">appid</th>
+                      <th>appcode / appname</th>
+                      <th style="width:90px;">地域</th>
+                      <th style="width:70px;">等级</th>
+                      <th style="width:150px;">语言-服务名</th>
+                      <th style="width:110px;">类型</th>
+                      <th style="width:110px;">协议</th>
+                      <th style="width:130px;">Nacos 空间</th>
+                      <th style="width:90px;">状态</th>
+                      <th style="width:110px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">10086</td>
+                      <td><b class="mono">trade-order</b><div class="text-sm muted">交易中心-订单服务</div></td>
+                      <td>华东 1 区</td><td><span class="tag tag-danger tag-solid">P0</span></td>
+                      <td class="mono">java-order-service</td>
+                      <td><span class="tag tag-primary tag-solid">application</span></td>
+                      <td><span class="tag tag-gray">HTTP</span> <span class="tag tag-info">gRPC</span></td>
+                      <td class="mono">ns-trade-prod</td>
+                      <td><span class="tag tag-success">已接入</span></td>
+                      <td><a style="color:var(--primary);" href="nacos-config.html">配空间 →</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10010</td>
+                      <td><b class="mono">trade-user</b><div class="text-sm muted">交易中心-用户服务</div></td>
+                      <td>华东 1 区</td><td><span class="tag tag-warning tag-solid">P1</span></td>
+                      <td class="mono">java-user-service</td>
+                      <td><span class="tag tag-gray tag-solid">baseon</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td class="mono">ns-trade-prod</td>
+                      <td><span class="tag tag-success">已接入</span></td>
+                      <td><a style="color:var(--primary);" href="route-config.html">配路由 →</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">20001</td>
+                      <td><b class="mono">mall-search</b><div class="text-sm muted">商城-搜索服务</div></td>
+                      <td>华北 2 区</td><td><span class="tag tag-warning tag-solid">P1</span></td>
+                      <td class="mono">go-search-service</td>
+                      <td><span class="tag tag-primary tag-solid">application</span></td>
+                      <td><span class="tag tag-gray">HTTP</span> <span class="tag tag-purple">WS</span></td>
+                      <td class="mono">ns-mall-prod</td>
+                      <td><span class="tag tag-success">已接入</span></td>
+                      <td><a style="color:var(--primary);" href="auth-config.html">配鉴权 →</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">20002</td>
+                      <td><b class="mono">mall-pay</b><div class="text-sm muted">商城-支付服务</div></td>
+                      <td>华北 2 区</td><td><span class="tag tag-danger tag-solid">P0</span></td>
+                      <td class="mono">java-pay-service</td>
+                      <td><span class="tag tag-gray tag-solid">baseon</span></td>
+                      <td><span class="tag tag-info">gRPC</span></td>
+                      <td class="mono">ns-mall-prod</td>
+                      <td><span class="tag tag-success">已接入</span></td>
+                      <td><a style="color:var(--primary);" href="limit-fuse.html">配限流 →</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">30001</td>
+                      <td><b class="mono">erp-legacy</b><div class="text-sm muted">ERP 单体系统（遗留）</div></td>
+                      <td>华南 1 区</td><td><span class="tag tag-gray tag-solid">P2</span></td>
+                      <td class="mono">java-erp-monolith</td>
+                      <td><span class="tag tag-primary tag-solid">application</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td class="mono">ns-erp-prod</td>
+                      <td><span class="tag tag-warning">接入中</span></td>
+                      <td><a style="color:var(--primary);" href="#">继续 →</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">30002</td>
+                      <td><b class="mono">bi-report</b><div class="text-sm muted">BI 报表平台</div></td>
+                      <td>华南 1 区</td><td><span class="tag tag-gray tag-solid">P3</span></td>
+                      <td class="mono">python-bi-service</td>
+                      <td><span class="tag tag-primary tag-solid">application</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td class="mono">ns-bi-prod</td>
+                      <td><span class="tag tag-danger">已停用</span></td>
+                      <td><a style="color:var(--primary);" href="#">启用</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('onboard');</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# 运行日志与 PID（scripts/ 脚本产生）
+logs/
+
+# 后端构建产物
+backend/*/target/
+
+# 前端
+node_modules/
+**/dist/
+frontend/apps/*/dist-ssr/
+
+# 系统
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+.vscode/

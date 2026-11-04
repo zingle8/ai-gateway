@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API 定义与发布 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">③ API 定义与发布</div>
+              <div class="page-subtitle">系统接入后先申报「对外提供哪些 API」：定义 → Schema 校验 → 评审 → 灰度发布 → 全量</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">导入 OpenAPI</button>
+              <button class="btn btn-secondary">导出 OpenAPI</button>
+              <button class="btn btn-primary">新建 API</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">API 总数</div>
+                <div class="stat-value">186</div>
+                <div class="stat-trend up">▲ 覆盖 14 个系统</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">已发布</div>
+                <div class="stat-value">162</div>
+                <div class="stat-trend up">▲ 本周新增 8</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">草稿 / 待评审</div>
+                <div class="stat-value">21</div>
+                <div class="stat-trend down">▼ 平均评审 4 小时</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">已下线</div>
+                <div class="stat-value">3</div>
+                <div class="stat-trend down">▼ 保留 90 天后归档</div>
+              </div>
+              <div class="stat-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div class="card-title">API 发布流程</div>
+              <div class="card-subtitle">API 是「契约」，先定契约再配路由，避免路由先上线、文档后补</div>
+            </div>
+            <div class="card-body">
+              <div class="pipeline">
+                <div class="pipe-step">
+                  <div class="pipe-name">① 定义 API</div>
+                  <div class="pipe-tech">方法 / 路径 / 版本 / 分组</div>
+                  <div class="pipe-metric">支持 OpenAPI 3.0 导入</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">② Schema 校验</div>
+                  <div class="pipe-tech">入参 / 出参 JSON Schema</div>
+                  <div class="pipe-metric">网关按 Schema 自动校验</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">③ 评审</div>
+                  <div class="pipe-tech">兼容性检查 + 负责人审批</div>
+                  <div class="pipe-metric">破坏性变更自动拦截</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">④ 灰度发布</div>
+                  <div class="pipe-tech">按 appcode / 地域放量</div>
+                  <div class="pipe-metric">观察错误率与 RT</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">⑤ 全量上线</div>
+                  <div class="pipe-tech">文档同步生成</div>
+                  <div class="pipe-metric">旧版本保留 90 天</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">API 清单 · 订单域</div>
+                <div class="card-subtitle">每条 API 绑定后端服务与路由，订阅方需授权后才可调用</div>
+              </div>
+              <div class="filter-bar" style="margin:0;">
+                <input class="form-input" style="width:180px;height:34px;" placeholder="搜索路径 / 名称" />
+                <div class="chips">
+                  <span class="chip active">全部 186</span>
+                  <span class="chip">已发布</span>
+                  <span class="chip">草稿</span>
+                  <span class="chip">灰度中</span>
+                  <span class="chip">已下线</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>API</th>
+                      <th style="width:200px;">路径</th>
+                      <th style="width:80px;">方法</th>
+                      <th style="width:80px;">版本</th>
+                      <th style="width:110px;">后端服务</th>
+                      <th style="width:90px;">Schema</th>
+                      <th style="width:90px;">发布状态</th>
+                      <th style="width:90px;">订阅数</th>
+                      <th style="width:90px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>创建订单</b><div class="text-sm muted">幂等键必填</div></td>
+                      <td class="mono">/api/order/create</td>
+                      <td><span class="tag tag-gray">POST</span></td>
+                      <td><span class="tag tag-primary tag-solid">v2</span></td>
+                      <td class="mono">order-service</td>
+                      <td><span class="tag tag-success">已配置</span></td>
+                      <td><span class="tag tag-success">已发布</span></td>
+                      <td>12</td>
+                      <td><a style="color:var(--primary);" href="route-config.html">配路由 →</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>订单详情</b></td>
+                      <td class="mono">/api/order/detail/{id}</td>
+                      <td><span class="tag tag-gray">GET</span></td>
+                      <td><span class="tag tag-primary tag-solid">v2</span></td>
+                      <td class="mono">order-service</td>
+                      <td><span class="tag tag-success">已配置</span></td>
+                      <td><span class="tag tag-success">已发布</span></td>
+                      <td>18</td>
+                      <td><a style="color:var(--primary);" href="auth-config.html">配鉴权 →</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>订单列表（分页）</b><div class="text-sm muted">新增游标分页</div></td>
+                      <td class="mono">/api/order/list</td>
+                      <td><span class="tag tag-gray">GET</span></td>
+                      <td><span class="tag tag-warning tag-solid">v3-beta</span></td>
+                      <td class="mono">order-service</td>
+                      <td><span class="tag tag-success">已配置</span></td>
+                      <td><span class="tag tag-warning">灰度中</span></td>
+                      <td>3</td>
+                      <td><a style="color:var(--primary);" href="go-live.html">去上线 →</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>取消订单</b><div class="text-sm muted">待评审</div></td>
+                      <td class="mono">/api/order/cancel</td>
+                      <td><span class="tag tag-gray">POST</span></td>
+                      <td><span class="tag tag-gray tag-solid">v1</span></td>
+                      <td class="mono">order-service</td>
+                      <td><span class="tag tag-danger">未配置</span></td>
+                      <td><span class="tag tag-gray">草稿</span></td>
+                      <td>0</td>
+                      <td><a style="color:var(--primary);" href="#">编辑</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>订单导出（旧）</b><div class="text-sm muted">已迁移至文件域</div></td>
+                      <td class="mono">/api/order/export</td>
+                      <td><span class="tag tag-gray">GET</span></td>
+                      <td><span class="tag tag-gray tag-solid">v1</span></td>
+                      <td class="mono">file-service</td>
+                      <td><span class="tag tag-gray">—</span></td>
+                      <td><span class="tag tag-danger">已下线</span></td>
+                      <td>0</td>
+                      <td><a style="color:var(--primary);" href="#">归档</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">版本管理与兼容性</div>
+                  <div class="card-subtitle">破坏性变更自动识别，不允许静默升级</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="code-block" style="font-size:12.5px;">
+<span class="c-cmt">// v2 → v3 diff（创建订单）</span>
++ <span class="c-str">"idempotentKey"</span>: <span class="c-str">string</span>  <span class="c-cmt">// 新增必填（破坏性！）</span>
++ <span class="c-str">"items[].skuId"</span>: <span class="c-str">string</span>  <span class="c-cmt">// 兼容</span>
+- <span class="c-str">"items[].productId"</span>        <span class="c-cmt">// 删除字段（破坏性！）</span>
+~ <span class="c-str">"amount"</span>: int → decimal     <span class="c-cmt">// 类型变更（破坏性！）</span>
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="side-stack-title">发布策略</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>兼容变更（新增可选字段）</span><b>可直接全量</b></div>
+                    <div class="side-stack-item"><span>破坏性变更</span><b>必须新版本 v3 + 双版本并行 90 天</b></div>
+                    <div class="side-stack-item"><span>旧版本下线</span><b>提前 30 天通知全部订阅方</b></div>
+                    <div class="side-stack-item"><span>Schema 校验</span><b>网关按 Schema 拦截非法入参</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">订阅与授权</div>
+                  <div class="card-subtitle">API 不是公开可见：调用方需订阅并经审批</div>
+                </div>
+                <a class="text-sm" style="color:var(--primary);" href="auth-config.html">授权规则 →</a>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>调用方 appcode</th><th style="width:140px;">订阅 API</th><th style="width:90px;">配额</th><th style="width:90px;">审批</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">trade-order</td><td>/api/order/create</td><td>200 QPS</td><td><span class="tag tag-success">已通过</span></td></tr>
+                      <tr><td class="mono">mini-program</td><td>/api/order/detail/{id}</td><td>500 QPS</td><td><span class="tag tag-success">已通过</span></td></tr>
+                      <tr><td class="mono">open-partner</td><td>/api/order/list</td><td>50 QPS</td><td><span class="tag tag-warning">待审批</span></td></tr>
+                      <tr><td class="mono">bi-report</td><td>/api/order/list</td><td>20 QPS</td><td><span class="tag tag-danger">已拒绝</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('publish');</script>
+</body>
+</html>

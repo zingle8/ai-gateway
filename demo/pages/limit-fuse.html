@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>限流熔断降级 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">⑥ 流量治理（限流 / 熔断 / 降级）</div>
+              <div class="page-subtitle">Sentinel 网关流控 + Resilience4j 熔断 + Redis 令牌桶 · 规则支持 Nacos 动态推送</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">推送规则到集群</button>
+              <button class="btn btn-primary">新建流控规则</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">生效流控规则</div>
+                <div class="stat-value">36</div>
+                <div class="stat-trend up">▲ 覆盖 12 个 AppCode</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">今日限流触发</div>
+                <div class="stat-value">1,204</div>
+                <div class="stat-trend down">▼ 较昨日 -182</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">熔断器状态</div>
+                <div class="stat-value">1 <span style="font-size:14px;color:var(--text-secondary);">OPEN</span></div>
+                <div class="stat-trend">CLOSED 11 · HALF_OPEN 0</div>
+              </div>
+              <div class="stat-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">平均故障恢复</div>
+                <div class="stat-value">42s</div>
+                <div class="stat-trend up">▲ 自动恢复率 100%</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">网关流控规则</div>
+                <div class="card-subtitle">GatewayFlowRule · 支持按路由 / API 分组 / 请求属性（Header、参数、IP）维度限流</div>
+              </div>
+              <div class="flex gap-8">
+                <button class="btn btn-sm btn-secondary">全部 36</button>
+                <button class="btn btn-sm btn-ghost">已触发</button>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>规则名称</th>
+                      <th>资源</th>
+                      <th>限流维度</th>
+                      <th style="width:100px;">阈值</th>
+                      <th style="width:100px;">窗口</th>
+                      <th>控制效果</th>
+                      <th style="width:90px;">今日触发</th>
+                      <th style="width:80px;">状态</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>全局总入口保护</b></td>
+                      <td class="mono">__gateway_root__</td>
+                      <td><span class="tag tag-gray">集群维度</span></td>
+                      <td>30,000 QPS</td>
+                      <td>1s</td>
+                      <td><span class="tag tag-warning">快速失败</span></td>
+                      <td>0</td>
+                      <td><span class="tag tag-success">启用</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>订单接口限流</b></td>
+                      <td class="mono">order-api</td>
+                      <td><span class="tag tag-info">AppCode</span> <span class="tag tag-gray">Path</span></td>
+                      <td>200 QPS</td>
+                      <td>1s</td>
+                      <td><span class="tag tag-primary">匀速排队</span></td>
+                      <td>342</td>
+                      <td><span class="tag tag-success">启用</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>免费租户配额</b></td>
+                      <td class="mono">tenant-free-*</td>
+                      <td><span class="tag tag-info">X-Tenant-Id</span></td>
+                      <td>20 QPS</td>
+                      <td>1s</td>
+                      <td><span class="tag tag-warning">快速失败</span></td>
+                      <td>618</td>
+                      <td><span class="tag tag-success">启用</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>文件上传削峰</b></td>
+                      <td class="mono">file-api</td>
+                      <td><span class="tag tag-info">API 分组</span></td>
+                      <td>50 QPS</td>
+                      <td>1s</td>
+                      <td><span class="tag tag-primary">排队等待 500ms</span></td>
+                      <td>244</td>
+                      <td><span class="tag tag-success">启用</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>高频 IP 防护</b></td>
+                      <td class="mono">/v1/**</td>
+                      <td><span class="tag tag-danger">RemoteAddr</span></td>
+                      <td>100 QPS</td>
+                      <td>1s</td>
+                      <td><span class="tag tag-warning">快速失败</span></td>
+                      <td>0</td>
+                      <td><span class="tag tag-success">启用</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>压测窗口临时放开</b></td>
+                      <td class="mono">search-api</td>
+                      <td><span class="tag tag-gray">API 分组</span></td>
+                      <td>5,000 QPS</td>
+                      <td>1s</td>
+                      <td><span class="tag tag-primary">预热 90s</span></td>
+                      <td>0</td>
+                      <td><span class="tag tag-gray">停用</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">熔断器状态</div>
+                  <div class="card-subtitle">Resilience4j CircuitBreaker · 滑动窗口统计最近 100 次调用</div>
+                </div>
+                <button class="btn btn-sm btn-secondary">强制半开</button>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr><th>资源</th><th style="width:110px;">状态</th><th>失败率</th><th>慢调用</th><th>平均 RT</th><th style="width:150px;">恢复倒计时</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="mono">file-api</td>
+                        <td><span class="tag tag-danger">OPEN</span></td>
+                        <td style="color:var(--danger);">62.4%</td>
+                        <td>68%</td>
+                        <td>2,860ms</td>
+                        <td><div class="bar-row"><span class="bar-track"><span class="bar-fill" style="width:70%;background:var(--danger);"></span></span><b>18s</b></div></td>
+                      </tr>
+                      <tr>
+                        <td class="mono">order-api</td>
+                        <td><span class="tag tag-success">CLOSED</span></td>
+                        <td>0.21%</td>
+                        <td>2%</td>
+                        <td>186ms</td>
+                        <td class="text-sm muted">—</td>
+                      </tr>
+                      <tr>
+                        <td class="mono">user-api</td>
+                        <td><span class="tag tag-success">CLOSED</span></td>
+                        <td>0.58%</td>
+                        <td>6%</td>
+                        <td>324ms</td>
+                        <td class="text-sm muted">—</td>
+                      </tr>
+                      <tr>
+                        <td class="mono">pay-api</td>
+                        <td><span class="tag tag-warning">HALF_OPEN</span></td>
+                        <td>3.20%</td>
+                        <td>9%</td>
+                        <td>146ms</td>
+                        <td><div class="bar-row"><span class="bar-track"><span class="bar-fill" style="width:35%;background:var(--warning);"></span></span><b>7s</b></div></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">状态机与阈值</div>
+              </div>
+              <div class="card-body">
+                <div class="pipeline" style="margin-bottom:16px;">
+                  <div class="pipe-step">
+                    <div class="pipe-name"><span class="status-dot success"></span>CLOSED</div>
+                    <div class="pipe-tech">正常放行</div>
+                    <div class="pipe-metric">失败率 &lt; 50%</div>
+                  </div>
+                  <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                  <div class="pipe-step">
+                    <div class="pipe-name"><span class="status-dot danger"></span>OPEN</div>
+                    <div class="pipe-tech">直接降级</div>
+                    <div class="pipe-metric">等待 60s</div>
+                  </div>
+                  <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                  <div class="pipe-step">
+                    <div class="pipe-name"><span class="status-dot warning"></span>HALF_OPEN</div>
+                    <div class="pipe-tech">放行探测请求</div>
+                    <div class="pipe-metric">10 次采样</div>
+                  </div>
+                </div>
+                <div class="kv-grid">
+                  <div class="kv-item"><span class="kv-key">滑动窗口</span><span class="kv-val">COUNT_BASED 100</span></div>
+                  <div class="kv-item"><span class="kv-key">失败率阈值</span><span class="kv-val">50%</span></div>
+                  <div class="kv-item"><span class="kv-key">慢调用阈值</span><span class="kv-val">RT &gt; 2s（比例 50%）</span></div>
+                  <div class="kv-item"><span class="kv-key">最小调用数</span><span class="kv-val">20</span></div>
+                  <div class="kv-item"><span class="kv-key">OPEN 等待时长</span><span class="kv-val">60s</span></div>
+                  <div class="kv-item"><span class="kv-key">半开允许请求数</span><span class="kv-val">10</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">降级兜底策略</div>
+                  <div class="card-subtitle">fallbackUri 转发至网关内置降级接口</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div style="display:flex; flex-direction:column; gap:12px;">
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span class="tag tag-purple tag-solid">1</span>
+                    <div>
+                      <div style="font-size:13px;">切换备用服务</div>
+                      <div class="text-sm muted">主服务不可用时，降级到备用集群或同城灾备，返回 <span class="code-inline">X-Fallback: true</span>。</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span class="tag tag-purple tag-solid">2</span>
+                    <div>
+                      <div style="font-size:13px;">本地缓存兜底</div>
+                      <div class="text-sm muted">返回最近一次成功结果的缓存，标记 <span class="code-inline">cached=true</span>，不回源。</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:10px; align-items:flex-start;">
+                    <span class="tag tag-purple tag-solid">3</span>
+                    <div>
+                      <div style="font-size:13px;">静态模板响应</div>
+                      <div class="text-sm muted">返回友好提示，HTTP 200 保证业务不中断。</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="code-block" style="margin-top:14px; font-size:12px;">
+HTTP/1.1 <span class="c-num">200</span> OK
+Content-Type: application/json
+X-Fallback: <span class="c-str">true</span>
+X-Trace-Id: <span class="c-str">6f2c1a9b8e7d4c3f</span>
+
+{
+  <span class="c-str">"code"</span>: <span class="c-num">20000</span>,
+  <span class="c-str">"message"</span>: <span class="c-str">"当前服务繁忙，已返回缓存结果"</span>,
+  <span class="c-str">"data"</span>: { <span class="c-str">"cached"</span>: <span class="c-key">true</span>, <span class="c-str">"similarity"</span>: <span class="c-num">0.962</span> }
+}
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Redis 令牌桶配置</div>
+                  <div class="card-subtitle">RequestRateLimiter GatewayFilterFactory · Lua 原子取桶</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># 网关过滤器配置</span>
+filters:
+  - name: <span class="c-str">RequestRateLimiter</span>
+    args:
+      redis-rate-limiter.replenishRate: <span class="c-num">200</span>   <span class="c-cmt"># 每秒生成令牌</span>
+      redis-rate-limiter.burstCapacity: <span class="c-num">400</span>   <span class="c-cmt"># 桶容量</span>
+      redis-rate-limiter.requestedTokens: <span class="c-num">1</span>   <span class="c-cmt"># 每请求消耗</span>
+      key-resolver: <span class="c-str">"#{@appCodeKeyResolver}"</span>
+
+<span class="c-cmt">// 按 AppCode 维度取 key（SpEL Bean）</span>
+<span class="c-key">@Bean</span>
+KeyResolver appCodeKeyResolver() {
+  <span class="c-key">return</span> exchange -&gt; Mono.just(
+      exchange.getRequest()
+              .getHeaders()
+              .getFirst(<span class="c-str">"X-App-Code"</span>));
+}
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="bar-row mb-8"><span style="width:110px;">令牌桶余量</span><span class="bar-track"><span class="bar-fill" style="width:64%;background:var(--success);"></span></span><b>256/400</b></div>
+                  <div class="bar-row"><span style="width:110px;">集群配额使用</span><span class="bar-track"><span class="bar-fill" style="width:41%;background:var(--accent);"></span></span><b>41%</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">在接入流程中的位置</div>
+                <div class="card-subtitle">流控不是独立模块：身份来自接入，规则存于 Nacos，作用对象是路由，与鉴权共用同一条过滤器链</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="grid-2e">
+                <div>
+                  <div class="side-stack-title">依赖关系</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>限流维度 appcode</span><b>① 平台接入生成</b></div>
+                    <div class="side-stack-item"><span>规则存储与推送</span><b>② Nacos 配置空间</b></div>
+                    <div class="side-stack-item"><span>限流作用资源</span><b>③ 路由规则（routeId）</b></div>
+                    <div class="side-stack-item"><span>身份与黑白名单</span><b>④ 鉴权与安全规则</b></div>
+                    <div class="side-stack-item"><span>上游实例与 LB</span><b>服务发现</b></div>
+                    <div class="side-stack-item"><span>熔断指标来源</span><b>网关内置 Micrometer</b></div>
+                  </div>
+                </div>
+                <div>
+                  <div class="side-stack-title">推荐落地顺序</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>1. 先接系统拿 appcode</span><b>①</b></div>
+                    <div class="side-stack-item"><span>2. 建 Nacos 空间存规则</span><b>②</b></div>
+                    <div class="side-stack-item"><span>3. 配路由拿到 routeId</span><b>③</b></div>
+                    <div class="side-stack-item"><span>5. 配鉴权确定身份</span><b>⑤</b></div>
+                    <div class="side-stack-item"><span>6. 配限流 / 熔断 / 配额</span><b>本页</b></div>
+                    <div class="side-stack-item"><span>7. 过滤器编排生效顺序</span><b>⑦</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('limit');</script>
+</body>
+</html>

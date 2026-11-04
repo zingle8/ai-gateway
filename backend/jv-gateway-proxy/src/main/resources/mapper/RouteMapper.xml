@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.proxy.mapper.RouteMapper">
+
+    <!-- 驼峰映射：app_id -> appId 等，由 application.yml 的 map-underscore-to-camel-case 开启 -->
+    <select id="listEnabled" resultType="com.zimo.gateway.proxy.route.GwRoute">
+        SELECT id, app_id, app_name, service_name, path_prefix, upstream_url,
+               prefix_path, strip_prefix, status
+        FROM tb_gw_route
+        WHERE deleted = 0 AND status = 1
+        ORDER BY id
+    </select>
+</mapper>

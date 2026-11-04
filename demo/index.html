@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>网关总览 · API网关平台</title>
+  <link rel="stylesheet" href="assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="assets/css/gateway.css?v=20261103" />
+  <style>
+    /* 总览紧凑排版：一屏铺满且不产生纵向滚动 */
+    .content { padding: 14px 18px 16px; display: flex; flex-direction: column; min-height: 0; }
+    .page-header { margin-bottom: 10px; }
+    .page-title { font-size: 19px; }
+    .page-subtitle { font-size: 12.5px; margin-top: 4px; }
+    .stat-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
+    .stat-grid .stat-card > div:first-child { min-width: 0; flex: 1; }
+    .stat-grid .stat-label,
+    .stat-grid .stat-trend { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-grid .stat-card { padding: 9px 12px; }
+    .stat-grid .stat-label { font-size: 11.5px; margin-bottom: 4px; }
+    .stat-grid .stat-value { font-size: 17px; }
+    .stat-grid .stat-trend { font-size: 11px; margin-top: 3px; }
+    .stat-grid .stat-icon { width: 24px; height: 24px; }
+    .stat-grid .stat-icon svg { width: 13px; height: 13px; }
+    .card-header { padding: 10px 16px; }
+    .card-body { padding: 12px 16px; }
+    .grid-2 { gap: 12px; margin-bottom: 12px; }
+    .chart-box { height: auto; }
+    .health-ring { width: 84px; height: 84px; }
+    .spark-bars { height: 34px; }
+    .kv-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px 18px; }
+    /* 末张卡吸收剩余高度，避免底部留白 */
+    .content > .card:last-child { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card:last-child .card-body { flex: 1; display: flex; align-items: center; }
+    .content > .card:last-child .kv-grid { width: 100%; }
+    /* 窄屏仍保持 5 列两排，只缩小字号，避免挤成三排 */
+    @media (max-width: 1400px) {
+      .stat-grid { gap: 6px; }
+      .stat-grid .stat-card { padding: 8px 10px; }
+      .stat-grid .stat-label { font-size: 10.5px; margin-bottom: 3px; }
+      .stat-grid .stat-value { font-size: 14.5px; }
+      .stat-grid .stat-trend { font-size: 10px; }
+      .stat-grid .stat-icon { width: 22px; height: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">网关总览</div>
+              <div class="page-subtitle">值班视角 · 数据更新于 2026-10-30 15:42:10 · 全部指标健康</div>
+            </div>
+          </div>
+
+          <!-- 核心指标 -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="实时 QPS">实时 QPS</div>
+                <div class="stat-value">12,480</div>
+                <div class="stat-trend up">▲ 8.4% 较昨日同时</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="今日请求数">今日请求数</div>
+                <div class="stat-value">8,642,193</div>
+                <div class="stat-trend up">▲ 21.3% 环比</div>
+              </div>
+              <div class="stat-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="平均延迟 / P99">平均延迟 / P99</div>
+                <div class="stat-value">42ms <span style="font-size:14px;color:var(--text-secondary);">/ 268ms</span></div>
+                <div class="stat-trend down">▼ 6.1% 较昨日</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="错误率（5xx + 429）">错误率（5xx + 429）</div>
+                <div class="stat-value">0.37%</div>
+                <div class="stat-trend down">▼ 0.09pt 较昨日</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+            </div>
+            
+            
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="应用个数">应用个数</div>
+                <div class="stat-value">12</div>
+                <div class="stat-trend up">▲ 本月新增 1</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            </div><div class="stat-card">
+              <div>
+                <div class="stat-label" title="服务个数">服务个数</div>
+                <div class="stat-value">18</div>
+                <div class="stat-trend up">▲ 本月新增 2</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="接口个数">接口个数</div>
+                <div class="stat-value">42</div>
+                <div class="stat-trend up">▲ 本月新增 5</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v16z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="15" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="今日入站流量">今日入站流量</div>
+                <div class="stat-value">1.86 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend up">▲ 客户端 → 网关</div>
+              </div>
+              <div class="stat-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v14"/><polyline points="6 10 12 16 18 10"/><path d="M4 21h16"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label" title="今日出网流量">今日出网流量</div>
+                <div class="stat-value">12.42 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend up">▲ 峰值 3.24 Gbps · 计费项</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8"/><polyline points="6 14 12 8 18 14"/><path d="M4 3h16"/></svg></div>
+            </div>
+          </div>
+
+          <!-- QPS 趋势与实例健康度 -->
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">QPS 趋势（最近 24 小时）</div>
+                  <div class="card-subtitle">网关集群整体吞吐 · 峰值 13,908 QPS @ 11:20</div>
+                </div>
+                <div class="flex gap-8">
+                  <button class="btn btn-sm btn-secondary">24h</button>
+                  <button class="btn btn-sm btn-ghost">7 天</button>
+                  <button class="btn btn-sm btn-ghost">30 天</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="chart-box" id="qpsChart"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">实例健康度</div>
+              </div>
+              <div class="card-body">
+                <div style="display:flex; align-items:center; gap:20px;">
+                  <div class="health-ring">
+                    <div class="health-ring-text">
+                      <div style="font-size:11px;color:var(--text-tertiary);">健康实例</div>
+                      <div style="font-size:20px;font-weight:700;">96%</div>
+                    </div>
+                  </div>
+                  <div style="flex:1;">
+                    <div class="bar-row mb-8"><span style="width:64px;">UP</span><span class="bar-track"><span class="bar-fill" style="width:96%;background:var(--success);"></span></span><b>23</b></div>
+                    <div class="bar-row mb-8"><span style="width:64px;">WARN</span><span class="bar-track"><span class="bar-fill" style="width:4%;background:var(--warning);"></span></span><b>1</b></div>
+                    <div class="bar-row"><span style="width:64px;">DOWN</span><span class="bar-track"><span class="bar-fill" style="width:0%;background:var(--danger);"></span></span><b>0</b></div>
+                  </div>
+                </div>
+                <div style="border-top:1px solid var(--border-light); margin-top:16px; padding-top:14px;">
+                  <div class="kv-grid">
+                    <div class="kv-item"><span class="kv-key">Netty EventLoop 使用率</span><span class="kv-val">46.2%</span></div>
+                    <div class="kv-item"><span class="kv-key">堆内存 / 上限</span><span class="kv-val">3.1 GB / 4 GB</span></div>
+                    <div class="kv-item"><span class="kv-key">GC（G1）暂停 P99</span><span class="kv-val">18ms</span></div>
+                    <div class="kv-item"><span class="kv-key">活跃 HTTP 连接</span><span class="kv-val">19,842</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Spring Boot 运行时指标</div>
+                <div class="card-subtitle">Micrometer + Prometheus · 全部 24 实例聚合</div>
+              </div>
+              <span class="tag tag-info">scrape 15s</span>
+            </div>
+            <div class="card-body">
+              <div class="kv-grid">
+                <div class="kv-item">
+                  <span class="kv-key">process.cpu.usage</span>
+                  <span class="kv-val">38.2%</span>
+                  <div class="spark-bars" data-spark="38"></div>
+                </div>
+                <div class="kv-item">
+                  <span class="kv-key">jvm.memory.used（heap）</span>
+                  <span class="kv-val">3.1 / 4.0 GB</span>
+                  <div class="spark-bars" data-spark="77"></div>
+                </div>
+                <div class="kv-item">
+                  <span class="kv-key">jvm.gc.pause P99</span>
+                  <span class="kv-val">18ms</span>
+                  <div class="spark-bars" data-spark="22"></div>
+                </div>
+                <div class="kv-item">
+                  <span class="kv-key">reactor.netty.connection.active</span>
+                  <span class="kv-val">19,842</span>
+                  <div class="spark-bars" data-spark="64"></div>
+                </div>
+                <div class="kv-item">
+                  <span class="kv-key">spring.cloud.gateway.requests</span>
+                  <span class="kv-val">8,642,193</span>
+                  <div class="spark-bars" data-spark="88"></div>
+                </div>
+                <div class="kv-item">
+                  <span class="kv-key">resilience4j.circuitbreaker.state</span>
+                  <span class="kv-val"><span class="tag tag-success">23 CLOSED</span> <span class="tag tag-danger">1 OPEN</span></span>
+                  <div class="spark-bars" data-spark="96"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('dashboard');</script>
+  <script>
+    /* QPS 折线图 */
+    (function () {
+      const el = document.getElementById('qpsChart');
+      if (!el) return;
+      const data = [1820, 1560, 1240, 980, 860, 920, 1640, 3420, 6180, 8640, 11240, 13908,
+                    12160, 10840, 11620, 12880, 13460, 12640, 11480, 9860, 8240, 6840, 5120, 3640];
+      const max = Math.max(...data) * 1.12;
+      const w = el.clientWidth - 40 || 900;
+      const h = 130;
+      const stepX = w / (data.length - 1);
+      const pts = data.map((v, i) => [i * stepX, h - (v / max) * h]);
+      const path = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+      const area = path + ` L${w},${h} L0,${h} Z`;
+      el.innerHTML = `
+        <svg width="100%" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="qpsGrad" x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stop-color="#4D6BFE" stop-opacity="0.20"/>
+              <stop offset="100%" stop-color="#4D6BFE" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          ${[0,1,2,3].map(i => `<line x1="0" x2="${w}" y1="${(i+1)*h/5}" y2="${(i+1)*h/5}" stroke="#F2F2F3" stroke-width="1"/>`).join('')}
+          <path d="${area}" fill="url(#qpsGrad)"/>
+          <path d="${path}" stroke="#4D6BFE" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div style="display:flex; justify-content:space-between; font-size:11.5px; color:var(--text-tertiary); margin-top:6px;">
+          <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>现在</span>
+        </div>`;
+    })();
+
+    /* 指标迷你柱状图 */
+    (function () {
+      document.querySelectorAll('.spark-bars[data-spark]').forEach(box => {
+        const v = Number(box.getAttribute('data-spark'));
+        let html = '';
+        for (let i = 0; i < 24; i++) {
+          const seed = (Math.sin(i * 1.7 + v) + 1) / 2;
+          const hgt = Math.max(12, Math.min(100, v * (0.55 + seed * 0.6)));
+          const cls = hgt > 85 ? 'danger' : (hgt > 65 ? 'warn' : 'hi');
+          html += `<i class="${cls}" style="height:${hgt}%"></i>`;
+        }
+        box.innerHTML = html;
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>架构与技术栈 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">架构与技术栈</div>
+              <div class="page-subtitle">基于 Spring Boot 3 + Spring Cloud Gateway 的微服务 API 统一入口 · 响应式（WebFlux / Reactor Netty）</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">导出架构图</button>
+              <button class="btn btn-primary">部署拓扑</button>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">分层架构</div>
+                <div class="card-subtitle">五层：客户端 → 边缘接入 → 网关集群 → 微服务集群 → 基础设施</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="arch-wrap">
+
+                <div class="arch-layer">
+                  <div class="arch-layer-title"><b>① 客户端</b> · 多渠道统一 REST / OpenAPI 协议接入</div>
+                  <div class="arch-nodes">
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">Web / H5</span><span class="tag tag-gray">HTTPS</span></div><div class="arch-node-sub">浏览器直连，支持 SSE 流式输出</div></div>
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">移动端 App</span><span class="tag tag-gray">SDK</span></div><div class="arch-node-sub">长连接 + 断线重连</div></div>
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">企业业务系统</span><span class="tag tag-gray">内网</span></div><div class="arch-node-sub">通过 AppCode / API Key 调用</div></div>
+                    <div class="arch-node"><div class="arch-node-name">OpenAPI / SDK</div><div class="arch-node-sub">Java · Python · Go · Node SDK</div></div>
+                  </div>
+                </div>
+
+                <div class="arch-down">↓</div>
+
+                <div class="arch-layer">
+                  <div class="arch-layer-title"><b>② 边缘接入</b> · 流量清洗与安全前置</div>
+                  <div class="arch-nodes">
+                    <div class="arch-node"><div class="arch-node-name">DNS / CDN</div><div class="arch-node-sub">静态资源加速，回源收敛</div></div>
+                    <div class="arch-node"><div class="arch-node-name">WAF</div><div class="arch-node-sub">SQL 注入 / XSS / 越权与恶意参数防护</div></div>
+                    <div class="arch-node"><div class="arch-node-name">SLB / Nginx Ingress</div><div class="arch-node-sub">四层负载均衡 · TLS 终结 · 限连</div></div>
+                  </div>
+                </div>
+
+                <div class="arch-down">↓</div>
+
+                <div class="arch-layer" style="background:var(--accent-soft-2); border-color:rgba(77,107,254,.35);">
+                  <div class="arch-layer-title"><b>③ API网关平台集群</b> · Spring Cloud Gateway 4.x · 24 实例 · 无状态水平扩展</div>
+                  <div class="arch-nodes">
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">路由引擎</span><span class="tag tag-primary tag-solid">核心</span></div>
+                      <div class="arch-node-sub">Predicate + Filter 组合，Nacos 动态路由热更新</div>
+                      <div class="arch-tags"><span class="tag tag-gray">Path</span><span class="tag tag-gray">Weight</span><span class="tag tag-gray">Header</span></div>
+                    </div>
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">鉴权插件</span><span class="tag tag-info">Spring Security</span></div>
+                      <div class="arch-node-sub">JWT / OAuth2 / AppCode+AK-SK 签名 / 租户隔离</div>
+                    </div>
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">限流熔断</span><span class="tag tag-warning">Sentinel</span></div>
+                      <div class="arch-node-sub">令牌桶 + 并发隔离 + 熔断降级 + 兜底响应</div>
+                    </div>
+                  </div>
+                  <div class="arch-nodes" style="margin-top:12px;">
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">灰度路由</span><span class="tag tag-purple tag-solid">特性</span></div>
+                      <div class="arch-node-sub">按权重 / Header / Cookie 分流，支持蓝绿与金丝雀</div>
+                    </div>
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">响应缓存</span><span class="tag tag-success">性能</span></div>
+                      <div class="arch-node-sub">GET 请求本地 + Redis 缓存，命中率 23.6%</div>
+                    </div>
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">流量计量</span><span class="tag tag-cyan">配额</span></div>
+                      <div class="arch-node-sub">按租户 / 应用实时统计调用量与配额扣减</div>
+                    </div>
+                    <div class="arch-node pri">
+                      <div class="arch-node-head"><span class="arch-node-name">审计与脱敏</span><span class="tag tag-danger">合规</span></div>
+                      <div class="arch-node-sub">手机号/身份证脱敏，请求响应全量留痕</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="arch-down">↓ lb:// 服务发现（Nacos）</div>
+
+                <div class="arch-layer">
+                  <div class="arch-layer-title"><b>④ Spring 微服务集群</b> · Spring Boot 3.2 · 按业务域拆分</div>
+                  <div class="arch-nodes">
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">user-service</span><span class="tag tag-info tag-solid">6</span></div><div class="arch-node-sub">用户中心与权限</div></div>
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">search-service</span><span class="tag tag-purple tag-solid">8</span></div><div class="arch-node-sub">商品与全文检索</div></div>
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">file-service</span><span class="tag tag-warning tag-solid">4</span></div><div class="arch-node-sub">文件与对象存储</div></div>
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">pay-service</span><span class="tag tag-cyan tag-solid">4</span></div><div class="arch-node-sub">支付与对账</div></div>
+                    <div class="arch-node"><div class="arch-node-head"><span class="arch-node-name">order-service</span><span class="tag tag-primary tag-solid">12</span></div><div class="arch-node-sub">订单核心服务</div></div>
+                  </div>
+                  <div class="arch-nodes" style="margin-top:12px;">
+                    <div class="arch-node"><div class="arch-node-name">auth-service</div><div class="arch-node-sub">统一认证与租户</div></div>
+                    <div class="arch-node"><div class="arch-node-name">msg-service</div><div class="arch-node-sub">消息通知与账单</div></div>
+                    <div class="arch-node"><div class="arch-node-name">ai-imrouter</div><div class="arch-node-sub">IM 消息路由</div></div>
+                    <div class="arch-node"><div class="arch-node-name">config-service</div><div class="arch-node-sub">配置快照与版本</div></div>
+                  </div>
+                </div>
+
+                <div class="arch-down">↓</div>
+
+                <div class="arch-layer">
+                  <div class="arch-layer-title"><b>⑤ 基础设施与可观测</b></div>
+                  <div class="arch-nodes">
+                    <div class="arch-node"><div class="arch-node-name">Nacos 2.3</div><div class="arch-node-sub">注册中心 + 动态配置</div></div>
+                    <div class="arch-node"><div class="arch-node-name">Redis 7（哨兵）</div><div class="arch-node-sub">令牌桶 Lua / 分布式锁 / 缓存</div></div>
+                    <div class="arch-node"><div class="arch-node-name">Kafka 3.7</div><div class="arch-node-sub">访问日志异步落盘</div></div>
+                    <div class="arch-node"><div class="arch-node-name">Prometheus + Grafana</div><div class="arch-node-sub">指标采集与看板</div></div>
+                    <div class="arch-node"><div class="arch-node-name">SkyWalking / OTel</div><div class="arch-node-sub">TraceId 全链路追踪</div></div>
+                    <div class="arch-node"><div class="arch-node-name">Sentinel Dashboard</div><div class="arch-node-sub">流控规则推送</div></div>
+                    <div class="arch-node"><div class="arch-node-name">MySQL 8 + ES 8</div><div class="arch-node-sub">元数据 / 日志检索</div></div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">技术选型</div>
+                <div class="card-subtitle">Spring 全家桶 + 云原生基础设施</div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>分层</th><th>组件</th><th>版本</th><th>用途</th></tr></thead>
+                    <tbody>
+                      <tr><td>运行时</td><td>Spring Boot</td><td class="mono">3.2.5</td><td>基础框架 · 原生镜像友好</td></tr>
+                      <tr><td>运行时</td><td>Spring Cloud</td><td class="mono">2023.0.1</td><td>微服务治理套件</td></tr>
+                      <tr><td>网关</td><td>Spring Cloud Gateway</td><td class="mono">4.1.5</td><td>响应式网关 · WebFlux</td></tr>
+                      <tr><td>网络</td><td>Reactor Netty</td><td class="mono">1.1.x</td><td>高并发非阻塞 IO</td></tr>
+                      <tr><td>注册发现</td><td>Spring Cloud Alibaba Nacos</td><td class="mono">2023.0.1.2</td><td>服务注册 + 配置中心</td></tr>
+                      <tr><td>负载均衡</td><td>Spring Cloud LoadBalancer</td><td class="mono">4.1.x</td><td>lb:// 客户端负载均衡</td></tr>
+                      <tr><td>限流熔断</td><td>Sentinel / Resilience4j</td><td class="mono">1.8.6</td><td>QPS 流控 · 熔断降级</td></tr>
+                      <tr><td>安全</td><td>Spring Security + JWT</td><td class="mono">6.2.x</td><td>鉴权与签名校验</td></tr>
+                      <tr><td>可观测</td><td>Micrometer Tracing</td><td class="mono">1.12.x</td><td>TraceId 透传 · OTel 导出</td></tr>
+                      <tr><td>调用</td><td>Spring Cloud OpenFeign</td><td class="mono">4.1.x</td><td>内部服务声明式调用</td></tr>
+                      <tr><td>容器</td><td>Kubernetes + HPA</td><td class="mono">1.28</td><td>弹性伸缩 · 滚动发布</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card mb-16">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">能力归属矩阵</div>
+                    <div class="card-subtitle">网关只做「流量侧」能力；重安全检测交给专业设备，避免拖垮吞吐</div>
+                  </div>
+                </div>
+                <div class="card-body no-pad">
+                  <div class="table-wrap">
+                    <table>
+                      <thead><tr><th style="width:130px;">能力</th><th style="width:80px;">归属</th><th>实现方式</th><th style="width:130px;">落地位置</th></tr></thead>
+                      <tbody>
+                        <tr><td>服务路由 / 负载均衡</td><td><span class="tag tag-success tag-solid">网关</span></td><td>Spring Cloud LoadBalancer：轮询 / 权重 / 最小连接 / 一致性 Hash</td><td>路由规则页</td></tr>
+                        <tr><td>协议转换与适配</td><td><span class="tag tag-success tag-solid">网关</span></td><td>HTTP ↔ gRPC（JSON↔Proto）、WebSocket 透传、HTTP/2 升级</td><td>路由规则页</td></tr>
+                        <tr><td>服务编排</td><td><span class="tag tag-success tag-solid">网关</span></td><td>并行调用 + 聚合 + 可降级依赖兜底</td><td>过滤器与插件页</td></tr>
+                        <tr><td>鉴权认证 / 授权</td><td><span class="tag tag-success tag-solid">网关</span></td><td>JWT / AK-SK / OAuth2 / mTLS；API 订阅授权</td><td>鉴权与安全规则页</td></tr>
+                        <tr><td>黑白名单 / 流量限流</td><td><span class="tag tag-success tag-solid">网关</span></td><td>IP / AppCode 名单；Sentinel + Redis 令牌桶</td><td>鉴权页 + 限流页</td></tr>
+                        <tr><td>熔断降级</td><td><span class="tag tag-success tag-solid">网关</span></td><td>Resilience4j 熔断器 + 本地兜底 / 备用服务切换</td><td>限流熔断降级页</td></tr>
+                        <tr><td>SSL 证书卸载</td><td><span class="tag tag-success tag-solid">网关</span></td><td>网关终止 TLS，内网 HTTP 回源，证书自动轮换告警</td><td>路由规则页</td></tr>
+                        <tr><td>业务监控与追踪</td><td><span class="tag tag-success tag-solid">网关</span></td><td>Micrometer + OpenTelemetry，TraceId 全链路透传</td><td>总览 / 看板 / 查询</td></tr>
+                        <tr><td>敏感数据防护 / 内容过滤</td><td><span class="tag tag-success tag-solid">网关</span></td><td>正则脱敏、字段裁剪、大字段截断</td><td>鉴权与安全规则页</td></tr>
+                        <tr><td>防火墙 / DDoS 清洗 / 防病毒</td><td><span class="tag tag-gray tag-solid">外置</span></td><td>云防火墙 / WAF / 内容安全服务；网关只消费其风险头做处置</td><td>前置安全设备</td></tr>
+                        <tr><td>入侵深度检测（DPI）</td><td><span class="tag tag-gray tag-solid">外置</span></td><td>专业安全设备完成，网关执行封禁动作</td><td>前置安全设备</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card mb-16">
+                <div class="card-header">
+                  <div class="card-title">核心设计要点</div>
+                </div>
+                <div class="card-body">
+                  <div style="display:flex; flex-direction:column; gap:12px;">
+                    <div>
+                      <div style="font-size:13.5px; font-weight:600;">响应式非阻塞</div>
+                      <div class="text-sm muted" style="margin-top:4px; line-height:1.7;">全链路 Reactor 编程模型，无阻塞 IO；单实例稳定支撑 5000+ 并发长连接，内存占用仅为同步模型的 1/3。</div>
+                    </div>
+                    <div style="height:1px;background:var(--border-light);"></div>
+                    <div>
+                      <div style="font-size:13.5px; font-weight:600;">配置热更新</div>
+                      <div class="text-sm muted" style="margin-top:4px; line-height:1.7;">路由/插件规则存放 Nacos DataId <span class="code-inline">api-gateway-routes.yaml</span>，通过 <span class="code-inline">@RefreshScope</span> 与自定义事件实现毫秒级生效，无需重启。</div>
+                    </div>
+                    <div style="height:1px;background:var(--border-light);"></div>
+                    <div>
+                      <div style="font-size:13.5px; font-weight:600;">多租户隔离</div>
+                      <div class="text-sm muted" style="margin-top:4px; line-height:1.7;">租户 → 应用（AppCode） → 路由 三级模型，独立配额与账单，支持按 Header <span class="code-inline">X-Tenant-Id</span> 灰度多泳道。</div>
+                    </div>
+                    <div style="height:1px;background:var(--border-light);"></div>
+                    <div>
+                      <div style="font-size:13.5px; font-weight:600;">高可用与弹性</div>
+                      <div class="text-sm muted" style="margin-top:4px; line-height:1.7;">网关无状态部署于 K8s，HPA 依据 QPS/CPU 自动扩缩；跨可用区部署，单实例故障无感摘除。</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header"><div class="card-title">容量与 SLA</div></div>
+                <div class="card-body">
+                  <div class="kv-grid">
+                    <div class="kv-item"><span class="kv-key">设计容量</span><span class="kv-val">30,000 QPS</span></div>
+                    <div class="kv-item"><span class="kv-key">当前峰值</span><span class="kv-val">13,908 QPS</span></div>
+                    <div class="kv-item"><span class="kv-key">可用性目标</span><span class="kv-val">99.99%</span></div>
+                    <div class="kv-item"><span class="kv-key">近 30 天可用性</span><span class="kv-val">99.995%</span></div>
+                    <div class="kv-item"><span class="kv-key">弹性扩容时延</span><span class="kv-val">&lt; 60s</span></div>
+                    <div class="kv-item"><span class="kv-key">配置生效时延</span><span class="kv-val">&lt; 500ms</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">网关核心依赖示例</div>
+                <div class="card-subtitle">pom.xml 关键依赖（Spring Cloud Gateway + Alibaba 套件）</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="code-block">
+<span class="c-cmt">&lt;!-- 响应式网关核心 --&gt;</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;<span class="c-str">spring-cloud-starter-gateway</span>&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+<span class="c-cmt">&lt;!-- 注册中心 + 动态配置 --&gt;</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;<span class="c-str">spring-cloud-starter-alibaba-nacos-discovery</span>&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;<span class="c-str">spring-cloud-starter-alibaba-nacos-config</span>&lt;/artifactId&gt;
+&lt;/dependency&gt;
+
+<span class="c-cmt">&lt;!-- 限流熔断 / 负载均衡 / 链路追踪 --&gt;</span>
+&lt;dependency&gt;
+  &lt;groupId&gt;com.alibaba.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;<span class="c-str">spring-cloud-starter-alibaba-sentinel</span>&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;org.springframework.cloud&lt;/groupId&gt;
+  &lt;artifactId&gt;<span class="c-str">spring-cloud-starter-loadbalancer</span>&lt;/artifactId&gt;
+&lt;/dependency&gt;
+&lt;dependency&gt;
+  &lt;groupId&gt;io.micrometer&lt;/groupId&gt;
+  &lt;artifactId&gt;<span class="c-str">micrometer-tracing-bridge-otel</span>&lt;/artifactId&gt;
+&lt;/dependency&gt;
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('arch');</script>
+</body>
+</html>

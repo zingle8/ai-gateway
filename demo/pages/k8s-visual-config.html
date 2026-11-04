@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K8s 可视化配置 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/k8s-builder.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">K8s 可视化配置</div>
+              <div class="page-subtitle">不懂 YAML 也能配：填表单 → 实时生成 K8s 清单 → 一键应用到集群（或导出给 CI/CD）</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary" id="btnReset">恢复默认</button>
+              <button class="btn btn-primary" id="btnDownload">导出 YAML 文件</button>
+            </div>
+          </div>
+
+          <!-- 使用路径 -->
+          <div class="card mb-16">
+            <div class="card-body">
+              <div class="pipeline">
+                <div class="pipe-step">
+                  <div class="pipe-name">① 选场景模板</div>
+                  <div class="pipe-tech">网关 / 业务服务 / Spring Boot</div>
+                  <div class="pipe-metric">1 秒填充推荐参数</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">② 表单微调</div>
+                  <div class="pipe-tech">副本 / 资源 / 探针 / 域名</div>
+                  <div class="pipe-metric">每字段都有「人话」说明</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">③ 自动合规校验</div>
+                  <div class="pipe-tech">资源上限 / 端口 / 优雅下线</div>
+                  <div class="pipe-metric">拦截常见的「上线即翻车」配置</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">④ 生成并应用</div>
+                  <div class="pipe-tech">复制 / 下载 / kubectl apply</div>
+                  <div class="pipe-metric">网关自动发现新实例</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 模板库 -->
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">场景模板</div>
+                <div class="card-subtitle">不熟 K8s？直接选最接近的场景，参数已按生产经验预填</div>
+              </div>
+              <span class="tag tag-info">3 个内置模板</span>
+            </div>
+            <div class="card-body">
+              <div class="tpl-grid">
+                <button class="tpl-card" data-tpl="gateway">
+                  <div class="tpl-head"><span class="tpl-name">API 网关</span><span class="tag tag-primary tag-solid">推荐</span></div>
+                  <div class="tpl-sub">4 副本 · 2C4G · Ingress+TLS · HPA 4~24 · PDB</div>
+                </button>
+                <button class="tpl-card" data-tpl="infer">
+                  <div class="tpl-head"><span class="tpl-name">订单服务</span><span class="tag tag-purple tag-solid">高并发</span></div>
+                  <div class="tpl-sub">6 副本 · 4C8G · HPA 6~20 · PDB 保护</div>
+                </button>
+                <button class="tpl-card" data-tpl="boot">
+                  <div class="tpl-head"><span class="tpl-name">通用 Spring Boot</span><span class="tag tag-gray">入门</span></div>
+                  <div class="tpl-sub">2 副本 · 1C2G · 最小可用配置</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="k8s-layout">
+            <!-- ============ 左：表单 ============ -->
+            <div>
+              <details class="fsec" open>
+                <summary>① 基础信息</summary>
+                <div class="fsec-body">
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">命名空间<span class="required">*</span></label>
+                      <select class="form-input" id="f-ns">
+                        <option value="prod">prod</option>
+                        <option value="default">default</option>
+                        <option value="api-gateway">api-gateway</option>
+                      </select>
+                      <div class="form-help">把应用分组隔离，类似「文件夹」</div>
+                    </div>
+                    <div>
+                      <label class="form-label">应用名称<span class="required">*</span></label>
+                      <input class="form-input" id="f-app" value="api-gateway" />
+                      <div class="form-help">只能小写字母、数字和中划线</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">镜像地址<span class="required">*</span></label>
+                      <input class="form-input" id="f-image" value="registry.cn-hangzhou.aliyuncs.com/example/api-gateway" />
+                    </div>
+                    <div>
+                      <label class="form-label">镜像 Tag<span class="required">*</span></label>
+                      <input class="form-input" id="f-tag" value="2.4.0" />
+                      <div class="form-help">不要用 latest，便于回滚</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-3">
+                    <div>
+                      <label class="form-label">副本数 replicas</label>
+                      <input class="form-input" id="f-replicas" value="4" />
+                      <div class="form-help">同时跑几个 Pod</div>
+                    </div>
+                    <div>
+                      <label class="form-label">容器端口</label>
+                      <input class="form-input" id="f-port" value="8080" />
+                      <div class="form-help">Spring Boot 默认 8080</div>
+                    </div>
+                    <div>
+                      <label class="form-label">Spring 环境</label>
+                      <input class="form-input" id="f-profile" value="prod" />
+                      <div class="form-help">写入 SPRING_PROFILES_ACTIVE</div>
+                    </div>
+                  </div>
+                  <div class="form-row" style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <label class="res-toggle" style="flex:1; min-width:240px;">
+                      <span class="rt-kind">拉取监控指标</span>
+                      <span class="rt-desc">自动加 Prometheus 注解</span>
+                      <span class="switch"><input type="checkbox" id="sw-metrics" checked /><span class="switch-slider"></span></span>
+                    </label>
+                  </div>
+                </div>
+              </details>
+
+              <details class="fsec" open>
+                <summary>② 镜像拉取与资源配额</summary>
+                <div class="fsec-body">
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">拉取策略</label>
+                      <select class="form-input" id="f-pullPolicy">
+                        <option value="IfNotPresent">IfNotPresent（本地有就不拉）</option>
+                        <option value="Always">Always（每次都拉）</option>
+                        <option value="Never">Never（只用本地）</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="form-label">私有仓库 Secret</label>
+                      <input class="form-input" id="f-pullSecret" value="regcred" />
+                      <div class="form-help">留空表示公开镜像</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">CPU request（保障）</label>
+                      <input class="form-input" id="f-cpuReq" value="1000m" />
+                      <div class="form-help">1000m = 1 核，调度时保证拿得到</div>
+                    </div>
+                    <div>
+                      <label class="form-label">CPU limit（上限）</label>
+                      <input class="form-input" id="f-cpuLimit" value="2000m" />
+                      <div class="form-help">超了会被限速（CPU 可压缩）</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">内存 request</label>
+                      <input class="form-input" id="f-memReq" value="1Gi" />
+                    </div>
+                    <div>
+                      <label class="form-label">内存 limit</label>
+                      <input class="form-input" id="f-memLimit" value="2Gi" />
+                      <div class="form-help">超限会 OOM 重启，务必 ≥ JVM -Xmx×1.4</div>
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="fsec">
+                <summary>③ 健康检查（探针）</summary>
+                <div class="fsec-body">
+                  <div class="form-row" style="display:flex; gap:20px; flex-wrap:wrap;">
+                    <label class="res-toggle" style="flex:1; min-width:240px;">
+                      <span class="rt-kind">启用存活 / 就绪探针</span>
+                      <span class="rt-desc">Spring Boot Actuator 已提供接口</span>
+                      <span class="switch"><input type="checkbox" id="sw-probe" checked /><span class="switch-slider"></span></span>
+                    </label>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">存活探针路径 liveness</label>
+                      <input class="form-input" id="f-livePath" value="/actuator/health/liveness" />
+                      <div class="form-help">失败会重启容器</div>
+                    </div>
+                    <div>
+                      <label class="form-label">就绪探针路径 readiness</label>
+                      <input class="form-input" id="f-readyPath" value="/actuator/health/readiness" />
+                      <div class="form-help">失败会从 Service 摘流量</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">首次探测延迟（秒）</label>
+                      <input class="form-input" id="f-probeDelay" value="30" />
+                      <div class="form-help">给 JVM 启动留时间，太小会无限重启</div>
+                    </div>
+                    <div>
+                      <label class="form-label">探测间隔（秒）</label>
+                      <input class="form-input" id="f-probePeriod" value="10" />
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="fsec">
+                <summary>④ 服务暴露与域名</summary>
+                <div class="fsec-body">
+                  <div class="form-row row-3">
+                    <div>
+                      <label class="form-label">Service 端口</label>
+                      <input class="form-input" id="f-svcPort" value="80" />
+                    </div>
+                    <div>
+                      <label class="form-label">Service 类型</label>
+                      <select class="form-input" id="f-svcType">
+                        <option value="ClusterIP">ClusterIP（集群内）</option>
+                        <option value="NodePort">NodePort（节点端口）</option>
+                        <option value="LoadBalancer">LoadBalancer（云 LB）</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label class="form-label">控制器类型</label>
+                      <input class="form-input" id="f-ingressClass" value="nginx" />
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">域名 host</label>
+                      <input class="form-input" id="f-host" value="gw.example.com" />
+                    </div>
+                    <div>
+                      <label class="form-label">路径 / 匹配方式</label>
+                      <div style="display:flex; gap:8px;">
+                        <input class="form-input" id="f-path" value="/" />
+                        <select class="form-input" id="f-pathType" style="max-width:150px;">
+                          <option value="Prefix">Prefix</option>
+                          <option value="Exact">Exact</option>
+                          <option value="ImplementationSpecific">ImplementationSpecific</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label class="res-toggle">
+                      <span class="rt-kind">启用 HTTPS（TLS）</span>
+                      <span class="rt-desc">使用 <span class="mono">api-gateway-tls</span> 证书 Secret</span>
+                      <span class="switch"><input type="checkbox" id="sw-tls" checked /><span class="switch-slider"></span></span>
+                    </label>
+                  </div>
+                </div>
+              </details>
+
+              <details class="fsec">
+                <summary>⑤ 弹性伸缩 HPA</summary>
+                <div class="fsec-body">
+                  <div class="form-row row-3">
+                    <div>
+                      <label class="form-label">最小副本</label>
+                      <input class="form-input" id="f-hpaMin" value="4" />
+                    </div>
+                    <div>
+                      <label class="form-label">最大副本</label>
+                      <input class="form-input" id="f-hpaMax" value="24" />
+                    </div>
+                    <div>
+                      <label class="form-label">CPU 目标利用率(%)</label>
+                      <input class="form-input" id="f-hpaCpu" value="70" />
+                      <div class="form-help">超过就扩容，低于就缩容</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="res-toggle">
+                        <span class="rt-kind">同时按内存扩容</span>
+                        <span class="switch"><input type="checkbox" id="sw-hpaMem" /><span class="switch-slider"></span></span>
+                      </label>
+                    </div>
+                    <div>
+                      <label class="form-label">内存目标利用率(%)</label>
+                      <input class="form-input" id="f-hpaMemPct" value="80" />
+                    </div>
+                  </div>
+                </div>
+              </details>
+
+              <details class="fsec">
+                <summary>⑥ 环境变量 / 配置 / 密钥</summary>
+                <div class="fsec-body">
+                  <div class="form-label">环境变量（env）</div>
+                  <div id="envRows"></div>
+                  <button class="btn btn-sm btn-secondary" type="button" data-add="envRows">+ 添加变量</button>
+
+                  <div class="form-label mt-16">ConfigMap（普通配置，明文）</div>
+                  <div id="cmRows"></div>
+                  <button class="btn btn-sm btn-secondary" type="button" data-add="cmRows">+ 添加配置项</button>
+
+                  <div class="form-label mt-16">Secret（密钥，base64 存储）</div>
+                  <div id="secretRows"></div>
+                  <button class="btn btn-sm btn-secondary" type="button" data-add="secretRows">+ 添加密钥</button>
+                  <div class="form-help mt-1">演示环境仅在浏览器本地渲染，不会上传到任何服务。</div>
+                </div>
+              </details>
+
+              <details class="fsec">
+                <summary>⑦ 发布与优雅下线</summary>
+                <div class="fsec-body">
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">滚动更新 maxSurge</label>
+                      <input class="form-input" id="f-maxSurge" value="25%" />
+                      <div class="form-help">更新时最多多出多少 Pod</div>
+                    </div>
+                    <div>
+                      <label class="form-label">maxUnavailable</label>
+                      <input class="form-input" id="f-maxUnavail" value="0" />
+                      <div class="form-help">0 表示更新过程中不减少可用 Pod</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="form-label">preStop 等待（秒）</label>
+                      <input class="form-input" id="f-preStop" value="30" />
+                      <div class="form-help">先从注册中心摘流，再处理存量请求</div>
+                    </div>
+                    <div>
+                      <label class="form-label">terminationGracePeriod（秒）</label>
+                      <input class="form-input" id="f-grace" value="60" />
+                      <div class="form-help">需 ≥ preStop，否则会被强杀</div>
+                    </div>
+                  </div>
+                  <div class="form-row row-2">
+                    <div>
+                      <label class="res-toggle">
+                        <span class="rt-kind">PDB 驱逐保护</span>
+                        <span class="rt-desc">节点维护时保留可用副本</span>
+                        <span class="switch"><input type="checkbox" id="rs-pdb" checked /><span class="switch-slider"></span></span>
+                      </label>
+                    </div>
+                    <div>
+                      <label class="form-label">最少可用副本</label>
+                      <input class="form-input" id="f-pdbMin" value="2" />
+                    </div>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <!-- ============ 右：YAML + 校验 ============ -->
+            <div>
+              <div class="card mb-16">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">生成对象</div>
+                    <div class="card-subtitle">勾选需要的资源，右侧清单实时变化</div>
+                  </div>
+                </div>
+                <div class="card-body" style="padding:14px 16px;">
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <label class="res-toggle">
+                      <span class="rt-kind">Deployment</span>
+                      <span class="rt-desc">必选 · 定义 Pod 与容器</span>
+                      <span class="switch"><input type="checkbox" checked disabled /><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="res-toggle">
+                      <span class="rt-kind">Service</span>
+                      <span class="rt-desc">集群内稳定入口</span>
+                      <span class="switch"><input type="checkbox" id="rs-svc" checked /><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="res-toggle">
+                      <span class="rt-kind">ConfigMap</span>
+                      <span class="rt-desc">普通配置</span>
+                      <span class="switch"><input type="checkbox" id="rs-cm" checked /><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="res-toggle">
+                      <span class="rt-kind">Secret</span>
+                      <span class="rt-desc">密钥配置</span>
+                      <span class="switch"><input type="checkbox" id="rs-secret" checked /><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="res-toggle">
+                      <span class="rt-kind">Ingress</span>
+                      <span class="rt-desc">域名 + HTTPS 对外暴露</span>
+                      <span class="switch"><input type="checkbox" id="rs-ingress" checked /><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="res-toggle">
+                      <span class="rt-kind">HPA</span>
+                      <span class="rt-desc">按负载自动扩缩容</span>
+                      <span class="switch"><input type="checkbox" id="rs-hpa" checked /><span class="switch-slider"></span></span>
+                    </label>
+                    <label class="res-toggle">
+                      <span class="rt-kind">PDB</span>
+                      <span class="rt-desc">驱逐保护</span>
+                      <span class="switch"><input type="checkbox" id="rs-pdb2" data-mirror="rs-pdb" checked /><span class="switch-slider"></span></span>
+                    </label>
+                  </div>
+                  <div class="form-help mt-1" id="resSummary"></div>
+                </div>
+              </div>
+
+              <div class="card mb-16">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">YAML 清单</div>
+                    <div class="card-subtitle">随表单实时生成，可直接交给运维或 CI</div>
+                  </div>
+                  <span class="tag tag-gray">实时</span>
+                </div>
+                <div class="yaml-tabs" id="yamlTabs"></div>
+                <div class="yaml-body" id="yamlBody"></div>
+                <div class="yaml-foot">
+                  <button class="btn btn-sm btn-secondary" id="btnCopy">复制当前文件</button>
+                  <button class="btn btn-sm btn-secondary" id="btnDownload2">下载全部（合并）</button>
+                  <span class="spacer"></span>
+                  <button class="btn btn-sm btn-primary" id="btnApply">应用到集群</button>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">上线前自检</div>
+                    <div class="card-subtitle">全部通过后才能点击「应用到集群」</div>
+                  </div>
+                  <span class="tag tag-success" id="checkBadge">全部通过</span>
+                </div>
+                <div class="card-body" id="checkList" style="padding:6px 20px 16px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 名词解释 -->
+          <div class="card mt-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">K8s 名词「人话」速查</div>
+                <div class="card-subtitle">给不熟悉 K8s 的同学：这些概念各自解决什么问题</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="gloss-grid">
+                <div class="gloss-item">
+                  <div class="gloss-term">Pod <span class="tag tag-gray">最小单位</span></div>
+                  <div class="gloss-text">运行容器的「盒子」。一个 Pod 里通常只放一个主容器，K8s 调度、重启都以 Pod 为单位。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">Deployment <span class="tag tag-gray">部署</span></div>
+                  <div class="gloss-text">声明「跑几个 Pod、用什么镜像」，负责滚动更新、回滚和自愈（Pod 挂了自动补）。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">Service <span class="tag tag-gray">稳定入口</span></div>
+                  <div class="gloss-text">Pod 的 IP 会变，Service 提供固定虚拟 IP 与 DNS 名，并把请求负载均衡到后端 Pod。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">Ingress <span class="tag tag-gray">对外域名</span></div>
+                  <div class="gloss-text">把域名和路径映射到 Service，顺带处理 HTTPS 证书，相当于集群的统一大门。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">requests / limits <span class="tag tag-gray">资源配额</span></div>
+                  <div class="gloss-text">requests 是「至少要给我这么多」用于调度；limits 是「最多只能用这么多」。CPU 超了限速，内存超了重启。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">探针 <span class="tag tag-gray">健康检查</span></div>
+                  <div class="gloss-text">liveness 失败重启容器，readiness 失败暂时不接流量。启动慢的应用一定要调大首次探测延迟。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">HPA <span class="tag tag-gray">弹性伸缩</span></div>
+                  <div class="gloss-text">按 CPU / 内存等指标自动增减 Pod 数量，扩容激进、缩容保守，避免抖动。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">ConfigMap / Secret <span class="tag tag-gray">配置</span></div>
+                  <div class="gloss-text">把配置和镜像解耦，改配置不用重新打包镜像。Secret 专门放密码类数据。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">优雅下线 <span class="tag tag-gray">零中断</span></div>
+                  <div class="gloss-text">Pod 销毁前先让注册中心摘流（preStop 等待），处理完存量请求再退出，避免 502。</div>
+                </div>
+                <div class="gloss-item">
+                  <div class="gloss-term">PDB <span class="tag tag-gray">驱逐保护</span></div>
+                  <div class="gloss-text">节点排空或升级时，保证至少还有 N 个 Pod 可用，防止「一起被赶走」导致服务全挂。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">两种用法，任选其一</div>
+                <div class="card-subtitle">从小白到熟练：<span class="code-inline">场景模板套用</span> → <span class="code-inline">可视化微调</span></div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="grid-2e">
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">🅐 场景模板（推荐赶时间）</div>
+                  <div class="text-sm muted" style="margin-top:6px; line-height:1.8;">选择「API 网关 / 订单服务 / 通用 Spring Boot」模板，一秒填充整套生产可用参数，再按需微调。</div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">🅑 可视化表单（推荐新手）</div>
+                  <div class="text-sm muted" style="margin-top:6px; line-height:1.8;">不懂字段也没关系：每项都有中文说明和推荐值。改任何一个输入框，右侧 YAML 与自检清单立即更新。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- 应用结果弹窗 -->
+  <div class="modal-mask" id="applyModal">
+    <div class="modal modal-lg">
+      <div class="modal-header">
+        <div>
+          <div class="modal-title">应用到集群</div>
+          <div class="modal-subtitle">以下输出为演示模拟，未真实访问 K8s 集群</div>
+        </div>
+        <button class="modal-close" id="btnApplyClose">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="term" id="applyTerm"></div>
+      </div>
+      <div class="modal-footer">
+        <span class="text-sm muted left">真实环境此处对接 K8s API / ArgoCD / GitOps 流水线</span>
+        <button class="btn btn-secondary" id="btnDownloadDone">导出 YAML</button>
+        <button class="btn btn-primary" id="btnApplyDone">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" style="display:none; position:fixed; left:50%; bottom:40px; transform:translateX(-50%); background:var(--text-primary); color:#fff; font-size:13px; padding:10px 18px; border-radius:8px; z-index:1200; box-shadow:var(--shadow-lg);"></div>
+
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('k8s');</script>
+  <script src="../assets/js/k8s-builder.js?v=20261103"></script>
+  <script>
+    /* 弹窗中的次级按钮（在 builder 绑定后补充） */
+    (function () {
+      function close(id) { const el = document.getElementById(id); if (el) el.classList.remove('show'); }
+      var b1 = document.getElementById('btnApplyDone');
+      if (b1) b1.addEventListener('click', function () { close('applyModal'); });
+      var b3 = document.getElementById('btnDownloadDone');
+      if (b3) b3.addEventListener('click', function () {
+        var all = null;
+        try { all = document.querySelector('.yaml-tab[data-file="all-in-one.yaml"]'); } catch (e) {}
+        close('applyModal');
+        var dl = document.getElementById('btnDownload');
+        if (dl) dl.click();
+      });
+      var b4 = document.getElementById('btnDownload2');
+      if (b4) b4.addEventListener('click', function () {
+        var dl = document.getElementById('btnDownload');
+        if (dl) dl.click();
+      });
+      /* 左侧 PDB 开关与生成对象中的 PDB 开关联动 */
+      var mirror = document.getElementById('rs-pdb2');
+      if (mirror) mirror.addEventListener('change', function () {
+        var main = document.getElementById('rs-pdb');
+        if (main) { main.checked = mirror.checked; }
+      });
+    })();
+  </script>
+</body>
+</html>

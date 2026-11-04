@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>过滤器与插件 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">⑦ 过滤器与插件</div>
+              <div class="page-subtitle">GlobalFilter + GatewayFilterFactory 组成的责任链 · 顺序由 <span class="code-inline">@Order</span> / <span class="code-inline">Ordered</span> 决定</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">插件市场</button>
+              <button class="btn btn-primary">注册新插件</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">全局过滤器</div>
+                <div class="stat-value">12</div>
+                <div class="stat-trend up">▲ 全部启用</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 2v6M15 2v6M5 8h14v3a6 6 0 0 1-6 6h-2a6 6 0 0 1-6-6V8zM12 17v5"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">自研插件</div>
+                <div class="stat-value">8</div>
+                <div class="stat-trend up">▲ 本月新增 2</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">过滤器链平均耗时</div>
+                <div class="stat-value">7.4ms</div>
+                <div class="stat-trend down">▼ 优化 1.8ms</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">今日插件拦截</div>
+                <div class="stat-value">1,204</div>
+                <div class="stat-trend">鉴权 862 · 限流 342</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">执行阶段</div>
+                <div class="card-subtitle">WebHandler → FilteringWebHandler → DefaultGatewayFilterChain → NettyRoutingFilter → Post 阶段</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="pipeline">
+                <div class="pipe-step">
+                  <div class="pipe-name">Pre 阶段</div>
+                  <div class="pipe-tech">鉴权 / 限流 / 改写</div>
+                  <div class="pipe-metric">7 个过滤器 · <b>4.1ms</b></div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step" style="border-color:rgba(77,107,254,.45);box-shadow:0 0 0 3px var(--accent-soft-2);">
+                  <div class="pipe-name">代理转发</div>
+                  <div class="pipe-tech">NettyRoutingFilter</div>
+                  <div class="pipe-metric">耗时 <b>34.8ms</b></div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">Post 阶段</div>
+                  <div class="pipe-tech">计量 / 审计 / 脱敏</div>
+                  <div class="pipe-metric">5 个过滤器 · <b>3.3ms</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">过滤器执行链（按 Order 排序）</div>
+                  <div class="card-subtitle">点击右侧开关可模拟启停（静态演示）</div>
+                </div>
+                <span class="tag tag-info">12 项</span>
+              </div>
+              <div class="card-body">
+                <div class="chain-list">
+
+                  <div class="chain-item">
+                    <div class="chain-order">1</div>
+                    <div class="chain-body">
+                      <div class="chain-title">TraceIdFilter <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">com.zimo.gateway.filter.TraceIdFilter · @Order(-200)</div>
+                      <div class="chain-desc">生成并透传 <span class="code-inline">X-Trace-Id</span>，写入 MDC，贯穿下游微服务调用链。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.2ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">2</div>
+                    <div class="chain-body">
+                      <div class="chain-title">CorsFilter <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">org.springframework.cloud.gateway.filter.NettyWriteResponseFilter 之前 · @Order(-150)</div>
+                      <div class="chain-desc">按租户白名单动态返回 CORS 头，支持预检请求缓存。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.1ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">3</div>
+                    <div class="chain-body">
+                      <div class="chain-title">AuthFilter（自研）<span class="tag tag-purple tag-solid">自研</span> <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">com.zimo.gateway.auth.AuthGlobalFilter · @Order(-100)</div>
+                      <div class="chain-desc">JWT / OAuth2 / AppCode + AK-SK 签名多重校验，结果缓存至本地 Caffeine（60s）。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">1.4ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">4</div>
+                    <div class="chain-body">
+                      <div class="chain-title">TenantIsolationFilter（自研）<span class="tag tag-purple tag-solid">自研</span> <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">com.zimo.gateway.tenant.TenantFilter · @Order(-90)</div>
+                      <div class="chain-desc">解析 <span class="code-inline">X-Tenant-Id</span>，绑定租户上下文与专属配额，跨租户访问直接拒绝。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.4ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">5</div>
+                    <div class="chain-body">
+                      <div class="chain-title">RequestRateLimiterFilter <span class="tag tag-warning tag-solid">Sentinel</span> <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">GatewayRequestRateLimiter + RedisRateLimiter · @Order(-80)</div>
+                      <div class="chain-desc">Redis Lua 令牌桶，按 AppCode+Path 维度限流，超限返回 429 并写入告警。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">1.1ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">6</div>
+                    <div class="chain-body">
+                      <div class="chain-title">ParamValidator（自研）<span class="tag tag-danger tag-solid">安全</span> <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">com.zimo.gateway.filter.ParamValidateFilter · @Order(-70)</div>
+                      <div class="chain-desc">校验必填参数、参数格式与非法字符，异常请求直接拦截并留痕。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.9ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">7</div>
+                    <div class="chain-body">
+                      <div class="chain-title">ResponseCacheFilter（自研）<span class="tag tag-success tag-solid">性能</span> <span class="tag tag-gray">Pre</span></div>
+                      <div class="chain-cls">com.zimo.gateway.cache.ResponseCacheFilter · @Order(-60)</div>
+                      <div class="chain-desc">基于 Caffeine + Redis 的响应缓存，TTL 60s，命中直接回写响应。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">1.2ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item" style="border-color:rgba(77,107,254,.45);box-shadow:0 0 0 3px var(--accent-soft-2);">
+                    <div class="chain-order" style="background:var(--bg-soft);color:var(--text-primary);">↔</div>
+                    <div class="chain-body">
+                      <div class="chain-title">NettyRoutingFilter <span class="tag tag-primary tag-solid">转发</span></div>
+                      <div class="chain-cls">org.springframework.cloud.gateway.filter.NettyRoutingFilter · Ordered.LOWEST_PRECEDENCE</div>
+                      <div class="chain-desc">Reactor Netty 非阻塞转发至 <span class="code-inline">lb://</span> 后端实例，支持连接池复用与超时控制。</div>
+                    </div>
+                    <div class="chain-time">34.8ms</div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">8</div>
+                    <div class="chain-body">
+                      <div class="chain-title">QuotaMeterFilter（自研）<span class="tag tag-purple tag-solid">自研</span> <span class="tag tag-gray">Post</span></div>
+                      <div class="chain-cls">com.zimo.gateway.meter.QuotaMeterFilter · @Order(10)</div>
+                      <div class="chain-desc">统计请求/响应体大小与耗时，实时累计调用量并扣减租户配额。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">1.6ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">9</div>
+                    <div class="chain-body">
+                      <div class="chain-title">DesensitizeFilter（自研）<span class="tag tag-purple tag-solid">自研</span> <span class="tag tag-gray">Post</span></div>
+                      <div class="chain-cls">com.zimo.gateway.security.DesensitizeFilter · @Order(20)</div>
+                      <div class="chain-desc">响应体 PII 识别与脱敏：手机号、身份证、银行卡号中间四位打码。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.8ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">10</div>
+                    <div class="chain-body">
+                      <div class="chain-title">AuditLogFilter（自研）<span class="tag tag-purple tag-solid">自研</span> <span class="tag tag-gray">Post</span></div>
+                      <div class="chain-cls">com.zimo.gateway.audit.AuditLogFilter · @Order(30)</div>
+                      <div class="chain-desc">请求 / 响应全量审计，异步投递 Kafka 后写入 ES，支持 90 天回溯。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.3ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">11</div>
+                    <div class="chain-body">
+                      <div class="chain-title">MetricsFilter <span class="tag tag-info tag-solid">Micrometer</span> <span class="tag tag-gray">Post</span></div>
+                      <div class="chain-cls">com.zimo.gateway.metrics.MetricsFilter · @Order(40)</div>
+                      <div class="chain-desc">记录 <span class="code-inline">spring.cloud.gateway.requests</span> 指标，按路由/状态/耗时分桶上报 Prometheus。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.2ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                  <div class="chain-item">
+                    <div class="chain-order">12</div>
+                    <div class="chain-body">
+                      <div class="chain-title">CircuitBreakerFallbackFilter <span class="tag tag-warning tag-solid">Resilience4j</span> <span class="tag tag-gray">Post</span></div>
+                      <div class="chain-cls">SpringCloudCircuitBreakerFilterFactory · @Order(50)</div>
+                      <div class="chain-desc">异常 / 慢调用比例超阈值后熔断，转发至 <span class="code-inline">/fallback</span> 返回兜底结果。</div>
+                    </div>
+                    <div style="text-align:right;">
+                      <div class="chain-time">0.4ms</div>
+                      <label class="switch mt-1"><input type="checkbox" checked /><span class="switch-slider"></span></label>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="card mb-16">
+                <div class="card-header">
+                  <div>
+                    <div class="card-title">自定义 GlobalFilter 示例</div>
+                    <div class="card-subtitle">Reactor 响应式写法 · 无阻塞</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-key">@Component</span>
+<span class="c-key">@Order</span>(-100)
+<span class="c-key">public class</span> AuthGlobalFilter
+        <span class="c-key">implements</span> GlobalFilter {
+
+  <span class="c-key">@Override</span>
+  <span class="c-key">public</span> Mono&lt;Void&gt; filter(ServerWebExchange exchange,
+                           GatewayFilterChain chain) {
+    ServerHttpRequest req = exchange.getRequest();
+    String appCode = req.getHeaders()
+                        .getFirst(<span class="c-str">"X-App-Code"</span>);
+
+    <span class="c-cmt">// 1. 本地缓存优先，避免每次远程校验</span>
+    AuthContext ctx = authCache.getIfPresent(appCode);
+
+    <span class="c-cmt">// 2. 缓存未命中 → 响应式远程校验（非阻塞）</span>
+    Mono&lt;AuthContext&gt; auth = ctx != <span class="c-key">null</span>
+        ? Mono.just(ctx)
+        : authClient.verify(appCode)
+                    .doOnNext(c -&gt; authCache.put(appCode, c));
+
+    <span class="c-key">return</span> auth
+        .flatMap(c -&gt; {
+          exchange.getAttributes()
+                  .put(<span class="c-str">"AUTH_CTX"</span>, c);
+          <span class="c-key">return</span> chain.filter(exchange);
+        })
+        .switchIfEmpty(Mono.defer(() -&gt;
+            forbidden(exchange, <span class="c-str">"401 鉴权失败"</span>)));
+  }
+}
+                  </div>
+                </div>
+              </div>
+
+              <div class="card">
+                <div class="card-header">
+                  <div class="card-title">插件运行状态</div>
+                </div>
+                <div class="card-body">
+                  <div style="display:flex; flex-direction:column; gap:14px;">
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;">
+                        <span>AuthFilter · 缓存命中率</span><b>94.2%</b>
+                      </div>
+                      <div class="bar-track"><div class="bar-fill" style="width:94%;background:var(--success);"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;">
+                        <span>ResponseCache · 缓存命中率</span><b>23.6%</b>
+                      </div>
+                      <div class="bar-track"><div class="bar-fill" style="width:24%;background:var(--accent);"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;">
+                        <span>ParamValidator · 拦截率</span><b>0.31%</b>
+                      </div>
+                      <div class="bar-track"><div class="bar-fill" style="width:2%;background:var(--danger);"></div></div>
+                    </div>
+                    <div>
+                      <div style="display:flex; justify-content:space-between; font-size:12.5px; margin-bottom:6px;">
+                        <span>AuditLog · Kafka 投递成功率</span><b>99.98%</b>
+                      </div>
+                      <div class="bar-track"><div class="bar-fill" style="width:99.9%;background:var(--success);"></div></div>
+                    </div>
+                    <div style="border-top:1px solid var(--border-light); padding-top:12px;">
+                      <div class="kv-grid">
+                        <div class="kv-item"><span class="kv-key">插件类加载方式</span><span class="kv-val">SPI + 外部 Jar 热装载</span></div>
+                        <div class="kv-item"><span class="kv-key">配置生效方式</span><span class="kv-val">Nacos 长轮询推送</span></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('filter');</script>
+</body>
+</html>

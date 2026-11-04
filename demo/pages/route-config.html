@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>路由规则 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">④ 路由规则</div>
+              <div class="page-subtitle">RouteDefinition 持久化于 Nacos（<span class="mono">api-gateway-routes.yaml</span>）· 支持热更新与灰度权重</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8"/></svg>
+                同步 Nacos
+              </button>
+              <button class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                新建路由
+              </button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">路由总数</div>
+                <div class="stat-value">92</div>
+                <div class="stat-trend up">▲ 本周 +6</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="19" r="3"/><circle cx="18" cy="5" r="3"/><path d="M9 19h4a4 4 0 0 0 4-4V8"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">在线生效</div>
+                <div class="stat-value">86</div>
+                <div class="stat-trend up">▲ 占比 93.5%</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">灰度中</div>
+                <div class="stat-value">4</div>
+                <div class="stat-trend">按 Header / Weight 分流</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">已停用</div>
+                <div class="stat-value">2</div>
+                <div class="stat-trend down">▼ 近 30 天下线 3 条</div>
+              </div>
+              <div class="stat-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-body" style="padding:14px 20px;">
+              <div class="filter-bar">
+                <input class="form-input" style="max-width:260px;" placeholder="搜索路由 ID / 路径 / 服务名" />
+                <select class="form-input" style="max-width:160px;">
+                  <option>全部目标服务</option>
+                  <option>lb://order-service</option>
+                  <option>lb://user-service</option>
+                  <option>lb://search-service</option>
+                  <option>lb://pay-service</option>
+                  <option>lb://file-service</option>
+                </select>
+                <select class="form-input" style="max-width:130px;">
+                  <option>全部状态</option>
+                  <option>在线</option>
+                  <option>灰度中</option>
+                  <option>已停用</option>
+                </select>
+                <div class="chips">
+                  <span class="chip active">全部 92</span>
+                  <span class="chip">订单域</span>
+                  <span class="chip">用户域</span>
+                  <span class="chip">搜索域</span>
+                  <span class="chip">支付域</span>
+                  <span class="chip">内部管理</span>
+                  <span class="chip">HTTP</span>
+                  <span class="chip">gRPC</span>
+                  <span class="chip">WebSocket</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>路由 ID</th>
+                      <th>目标服务（URI）</th>
+                      <th style="width:110px;">协议</th>
+                      <th>断言 Predicate</th>
+                      <th>过滤器 Filter</th>
+                      <th style="width:60px;">Order</th>
+                      <th style="width:80px;">QPS</th>
+                      <th style="width:90px;">状态</th>
+                      <th style="width:110px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>order-api</b><div class="text-sm muted">订单创建与查询</div></td>
+                      <td><span class="mono">lb://order-service</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td><span class="tag tag-gray">Path=/api/order/**</span> <span class="tag tag-gray">Method=POST</span></td>
+                      <td><span class="tag tag-primary">QuotaMeter</span> <span class="tag tag-cyan">ResponseCache</span> <span class="tag tag-warning">RateLimit</span></td>
+                      <td class="mono">-10</td>
+                      <td>4,820</td>
+                      <td><span class="tag tag-success">在线</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>order-api-v2</b><div class="text-sm muted">灰度版本（30%）</div></td>
+                      <td><span class="mono">lb://order-service</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td><span class="tag tag-gray">Path=/api/order/**</span> <span class="tag tag-purple">Weight=v2,30</span></td>
+                      <td><span class="tag tag-primary">QuotaMeter</span> <span class="tag tag-info">GrayTag</span></td>
+                      <td class="mono">-9</td>
+                      <td>2,061</td>
+                      <td><span class="tag tag-warning">灰度中</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>search-api</b><div class="text-sm muted">商品搜索接口</div></td>
+                      <td><span class="mono">lb://search-service</span></td>
+                      <td><span class="tag tag-purple">WebSocket</span></td>
+                      <td><span class="tag tag-gray">Path=/api/search/**</span> <span class="tag tag-gray">Header=X-App</span></td>
+                      <td><span class="tag tag-warning">RateLimit</span> <span class="tag tag-danger">Desensitize</span> <span class="tag tag-primary">QuotaMeter</span></td>
+                      <td class="mono">-8</td>
+                      <td>1,946</td>
+                      <td><span class="tag tag-success">在线</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>user-api</b><div class="text-sm muted">用户资料接口</div></td>
+                      <td><span class="mono">lb://user-service</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td><span class="tag tag-gray">Path=/api/user/**</span></td>
+                      <td><span class="tag tag-purple">Retry=2</span> <span class="tag tag-warning">CircuitBreaker</span></td>
+                      <td class="mono">-7</td>
+                      <td>1,204</td>
+                      <td><span class="tag tag-success">在线</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>pay-api</b><div class="text-sm muted">工具调用代理</div></td>
+                      <td><span class="mono">lb://pay-service</span></td>
+                      <td><span class="tag tag-info">gRPC</span></td>
+                      <td><span class="tag tag-gray">Path=/api/pay/**</span> <span class="tag tag-gray">Method=POST</span></td>
+                      <td><span class="tag tag-danger">AuditLog</span> <span class="tag tag-warning">RateLimit</span></td>
+                      <td class="mono">-6</td>
+                      <td>968</td>
+                      <td><span class="tag tag-success">在线</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>file-api</b><div class="text-sm muted">文件异步上传</div></td>
+                      <td><span class="mono">lb://file-service</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td><span class="tag tag-gray">Path=/api/file/upload</span> <span class="tag tag-gray">Query=async</span></td>
+                      <td><span class="tag tag-warning">CircuitBreaker</span> <span class="tag tag-success">ResponseCache</span></td>
+                      <td class="mono">-5</td>
+                      <td>742</td>
+                      <td><span class="tag tag-danger">已熔断</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                    <tr>
+                      <td><b>admin-internal-api</b><div class="text-sm muted">管理端内部接口</div></td>
+                      <td><span class="mono">lb://config-service</span></td>
+                      <td><span class="tag tag-gray">HTTP</span></td>
+                      <td><span class="tag tag-gray">Path=/admin/**</span> <span class="tag tag-info">RemoteAddr</span></td>
+                      <td><span class="tag tag-danger">AdminAuth</span></td>
+                      <td class="mono">-1</td>
+                      <td>18</td>
+                      <td><span class="tag tag-gray">停用</span></td>
+                      <td><a style="color:var(--primary);" href="#">详情</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-footer">
+                <div class="pagination">
+                  <button class="page-btn">上一页</button>
+                  <button class="page-btn active">1</button>
+                  <button class="page-btn">2</button>
+                  <button class="page-btn">3</button>
+                  <button class="page-btn">下一页</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">协议支持与转换 · 负载均衡 · 流量分发</div>
+                <div class="card-subtitle">同一套路由模型承载 HTTP / gRPC / WebSocket，网关负责协议适配与转发</div>
+              </div>
+              <span class="tag tag-info">HTTP · HTTP/2 · gRPC · WebSocket</span>
+            </div>
+            <div class="card-body">
+              <div class="grid-3">
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">① 协议转换（HTTP ↔ gRPC）</div>
+                  <div class="code-block" style="margin-top:8px; font-size:12px;">
+<span class="c-cmt"># 外部 REST → 内部 gRPC，JSON 自动映射 Proto</span>
+POST /api/pay/create
+  ↓ JsonToGrpcFilter（proto 描述符解析）
+PayService/Create  (HTTP/2)
+  ↓ GrpcToJsonFilter
+{<span class="c-str">"code"</span>:<span class="c-num">0</span>, <span class="c-str">"data"</span>:{...}}
+                  </div>
+                  <div class="text-sm muted" style="margin-top:8px; line-height:1.8;">无需业务改造：Proto 文件上传至控制台即生成转换规则与字段映射。</div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">② WebSocket 转发</div>
+                  <div class="code-block" style="margin-top:8px; font-size:12px;">
+<span class="c-cmt"># ws 握手鉴权 → 长连接透传 → 计量</span>
+ws://gw/ws/notify?appcode=xxx
+  ↓ WsAuthFilter（握手期校验 JWT/AK-SK）
+  ↓ 与后端保持长连接，双向帧透传
+  ↓ 按连接数 + 消息数双维度计量
+                  </div>
+                  <div class="text-sm muted" style="margin-top:8px; line-height:1.8;">支持连接数限流、空闲超时、单连接消息速率限制。</div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">③ 服务编排（聚合多后端）</div>
+                  <div class="code-block" style="margin-top:8px; font-size:12px;">
+<span class="c-cmt"># 一次请求并行调用 3 个服务并聚合</span>
+GET /api/order/detail/{id}
+  ├─ order-service   (必需)
+  ├─ user-service    (必需)
+  └─ pay-service     (可降级)
+  ↓ 并行 + 超时兜底 → 聚合响应
+                  </div>
+                  <div class="text-sm muted" style="margin-top:8px; line-height:1.8;">必需依赖失败整体失败，可降级依赖返回默认值，避免串联放大延迟。</div>
+                </div>
+              </div>
+
+              <div class="grid-2e" style="margin-top:18px;">
+                <div>
+                  <div class="side-stack-title">负载均衡策略（按路由配置）</div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead><tr><th style="width:130px;">策略</th><th>适用场景</th><th style="width:110px;">使用路由数</th></tr></thead>
+                      <tbody>
+                        <tr><td>轮询 RoundRobin</td><td>实例规格一致的无状态服务</td><td>46</td></tr>
+                        <tr><td>权重 Weighted</td><td>灰度发布、机型混部（v1/v2 按比例）</td><td>18</td></tr>
+                        <tr><td>最小连接 LeastConn</td><td>长连接 / 耗时差异大的服务（如搜索）</td><td>9</td></tr>
+                        <tr><td>一致性 Hash</td><td>会话保持、缓存亲和</td><td>5</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div>
+                  <div class="side-stack-title">全局流量分发与 SSL 卸载</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>SSL/TLS 卸载</span><b>网关终止证书，内网 HTTP 回源</b></div>
+                    <div class="side-stack-item"><span>证书管理</span><b>12 张证书，到期前 30 天告警</b></div>
+                    <div class="side-stack-item"><span>地域分发</span><b>华东 60% / 华北 30% / 华南 10%</b></div>
+                    <div class="side-stack-item"><span>集群权重</span><b>按地域就近 + 故障自动切流</b></div>
+                    <div class="side-stack-item"><span>协议升级</span><b>外部 HTTP/1.1 → 内部 HTTP/2 / gRPC</b></div>
+                    <div class="side-stack-item"><span>数据格式标准化</span><b>统一 JSON 信封 + 错误码规范</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">路由详情 · order-api</div>
+                  <div class="card-subtitle">Nacos DataId：api-gateway-routes.yaml · 最近更新 2026-10-30 14:48</div>
+                </div>
+                <span class="tag tag-success">已生效</span>
+              </div>
+              <div class="card-body">
+                <div class="kv-grid mb-16">
+                  <div class="kv-item"><span class="kv-key">URI</span><span class="kv-val mono">lb://order-service</span></div>
+                  <div class="kv-item"><span class="kv-key">Order</span><span class="kv-val mono">-10</span></div>
+                  <div class="kv-item"><span class="kv-key">今日请求</span><span class="kv-val">3,182,604</span></div>
+                  <div class="kv-item"><span class="kv-key">平均耗时</span><span class="kv-val">186ms</span></div>
+                </div>
+                <div class="code-block">
+<span class="c-cmt"># Spring Cloud Gateway RouteDefinition</span>
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: <span class="c-str">order-api</span>
+          uri: <span class="c-str">lb://order-service</span>
+          order: <span class="c-num">-10</span>
+          predicates:
+            - Path=<span class="c-str">/v1/chat/**</span>
+            - Method=<span class="c-str">POST</span>
+            - Header=<span class="c-str">X-App-Code, .+</span>
+          filters:
+            - StripPrefix=<span class="c-num">0</span>
+            - name: <span class="c-str">AuthFilter</span>          <span class="c-cmt"># JWT / AK-SK 校验</span>
+            - name: <span class="c-str">RequestRateLimiter</span>  <span class="c-cmt"># Redis 令牌桶</span>
+              args:
+                redis-rate-limiter.replenishRate: <span class="c-num">200</span>
+                redis-rate-limiter.burstCapacity: <span class="c-num">400</span>
+            - name: <span class="c-str">ResponseCache</span>         <span class="c-cmt"># 响应缓存（GET 请求）</span>
+            - name: <span class="c-str">QuotaMeter</span>          <span class="c-cmt"># 调用量统计与配额扣减</span>
+            - name: <span class="c-str">CircuitBreaker</span>
+              args:
+                name: <span class="c-str">aiInferBreaker</span>
+                fallbackUri: <span class="c-str">forward:/fallback/llm</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">断言与过滤器速查</div>
+                  <div class="card-subtitle">网关内置能力 + 自研插件</div>
+                </div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>类型</th><th>名称</th><th>说明</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="tag tag-gray">Predicate</span></td><td class="mono">Path</td><td>路径匹配，支持 Ant / 正则</td></tr>
+                      <tr><td><span class="tag tag-gray">Predicate</span></td><td class="mono">Weight</td><td>按组权重灰度分流</td></tr>
+                      <tr><td><span class="tag tag-gray">Predicate</span></td><td class="mono">Header / Query</td><td>请求头与参数匹配</td></tr>
+                      <tr><td><span class="tag tag-info">Filter</span></td><td class="mono">StripPrefix</td><td>剥离前缀路径</td></tr>
+                      <tr><td><span class="tag tag-info">Filter</span></td><td class="mono">Retry</td><td>失败自动重试（指数退避）</td></tr>
+                      <tr><td><span class="tag tag-purple">自研</span></td><td class="mono">AuthFilter</td><td>JWT / AppCode 签名鉴权</td></tr>
+                      <tr><td><span class="tag tag-purple">自研</span></td><td class="mono">ResponseCache</td><td>响应缓存与回源合并</td></tr>
+                      <tr><td><span class="tag tag-purple">自研</span></td><td class="mono">GrayRoute</td><td>灰度标打标与透传</td></tr>
+                      <tr><td><span class="tag tag-purple">自研</span></td><td class="mono">QuotaMeter</td><td>调用量统计与配额扣减</td></tr>
+                      <tr><td><span class="tag tag-purple">自研</span></td><td class="mono">AuditLog</td><td>请求响应审计留痕（异步）</td></tr>
+                      <tr><td><span class="tag tag-purple">自研</span></td><td class="mono">Desensitize</td><td>PII 敏感信息脱敏</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('route');</script>
+</body>
+</html>

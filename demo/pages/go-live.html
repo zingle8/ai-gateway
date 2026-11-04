@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>联调验证与上线 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">⑧ 联调验证与上线</div>
+              <div class="page-subtitle">配完不等于能跑：在线调试 → 接入自检 → 灰度批次 → 全量 → 可回滚</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">查看变更单</button>
+              <button class="btn btn-primary">提交上线申请</button>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">在线调试（沙箱调用）</div>
+                  <div class="card-subtitle">不用写客户端：填参数直接打一次，验证路由 / 鉴权 / 限流是否生效</div>
+                </div>
+                <span class="tag tag-info">沙箱环境，不产生计量</span>
+              </div>
+              <div class="card-body">
+                <div class="form-row row-3">
+                  <div>
+                    <label class="form-label">方法</label>
+                    <select class="form-input"><option>POST</option><option>GET</option><option>PUT</option><option>DELETE</option></select>
+                  </div>
+                  <div style="grid-column:span 2;">
+                    <label class="form-label">请求地址</label>
+                    <input class="form-input" value="https://gw.example.com/api/order/create" />
+                  </div>
+                </div>
+                <div class="form-row row-2">
+                  <div>
+                    <label class="form-label">X-App-Code</label>
+                    <input class="form-input" value="trade-order" />
+                  </div>
+                  <div>
+                    <label class="form-label">X-Tenant-Id</label>
+                    <input class="form-input" value="tenant-10086" />
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div>
+                    <label class="form-label">请求体（JSON）</label>
+                    <textarea class="form-textarea" style="min-height:110px; font-family:ui-monospace, Menlo, Consolas, monospace; font-size:12.5px;">{
+  "userId": "U10086",
+  "items": [{"skuId": "SKU-1", "qty": 2}],
+  "idempotentKey": "8f2a91c7"
+}</textarea>
+                  </div>
+                </div>
+                <div class="flex gap-8">
+                  <button class="btn btn-primary">发送请求</button>
+                  <button class="btn btn-secondary">生成 AK-SK 签名</button>
+                  <button class="btn btn-secondary">复制 cURL</button>
+                </div>
+                <div class="code-block" style="margin-top:14px; font-size:12.5px;">
+<span class="c-cmt">// 响应 · 200 OK · 186 ms · traceId 6f2c1a9b8e7d4c3f</span>
+{
+  <span class="c-str">"code"</span>: <span class="c-num">0</span>,
+  <span class="c-str">"message"</span>: <span class="c-str">"success"</span>,
+  <span class="c-str">"data"</span>: { <span class="c-str">"orderId"</span>: <span class="c-str">"SO20261030001"</span>, <span class="c-str">"status"</span>: <span class="c-str">"CREATED"</span> }
+}
+
+<span class="c-cmt">// 链路分段耗时</span>
+网关鉴权 4ms → 限流 2ms → 路由匹配 1ms → 后端 168ms → 响应写回 11ms
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">接入自检清单</div>
+                  <div class="card-subtitle">全部通过才允许提交上线申请</div>
+                </div>
+                <span class="tag tag-warning">6 / 8 通过</span>
+              </div>
+              <div class="card-body">
+                <div style="display:flex; flex-direction:column; gap:10px;">
+                  <div class="bar-row"><span style="width:16px;color:var(--success);">✓</span><span style="width:150px;">系统已接入且状态正常</span><span class="text-sm muted">appcode: trade-order</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--success);">✓</span><span style="width:150px;">Nacos 配置已同步</span><span class="text-sm muted">24/24 实例 v17</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--success);">✓</span><span style="width:150px;">API 已定义并通过 Schema</span><span class="text-sm muted">v2</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--success);">✓</span><span style="width:150px;">路由可达（健康检查）</span><span class="text-sm muted">12/12 实例 UP</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--success);">✓</span><span style="width:150px;">鉴权规则已绑定</span><span class="text-sm muted">AK-SK + mTLS</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--success);">✓</span><span style="width:150px;">限流规则已生效</span><span class="text-sm muted">200 QPS</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--danger);">✗</span><span style="width:150px;">压测报告未上传</span><span class="text-sm muted">需 ≥ 设计容量 1.5 倍</span></div>
+                  <div class="bar-row"><span style="width:16px;color:var(--danger);">✗</span><span style="width:150px;">未配置告警接收人</span><span class="text-sm muted">去「变更审计与告警」补</span></div>
+                </div>
+                <div style="margin-top:16px;">
+                  <div class="side-stack-title">未通过项处理</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>压测报告</span><b>可用在线调试的批量模式生成</b></div>
+                    <div class="side-stack-item"><span>告警接收人</span><b>支持按项目等级默认继承</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">灰度批次与全量发布</div>
+                <div class="card-subtitle">按实例批次推进，每批观察错误率与 RT，异常自动暂停并回滚</div>
+              </div>
+              <div class="flex gap-8">
+                <button class="btn btn-sm btn-secondary">暂停</button>
+                <button class="btn btn-sm btn-danger">回滚到 v16</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="pipeline">
+                <div class="pipe-step">
+                  <div class="pipe-name">批次 1 · 2 台</div>
+                  <div class="pipe-tech">已完成 · 观察 3 分钟</div>
+                  <div class="pipe-metric">错误率 0.02% · RT 186 ms</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">批次 2 · 6 台</div>
+                  <div class="pipe-tech">进行中 · 剩余 1 分 20 秒</div>
+                  <div class="pipe-metric">错误率 0.06% · RT 202 ms</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">批次 3 · 全量 24 台</div>
+                  <div class="pipe-tech">待开始</div>
+                  <div class="pipe-metric">需前两批全部达标</div>
+                </div>
+                <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                <div class="pipe-step">
+                  <div class="pipe-name">完成</div>
+                  <div class="pipe-tech">打版本快照 v17</div>
+                  <div class="pipe-metric">可一键回滚 v16</div>
+                </div>
+              </div>
+              <div style="margin-top:16px;">
+                <div class="bar-row mb-8"><span style="width:120px;">发布进度</span><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--accent);"></div></div><b>8 / 24 台</b></div>
+                <div class="bar-row"><span style="width:120px;">批次达标率</span><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--success);"></div></div><b>100%</b></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">上线后 72 小时观察项</div>
+                <div class="card-subtitle">自动巡检，异常直接触发告警与自动回滚</div>
+              </div>
+              <a class="text-sm" style="color:var(--primary);" href="data-query.html">查数据 →</a>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead><tr><th>观察项</th><th style="width:130px;">基线（上线前）</th><th style="width:130px;">当前</th><th style="width:110px;">阈值</th><th style="width:90px;">判定</th></tr></thead>
+                  <tbody>
+                    <tr><td>错误率</td><td>0.12%</td><td>0.18%</td><td>&lt; 0.5%</td><td><span class="tag tag-success">正常</span></td></tr>
+                    <tr><td>P99 延迟</td><td>212 ms</td><td>268 ms</td><td>&lt; 400 ms</td><td><span class="tag tag-success">正常</span></td></tr>
+                    <tr><td>QPS</td><td>4,820</td><td>5,106</td><td>容量 30,000</td><td><span class="tag tag-success">正常</span></td></tr>
+                    <tr><td>限流触发数</td><td>0</td><td>126</td><td>&lt; 500/小时</td><td><span class="tag tag-warning">关注</span></td></tr>
+                    <tr><td>熔断状态</td><td>CLOSED</td><td>CLOSED</td><td>不得 OPEN</td><td><span class="tag tag-success">正常</span></td></tr>
+                    <tr><td>实例健康</td><td>24/24</td><td>24/24</td><td>不得下降</td><td><span class="tag tag-success">正常</span></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('golive');</script>
+</body>
+</html>

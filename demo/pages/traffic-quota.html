@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>流量与配额 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">流量与配额</div>
+              <div class="page-subtitle">网关是所有出入流量的关口：先把流量计量清楚，再谈配额与计费</div>
+            </div>
+            <div class="page-actions">
+              <a class="btn btn-secondary" href="billing.html">计费账单 →</a>
+              <button class="btn btn-primary">申请提额</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">今日入站流量</div>
+                <div class="stat-value">1.86 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend up">▲ 客户端 → 网关请求体</div>
+              </div>
+              <div class="stat-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v14"/><polyline points="6 10 12 16 18 10"/><path d="M4 21h16"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">今日出网流量</div>
+                <div class="stat-value">12.42 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend up">▲ 网关 → 客户端响应体</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8"/><polyline points="6 14 12 8 18 14"/><path d="M4 3h16"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">出网带宽峰值</div>
+                <div class="stat-value">3.24 <span style="font-size:14px;color:var(--text-secondary);">Gbps</span></div>
+                <div class="stat-trend up">▲ 容量 10 Gbps（32%）</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">回源流量</div>
+                <div class="stat-value">9.71 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend down">▼ 网关 → 后端服务</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">压缩 / 缓存节省</div>
+                <div class="stat-value">38.6%</div>
+                <div class="stat-trend down">▼ gzip + 响应缓存命中 23.6%</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">配额告警</div>
+                <div class="stat-value">3</div>
+                <div class="stat-trend down">▼ 2 个应用超 80%</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">计量口径（先对齐定义，避免对账扯皮）</div>
+                <div class="card-subtitle">四类流量都从网关埋点采集，统计粒度 1 分钟，聚合后入账</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="grid-2e">
+                <div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead><tr><th style="width:130px;">指标</th><th>定义</th><th style="width:110px;">是否计费</th></tr></thead>
+                      <tbody>
+                        <tr><td><b>入站流量</b></td><td>客户端 → 网关，请求头 + 请求体字节数（含 TLS 解密后）</td><td><span class="tag tag-gray">否</span></td></tr>
+                        <tr><td><b>出网流量</b></td><td>网关 → 客户端，响应头 + 响应体字节数（压缩后）</td><td><span class="tag tag-danger tag-solid">是</span></td></tr>
+                        <tr><td><b>回源流量</b></td><td>网关 → 后端服务，用于内网成本与容量分析</td><td><span class="tag tag-gray">否</span></td></tr>
+                        <tr><td><b>调用次数</b></td><td>网关接收并处理的请求数（含被拒绝的 429 / 403）</td><td><span class="tag tag-danger tag-solid">是</span></td></tr>
+                        <tr><td><b>WS 消息数</b></td><td>WebSocket 双向帧计数，长连接按「连接时长 + 消息数」双计</td><td><span class="tag tag-danger tag-solid">是</span></td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div>
+                  <div class="side-stack-title">采集与落库</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>采集点</span><b>Netty 层 ByteBuf 计数（零拷贝统计）</b></div>
+                    <div class="side-stack-item"><span>统计粒度</span><b>1 分钟聚合，保留 90 天明细</b></div>
+                    <div class="side-stack-item"><span>去重口径</span><b>按 traceId 去重，重试不重复计流量</b></div>
+                    <div class="side-stack-item"><span>对账</span><b>每日 02:00 与账单系统核对，差异 &lt; 0.1%</b></div>
+                    <div class="side-stack-item"><span>超限判定</span><b>配额在网关内存实时扣减，1 秒内生效</b></div>
+                  </div>
+                  <div class="code-block" style="margin-top:14px; font-size:12.5px;">
+<span class="c-cmt">// 流量计量埋点（伪代码）</span>
+<span class="c-key">long</span> inBytes  = request.headersBytes() + request.bodyBytes();
+<span class="c-key">long</span> outBytes = response.headersBytes() + response.bodyBytes();  <span class="c-cmt">// 压缩后</span>
+meter.record(appCode, routeId, inBytes, outBytes, wsMsgCount);
+quota.deduct(appCode, outBytes);  <span class="c-cmt">// 实时扣减流量配额</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">出入流量趋势（24 小时）</div>
+                  <div class="card-subtitle">入站小、出站大是网关的典型特征：响应体远大于请求体</div>
+                </div>
+                <div class="legend-wrap">
+                  <span class="dot-label"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--primary);"></span>出网流量</span>
+                  <span class="dot-label"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--cyan);"></span>入站流量</span>
+                </div>
+              </div>
+              <div class="card-body">
+                <svg viewBox="0 0 620 200" style="width:100%;height:200px;">
+                  <line x1="40" y1="170" x2="610" y2="170" stroke="var(--border)" stroke-width="1"/>
+                  <line x1="40" y1="130" x2="610" y2="130" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3 3"/>
+                  <line x1="40" y1="90" x2="610" y2="90" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3 3"/>
+                  <line x1="40" y1="50" x2="610" y2="50" stroke="var(--border-light)" stroke-width="1" stroke-dasharray="3 3"/>
+                  <text x="6" y="54" font-size="10" fill="var(--text-tertiary)">800G</text>
+                  <text x="6" y="94" font-size="10" fill="var(--text-tertiary)">500G</text>
+                  <text x="6" y="134" font-size="10" fill="var(--text-tertiary)">250G</text>
+                  <text x="6" y="174" font-size="10" fill="var(--text-tertiary)">0</text>
+                  <!-- 出网流量（面积 + 折线） -->
+                  <polygon points="40,150 66,146 92,152 118,140 144,128 170,120 196,108 222,96 248,78 274,66 300,58 326,62 352,70 378,64 404,56 430,60 456,72 482,68 508,60 534,52 560,64 586,84 610,110 610,170 40,170" fill="var(--primary)" opacity="0.10"/>
+                  <polyline points="40,150 66,146 92,152 118,140 144,128 170,120 196,108 222,96 248,78 274,66 300,58 326,62 352,70 378,64 404,56 430,60 456,72 482,68 508,60 534,52 560,64 586,84 610,110" fill="none" stroke="var(--primary)" stroke-width="2"/>
+                  <!-- 入站流量 -->
+                  <polyline points="40,164 66,163 92,164 118,161 144,159 170,157 196,155 222,152 248,149 274,146 300,144 326,146 352,148 378,147 404,144 430,145 456,148 482,147 508,145 534,142 560,146 586,152 610,158" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-dasharray="4 3"/>
+                  <text x="44" y="188" font-size="10" fill="var(--text-tertiary)">00:00</text>
+                  <text x="190" y="188" font-size="10" fill="var(--text-tertiary)">06:00</text>
+                  <text x="340" y="188" font-size="10" fill="var(--text-tertiary)">12:00</text>
+                  <text x="490" y="188" font-size="10" fill="var(--text-tertiary)">18:00</text>
+                  <text x="578" y="188" font-size="10" fill="var(--text-tertiary)">24:00</text>
+                </svg>
+                <div class="bar-row mt-8"><span style="width:110px;">出网 / 入站比</span><div class="bar-track"><div class="bar-fill" style="width:67%;background:var(--primary);"></div></div><b>6.7 : 1</b></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">流量结构（今日）</div>
+                <div class="card-subtitle">按协议与业务域拆分，定位流量大头</div>
+              </div>
+              <div class="card-body">
+                <div class="side-stack-title">按协议</div>
+                <div class="bar-row mb-8"><span style="width:100px;">HTTP</span><div class="bar-track"><div class="bar-fill" style="width:72%;background:var(--primary);"></div></div><b>8.94 TB</b></div>
+                <div class="bar-row mb-8"><span style="width:100px;">gRPC</span><div class="bar-track"><div class="bar-fill" style="width:18%;background:var(--info);"></div></div><b>2.24 TB</b></div>
+                <div class="bar-row mb-16"><span style="width:100px;">WebSocket</span><div class="bar-track"><div class="bar-fill" style="width:10%;background:var(--purple);"></div></div><b>1.24 TB</b></div>
+                <div class="side-stack-title">按业务域</div>
+                <div class="bar-row mb-8"><span style="width:100px;">订单域</span><div class="bar-track"><div class="bar-fill" style="width:41%;background:var(--primary);"></div></div><b>5.09 TB</b></div>
+                <div class="bar-row mb-8"><span style="width:100px;">搜索域</span><div class="bar-track"><div class="bar-fill" style="width:26%;background:var(--cyan);"></div></div><b>3.23 TB</b></div>
+                <div class="bar-row mb-8"><span style="width:100px;">用户域</span><div class="bar-track"><div class="bar-fill" style="width:17%;background:var(--success);"></div></div><b>2.11 TB</b></div>
+                <div class="bar-row mb-8"><span style="width:100px;">支付域</span><div class="bar-track"><div class="bar-fill" style="width:9%;background:var(--warning);"></div></div><b>1.12 TB</b></div>
+                <div class="bar-row"><span style="width:100px;">文件域</span><div class="bar-track"><div class="bar-fill" style="width:7%;background:var(--text-tertiary);"></div></div><b>0.87 TB</b></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">配额池（三级：租户 → 应用 → API）</div>
+                <div class="card-subtitle">配额在网关内存实时扣减，超限立即生效；三级取最严格者</div>
+              </div>
+              <div class="filter-bar" style="margin:0;">
+                <div class="chips">
+                  <span class="chip active">全部</span>
+                  <span class="chip">告警中</span>
+                  <span class="chip">已超限</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>对象</th>
+                      <th style="width:90px;">层级</th>
+                      <th style="width:110px;">QPS 配额</th>
+                      <th style="width:130px;">日调用配额</th>
+                      <th style="width:150px;">月流量配额</th>
+                      <th style="width:200px;">流量使用率</th>
+                      <th style="width:90px;">状态</th>
+                      <th style="width:90px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">tenant-10086（交易中心）</td><td><span class="tag tag-gray">租户</span></td>
+                      <td>2,000</td><td>8,000,000</td><td>200 TB</td>
+                      <td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:62%;background:var(--success);"></div></div><b>124 TB</b></div></td>
+                      <td><span class="tag tag-success">正常</span></td><td><a style="color:var(--primary);" href="#">调整</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">trade-order</td><td><span class="tag tag-primary tag-solid">应用</span></td>
+                      <td>800</td><td>3,000,000</td><td>80 TB</td>
+                      <td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:86%;background:var(--warning);"></div></div><b>68.8 TB</b></div></td>
+                      <td><span class="tag tag-warning">告警</span></td><td><a style="color:var(--primary);" href="#">提额</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">mall-search</td><td><span class="tag tag-primary tag-solid">应用</span></td>
+                      <td>400</td><td>1,500,000</td><td>40 TB</td>
+                      <td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:94%;background:var(--danger);"></div></div><b>37.6 TB</b></div></td>
+                      <td><span class="tag tag-danger">即将超限</span></td><td><a style="color:var(--primary);" href="#">提额</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">/api/order/create</td><td><span class="tag tag-purple tag-solid">API</span></td>
+                      <td>200</td><td>800,000</td><td>10 TB</td>
+                      <td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:51%;background:var(--success);"></div></div><b>5.1 TB</b></div></td>
+                      <td><span class="tag tag-success">正常</span></td><td><a style="color:var(--primary);" href="#">调整</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">open-partner</td><td><span class="tag tag-primary tag-solid">应用</span></td>
+                      <td>50</td><td>100,000</td><td>2 TB</td>
+                      <td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--danger);"></div></div><b>2.0 TB</b></div></td>
+                      <td><span class="tag tag-danger">已超限</span></td><td><a style="color:var(--primary);" href="#">处理</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">超限处置策略</div>
+                  <div class="card-subtitle">不同配额超限，处置动作不同，避免一刀切拒绝对业务造成误伤</div>
+                </div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th style="width:120px;">配额类型</th><th style="width:130px;">超限动作</th><th>说明</th></tr></thead>
+                    <tbody>
+                      <tr><td>QPS 配额</td><td><span class="tag tag-warning tag-solid">排队 / 拒绝</span></td><td>突发允许借用 burst，超出返回 429 + <span class="code-inline">Retry-After</span></td></tr>
+                      <tr><td>日调用配额</td><td><span class="tag tag-danger tag-solid">拒绝 429</span></td><td>次日 00:00 自动重置，支持临时提额</td></tr>
+                      <tr><td>月流量配额</td><td><span class="tag tag-primary tag-solid">限速放行</span></td><td>超限后降速至 10% 配额（不硬断），并强通知</td></tr>
+                      <tr><td>WebSocket 连接数</td><td><span class="tag tag-danger tag-solid">拒绝握手</span></td><td>返回 4429，已有连接不受影响</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">配额告警</div>
+                  <div class="card-subtitle">到达阈值提前通知，避免业务高峰被打断</div>
+                </div>
+                <a class="text-sm" style="color:var(--primary);" href="change-audit.html">告警规则 →</a>
+              </div>
+              <div class="card-body">
+                <div class="side-stack">
+                  <div class="side-stack-item"><span>告警阈值</span><b>80% 提醒 / 90% 严重 / 100% 处置</b></div>
+                  <div class="side-stack-item"><span>通知方式</span><b>企微 + 邮件（P0 追加短信）</b></div>
+                  <div class="side-stack-item"><span>临时提额</span><b>支持 24 小时 / 7 天临时额度，审批后即时生效</b></div>
+                  <div class="side-stack-item"><span>自动提额</span><b>P0 项目可按历史峰值 1.2 倍自动扩容（需开启）</b></div>
+                  <div class="side-stack-item"><span>超限留痕</span><b>所有超限事件进入变更审计，可追溯</b></div>
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="side-stack-title">当前告警</div>
+                  <div class="timeline">
+                    <div class="tl-item">
+                      <span class="tl-line"></span>
+                      <span class="tl-dot" style="background:var(--danger);"></span>
+                      <div class="tl-body">
+                        <div class="tl-title"><b>open-partner</b> 月流量配额已用尽（2.0 / 2 TB）</div>
+                        <div class="tl-meta">15:12 触发 · 已限速至 10% · 已通知对接人</div>
+                      </div>
+                    </div>
+                    <div class="tl-item">
+                      <span class="tl-line"></span>
+                      <span class="tl-dot" style="background:var(--warning);"></span>
+                      <div class="tl-body">
+                        <div class="tl-title"><b>mall-search</b> 月流量配额 94%</div>
+                        <div class="tl-meta">14:30 触发 · 预计 3 天后耗尽 · 建议提额或启用响应压缩</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('traffic');</script>
+</body>
+</html>

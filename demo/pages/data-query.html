@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数据统计查询 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">数据统计查询</div>
+              <div class="page-subtitle">取数视角 · 自定义指标、维度、粒度与时间范围 · 查明细、下钻、导出 CSV / Excel</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">保存为常用查询</button>
+              <button class="btn btn-secondary">导出 CSV</button>
+              <button class="btn btn-primary">导出 Excel</button>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-body" style="padding:12px 20px;">
+              <div class="legend-wrap">
+                <span class="dot-label"><span class="status-dot success"></span><b>本页</b>：自定义条件取数（条件你来定，结果可导出）</span>
+                <span class="dot-label"><span class="status-dot"></span><a style="color:var(--primary);" href="trace-log.html">链路追踪与日志</a>：单条请求定位根因</span>
+                <span class="dot-label"><span class="status-dot warning"></span><a style="color:var(--primary);" href="../index.html">网关总览</a>：实时状态与告警处置</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">查询条件</div>
+                <div class="card-subtitle">指标 + 维度 + 时间 + 聚合粒度，四步组合出你要的数据</div>
+              </div>
+              <span class="tag tag-info">示例查询：定位 17:00 错误率抖动</span>
+            </div>
+            <div class="card-body">
+              <div class="form-row row-3">
+                <div>
+                  <label class="form-label">统计指标</label>
+                  <select class="form-input">
+                    <option>请求量</option>
+                    <option>成功数 / 错误数</option>
+                    <option selected>错误率</option>
+                    <option>平均耗时</option>
+                    <option>P99 耗时</option>
+                    <option>入站流量</option>
+                    <option selected>出网流量</option>
+                    <option>回源流量</option>
+                    <option>WebSocket 消息数</option>
+                    <option>带宽峰值</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">拆分维度（分组）</label>
+                  <select class="form-input">
+                    <option selected>路由 ID</option>
+                    <option>后端服务</option>
+                    <option>AppCode</option>
+                    <option>网关实例</option>
+                    <option>状态码</option>
+                    <option>租户</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">聚合粒度</label>
+                  <div class="segmented">
+                    <button class="seg">1 分钟</button>
+                    <button class="seg active">5 分钟</button>
+                    <button class="seg">1 小时</button>
+                    <button class="seg">1 天</button>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row">
+                <div style="flex:1;">
+                  <label class="form-label">时间范围</label>
+                  <div class="filter-bar" style="margin:0;">
+                    <span class="chip">近 15 分钟</span>
+                    <span class="chip">近 1 小时</span>
+                    <span class="chip active">近 24 小时</span>
+                    <span class="chip">近 7 天</span>
+                    <span class="chip">自定义</span>
+                    <input class="form-input" type="text" value="2026-10-29 17:00" style="width:150px;height:34px;" />
+                    <span class="muted">至</span>
+                    <input class="form-input" type="text" value="2026-10-30 17:00" style="width:150px;height:34px;" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-row row-3">
+                <div>
+                  <label class="form-label">后端服务</label>
+                  <select class="form-input">
+                    <option>全部</option>
+                    <option>order-service</option>
+                    <option>user-service</option>
+                    <option selected>search-service</option>
+                    <option>pay-service</option>
+                    <option>file-service</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">路由 ID 包含</label>
+                  <input class="form-input" value="search-api" />
+                </div>
+                <div>
+                  <label class="form-label">AppCode</label>
+                  <input class="form-input" placeholder="留空表示全部" />
+                </div>
+              </div>
+
+              <div class="form-row row-3">
+                <div>
+                  <label class="form-label">状态码</label>
+                  <select class="form-input">
+                    <option>全部</option>
+                    <option>2xx</option>
+                    <option>4xx</option>
+                    <option selected>5xx</option>
+                    <option>429</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label">耗时 ≥（ms）</label>
+                  <input class="form-input" value="300" />
+                </div>
+                <div>
+                  <label class="form-label">排序</label>
+                  <select class="form-input">
+                    <option selected>错误率 降序</option>
+                    <option>请求量 降序</option>
+                    <option selected>出网流量 降序</option>
+                    <option>P99 降序</option>
+                    <option>时间 升序</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="flex gap-8" style="margin-top:14px;">
+                <button class="btn btn-primary">执行查询</button>
+                <button class="btn btn-secondary">重置条件</button>
+                <span class="spacer" style="flex:1;"></span>
+                <span class="text-sm muted">最近一次查询：2026-10-30 15:42 · 耗时 860 ms</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div class="card-title">查询表达式</div>
+              <div class="card-subtitle">与界面条件等价，便于复用与分享（真实实现可对接 ES / ClickHouse / Prometheus）</div>
+            </div>
+            <div class="card-body">
+              <div class="code-block" style="font-size:12.5px;">
+<span class="c-cmt">-- 数据源：gateway_access_log（明细 7 天 / 小时聚合 90 天 / 天聚合 2 年）</span>
+<span class="c-key">SELECT</span>
+  time_bucket(<span class="c-str">5m</span>, ts) <span class="c-key">AS</span> 时间,
+  route_id,
+  <span class="c-key">count</span>(*) <span class="c-key">AS</span> 请求数,
+  <span class="c-key">count_if</span>(status &gt;= <span class="c-num">500</span>) <span class="c-key">AS</span> 错误数,
+  <span class="c-key">round</span>(<span class="c-key">count_if</span>(status &gt;= <span class="c-num">500</span>) * <span class="c-num">100.0</span> / <span class="c-key">count</span>(*), <span class="c-num">2</span>) <span class="c-key">AS</span> 错误率,
+  quantile(<span class="c-num">0.99</span>, latency_ms) <span class="c-key">AS</span> p99
+<span class="c-key">FROM</span> gateway_access_log
+<span class="c-key">WHERE</span> ts <span class="c-key">BETWEEN</span> <span class="c-str">'2026-10-29 17:00'</span> <span class="c-key">AND</span> <span class="c-str">'2026-10-30 17:00'</span>
+  <span class="c-key">AND</span> upstream = <span class="c-str">'search-service'</span>
+  <span class="c-key">AND</span> route_id <span class="c-key">LIKE</span> <span class="c-str">'%search-api%'</span>
+  <span class="c-key">AND</span> status &gt;= <span class="c-num">500</span>
+  <span class="c-key">AND</span> latency_ms &gt;= <span class="c-num">300</span>
+<span class="c-key">GROUP BY</span> 时间, route_id
+<span class="c-key">HAVING</span> 请求数 &gt; <span class="c-num">100</span>
+<span class="c-key">ORDER BY</span> 错误率 <span class="c-key">DESC</span>
+<span class="c-key">LIMIT</span> <span class="c-num">1000</span>;
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">查询结果</div>
+                <div class="card-subtitle">命中 42 行 · 扫描 1.28 亿条 · 耗时 860 ms · 展示前 10 行</div>
+              </div>
+              <div class="flex gap-8">
+                <div class="tabs" style="margin:0;">
+                  <span class="tab active">汇总表</span>
+                  <span class="tab">趋势</span>
+                  <span class="tab">明细</span>
+                </div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>时间（5 分钟粒度）</th>
+                      <th>路由 ID</th>
+                      <th>后端服务</th>
+                      <th style="width:90px;">请求数</th>
+                      <th style="width:90px;">错误率</th>
+                      <th style="width:90px;">P99</th>
+                      <th style="width:90px;">入站流量</th>
+                      <th style="width:90px;">出网流量</th>
+                      <th style="width:90px;">回源流量</th>
+                      <th style="width:110px;">趋势</th>
+                      <th style="width:80px;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="mono">10-29 17:05</td><td class="mono">search-api</td><td><span class="tag tag-purple tag-solid">search-service</span></td>
+                      <td>18,642</td><td style="color:var(--danger);"><b>6.89%</b></td><td>1,860 ms</td><td>3.8 GB</td><td><b>26.4 GB</b></td><td>20.1 GB</td>
+                      <td><div class="spark-bars" style="height:26px;"><i style="height:40%"></i><i style="height:52%"></i><i style="height:70%"></i><i class="danger" style="height:96%"></i><i style="height:64%"></i><i style="height:44%"></i></div></td>
+                      <td><a style="color:var(--primary);" href="#">下钻</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10-29 17:10</td><td class="mono">search-api</td><td><span class="tag tag-purple tag-solid">search-service</span></td>
+                      <td>19,120</td><td style="color:var(--danger);"><b>5.16%</b></td><td>1,520 ms</td><td>4.1 GB</td><td><b>28.7 GB</b></td><td>21.9 GB</td>
+                      <td><div class="spark-bars" style="height:26px;"><i style="height:48%"></i><i class="danger" style="height:88%"></i><i style="height:72%"></i><i style="height:56%"></i><i style="height:40%"></i><i style="height:34%"></i></div></td>
+                      <td><a style="color:var(--primary);" href="#">下钻</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10-29 17:15</td><td class="mono">search-api</td><td><span class="tag tag-purple tag-solid">search-service</span></td>
+                      <td>17,842</td><td style="color:var(--warning);"><b>3.60%</b></td><td>1,120 ms</td><td>3.6 GB</td><td><b>25.2 GB</b></td><td>19.4 GB</td>
+                      <td><div class="spark-bars" style="height:26px;"><i style="height:60%"></i><i style="height:78%"></i><i class="warn" style="height:70%"></i><i style="height:52%"></i><i style="height:38%"></i><i style="height:30%"></i></div></td>
+                      <td><a style="color:var(--primary);" href="#">下钻</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10-29 17:20</td><td class="mono">search-api</td><td><span class="tag tag-purple tag-solid">search-service</span></td>
+                      <td>18,204</td><td><b>1.71%</b></td><td>760 ms</td><td>3.7 GB</td><td><b>24.8 GB</b></td><td>18.9 GB</td>
+                      <td><div class="spark-bars" style="height:26px;"><i style="height:52%"></i><i style="height:66%"></i><i style="height:58%"></i><i style="height:42%"></i><i style="height:36%"></i><i style="height:28%"></i></div></td>
+                      <td><a style="color:var(--primary);" href="#">下钻</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10-29 17:25</td><td class="mono">search-api</td><td><span class="tag tag-purple tag-solid">search-service</span></td>
+                      <td>17,564</td><td>126</td><td style="color:var(--success);"><b>0.72%</b></td><td>186 ms</td><td>520 ms</td>
+                      <td><div class="spark-bars" style="height:26px;"><i style="height:46%"></i><i style="height:54%"></i><i style="height:44%"></i><i style="height:34%"></i><i style="height:26%"></i><i style="height:22%"></i></div></td>
+                      <td><a style="color:var(--primary);" href="#">下钻</a></td>
+                    </tr>
+                    <tr>
+                      <td class="mono">10-29 17:30</td><td class="mono">search-api</td><td><span class="tag tag-purple tag-solid">search-service</span></td>
+                      <td>18,010</td><td>88</td><td style="color:var(--success);"><b>0.49%</b></td><td>172 ms</td><td>468 ms</td>
+                      <td><div class="spark-bars" style="height:26px;"><i style="height:40%"></i><i style="height:48%"></i><i style="height:38%"></i><i style="height:30%"></i><i style="height:24%"></i><i style="height:20%"></i></div></td>
+                      <td><a style="color:var(--primary);" href="#">下钻</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px;">
+                <span class="text-sm muted">共 42 行 · 每页 10 行</span>
+                <div class="pagination">
+                  <button class="btn btn-sm btn-secondary">上一页</button>
+                  <button class="btn btn-sm btn-primary">1</button>
+                  <button class="btn btn-sm btn-secondary">2</button>
+                  <button class="btn btn-sm btn-secondary">3</button>
+                  <button class="btn btn-sm btn-secondary">下一页</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mt-16">
+            <div class="card-header">
+              <div class="card-title">使用说明</div>
+            </div>
+            <div class="card-body">
+              <div class="grid-3">
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">数据粒度与保留</div>
+                  <div class="text-sm muted" style="margin-top:6px; line-height:1.8;">访问明细（含 TraceId）保留 7 天；5 分钟 / 小时聚合保留 90 天；天聚合保留 2 年。超过保留期的条件请改用天粒度查询。</div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">导出限制</div>
+                  <div class="text-sm muted" style="margin-top:6px; line-height:1.8;">单次导出上限 10 万行，超出请在条件中缩小时间范围或改用天粒度；导出任务异步执行，完成后站内下载。</div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;">和另外两个页面的分工</div>
+                  <div class="text-sm muted" style="margin-top:6px; line-height:1.8;"><b>网关总览</b>看「现在是否健康」；<b>数据统计查询</b>（本页）做「自定义取数、下钻、导出」；<b>链路追踪与日志</b>查「单条请求的根因」。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('query');</script>
+</body>
+</html>

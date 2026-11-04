@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>用户管理 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+  <style>
+    /* 单页紧凑排版：让 10 条记录在一屏内铺满且不产生纵向滚动 */
+    .content { padding: 14px 18px 16px; }
+    .page-header { margin-bottom: 10px; }
+    .page-title { font-size: 19px; }
+    .stat-grid.compact { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+    @media (max-width: 1400px) {
+      .stat-grid.compact { gap: 6px; }
+      .stat-grid.compact .stat-card { padding: 8px 10px; }
+      .stat-grid.compact .stat-label { font-size: 11px; margin-bottom: 3px; }
+      .stat-grid.compact .stat-value { font-size: 15.5px; }
+      .stat-grid.compact .stat-trend { font-size: 10.5px; }
+      .stat-grid.compact .stat-icon { width: 22px; height: 22px; }
+    }
+    .stat-grid.compact .stat-card { padding: 10px 14px; }
+    .stat-grid.compact .stat-label { font-size: 11.5px; margin-bottom: 4px; }
+    .stat-grid.compact .stat-value { font-size: 19px; }
+    .stat-grid.compact .stat-trend { font-size: 11px; margin-top: 4px; }
+    .stat-grid.compact .stat-icon { width: 26px; height: 26px; }
+    .card-header { padding: 10px 16px; }
+    .card-body.no-pad th { padding: 7px 12px; font-size: 12px; }
+    .card-body.no-pad td { padding: 6px 12px; font-size: 13px; line-height: 1.5; }
+    .card-footer { padding: 8px 16px; }
+    .content { display: flex; flex-direction: column; min-height: 0; }
+    .content > .card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card > .card-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card > .card-body > .table-wrap { flex: 1; min-height: 0; overflow: auto; }
+    .content > .card > .card-body > .card-footer { margin-top: auto; }
+    .card-body.no-pad table { width: 100%; table-layout: fixed; }
+    .card-body.no-pad table td, .card-body.no-pad table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .op-link { color: #2563EB; font-weight: 600; text-decoration: none; }
+    .op-link:hover { color: #1D4ED8; text-decoration: underline; }
+    .op-link.op-danger { color: var(--danger); }
+    .op-link.op-danger:hover { color: #B91C1C; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">用户管理</div>
+              <div class="page-subtitle">系统管理 · 平台账号管理与权限分配</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary" id="btnExport">导出账号</button>
+              <button class="btn btn-primary" id="btnCreate">新增用户</button>
+            </div>
+          </div>
+
+          <div class="stat-grid compact">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">账号总数</div>
+                <div class="stat-value" id="statTotal">0</div>
+                <div class="stat-trend up">▲ 本月新增 3</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.2 3.6-6.5 8-6.5s8 2.3 8 6.5"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">启用中</div>
+                <div class="stat-value" id="statEnabled">0</div>
+                <div class="stat-trend up">▲ 可正常登录</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">已禁用</div>
+                <div class="stat-value" id="statDisabled">0</div>
+                <div class="stat-trend down">▼ 含 1 个连续输错锁定</div>
+              </div>
+              <div class="stat-icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">管理员</div>
+                <div class="stat-value" id="statAdmin">0</div>
+                <div class="stat-trend">拥有全部菜单权限</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">今日登录</div>
+                <div class="stat-value" id="statToday">0</div>
+                <div class="stat-trend up">▲ 最近一次 05:55:45</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">账号列表</div>
+                <div class="card-subtitle">密码 BCrypt 加盐存储，接口不返回明文；连续输错 5 次自动锁定账号</div>
+              </div>
+              <div class="filter-bar" style="margin:0;">
+                <input id="kw" class="form-input" style="width:190px;" placeholder="搜索用户名 / 昵称" />
+                <select class="form-select" style="width:130px;" data-filter="role">
+                  <option value="">全部角色</option>
+                  <option value="ADMIN">管理员</option>
+                  <option value="OPERATOR">运维人员</option>
+                  <option value="VIEWER">只读用户</option>
+                </select>
+                <select class="form-select" style="width:110px;" data-filter="status">
+                  <option value="">全部状态</option>
+                  <option value="1">启用</option>
+                  <option value="0">禁用</option>
+                </select>
+                <select class="form-select" style="width:140px;" data-filter="sort">
+                  <option value="id">按创建顺序</option>
+                  <option value="login">按最后登录时间</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:6%;">ID</th>
+                      <th style="width:12%;">用户名</th>
+                      <th style="width:13%;">昵称</th>
+                      <th style="width:11%;">角色</th>
+                      <th style="width:10%;">状态</th>
+                      <th style="width:16%;">最后登录时间</th>
+                      <th style="width:12%;">最后登录 IP</th>
+                      <th style="width:16%;">创建时间</th>
+                      <th style="width:14%;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody id="userTbody"></tbody>
+                </table>
+              </div>
+              <div class="card-footer">
+                <div class="text-sm muted" id="userPagerInfo"></div>
+                <div class="pagination" id="userPager"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('user');</script>
+  <script>
+    (function () {
+      /* 演示数据：字段与后端 tb_sys_user 表一一对应 */
+      const USERS = [
+        { id: 1, username: 'admin',  nickname: '平台管理员', role: 'ADMIN',    status: 1, lastLoginTime: '2026-10-31 05:55:45', lastLoginIp: '127.0.0.1',     createTime: '2026-10-31 04:51:10' },
+        { id: 2, username: 'dev',    nickname: '张开发',     role: 'OPERATOR', status: 1, lastLoginTime: '2026-10-30 18:24:09', lastLoginIp: '192.168.0.24',  createTime: '2026-10-31 04:51:10' },
+        { id: 3, username: 'ops',    nickname: '李运维',     role: 'OPERATOR', status: 1, lastLoginTime: '2026-10-29 09:12:37', lastLoginIp: '192.168.0.35',  createTime: '2026-10-31 04:51:10' },
+        { id: 4, username: 'viewer', nickname: '王只读',     role: 'VIEWER',  status: 1, lastLoginTime: '2026-10-28 14:03:52', lastLoginIp: '192.168.0.41',  createTime: '2026-10-31 04:51:11' },
+        { id: 5, username: 'tester', nickname: '赵测试',     role: 'VIEWER',  status: 1, lastLoginTime: '2026-10-27 11:41:06', lastLoginIp: '192.168.0.52',  createTime: '2026-10-27 10:02:33' },
+        { id: 6, username: 'bi',      nickname: '孙分析',     role: 'VIEWER',  status: 1, lastLoginTime: '2026-10-26 20:18:44', lastLoginIp: '192.168.0.63',  createTime: '2026-10-26 19:35:12' },
+        { id: 7, username: 'partner', nickname: '外部合作方', role: 'VIEWER',  status: 1, lastLoginTime: '2026-10-25 16:07:19', lastLoginIp: '203.0.113.7',  createTime: '2026-10-25 15:44:08' },
+        { id: 8, username: 'erp',     nickname: 'ERP 同步账号', role: 'OPERATOR', status: 1, lastLoginTime: '2026-10-24 08:52:31', lastLoginIp: '192.168.0.71',  createTime: '2026-10-24 08:30:19' },
+        { id: 9, username: 'legacy',  nickname: '历史遗留账号', role: 'VIEWER',  status: 0, lastLoginTime: '2026-08-11 13:26:58', lastLoginIp: '192.168.0.88',  createTime: '2025-03-02 09:11:27' },
+        { id: 10, username: 'guest',  nickname: '临时访客',     role: 'VIEWER',  status: 0, lastLoginTime: null,                lastLoginIp: null,             createTime: '2026-09-30 17:22:41' }
+      ]
+
+      const ROLE_MAP = {
+        ADMIN:    { label: '管理员',   tag: 'tag-danger' },
+        OPERATOR: { label: '运维人员', tag: 'tag-primary' },
+        VIEWER:   { label: '只读用户', tag: 'tag-gray' }
+      }
+
+      const tbody = document.getElementById('userTbody')
+      const pager = document.getElementById('userPager')
+      const pagerInfo = document.getElementById('userPagerInfo')
+      const kwInput = document.getElementById('kw')
+      const roleSel = document.querySelector('[data-filter="role"]')
+      const statusSel = document.querySelector('[data-filter="status"]')
+      const sortSel = document.querySelector('[data-filter="sort"]')
+
+      let page = 1
+      const size = 10
+
+      function roleHtml(role) {
+        const conf = ROLE_MAP[role] || { label: role, tag: 'tag-gray' }
+        return '<span class="tag ' + conf.tag + '">' + conf.label + '</span>'
+      }
+
+      function statusHtml(status) {
+        return status === 1
+          ? '<span class="status-dot success"></span> 启用'
+          : '<span class="status-dot danger"></span> 禁用'
+      }
+
+      function fmt(v) {
+        return v || '—'
+      }
+
+      function filtered() {
+        const kw = (kwInput.value || '').trim().toLowerCase()
+        const role = roleSel.value
+        const status = statusSel.value
+
+        let list = USERS.filter(function (u) {
+          if (role && u.role !== role) return false
+          if (status && String(u.status) !== status) return false
+          if (kw &&
+              u.username.toLowerCase().indexOf(kw) < 0 &&
+              u.nickname.toLowerCase().indexOf(kw) < 0) {
+            return false
+          }
+          return true
+        })
+
+        if (sortSel.value === 'login') {
+          list = list.slice().sort(function (a, b) {
+            return String(b.lastLoginTime || '').localeCompare(String(a.lastLoginTime || ''))
+          })
+        }
+        return list
+      }
+
+      function render(resetPage) {
+        if (resetPage) page = 1
+        const list = filtered()
+        const total = list.length
+        const pages = Math.max(1, Math.ceil(total / size))
+        if (page > pages) page = pages
+        const start = (page - 1) * size
+        const rows = list.slice(start, start + size)
+
+        tbody.innerHTML = rows.map(function (u) {
+          const disabled = u.status === 0
+          return '<tr data-role="' + u.role + '" data-status="' + u.status + '">' +
+            '<td class="mono">' + u.id + '</td>' +
+            '<td class="mono"><b>' + u.username + '</b></td>' +
+            '<td>' + u.nickname + '</td>' +
+            '<td>' + roleHtml(u.role) + '</td>' +
+            '<td>' + statusHtml(u.status) + '</td>' +
+            '<td class="mono">' + fmt(u.lastLoginTime) + '</td>' +
+            '<td class="mono">' + fmt(u.lastLoginIp) + '</td>' +
+            '<td class="mono">' + fmt(u.createTime) + '</td>' +
+            '<td>' +
+              '<a class="op-link" href="#" data-act="edit">编辑</a> &nbsp;' +
+              '<a class="op-link' + (disabled ? '' : ' op-danger') + '" href="#" data-act="toggle">' +
+                (disabled ? '启用' : '禁用') +
+              '</a>' +
+            '</td>' +
+          '</tr>'
+        }).join('') || '<tr><td colspan="9" style="text-align:center;padding:24px;">暂无匹配的账号</td></tr>'
+
+        pagerInfo.textContent = '共 ' + total + ' 条 · 第 ' + page + ' / ' + pages + ' 页'
+
+        const btns = []
+        btns.push('<button class="page-btn"' + (page === 1 ? ' disabled' : '') + ' data-page="' + (page - 1) + '">上一页</button>')
+        for (let i = 1; i <= pages; i++) {
+          btns.push('<button class="page-btn' + (i === page ? ' active' : '') + '" data-page="' + i + '">' + i + '</button>')
+        }
+        btns.push('<button class="page-btn"' + (page === pages ? ' disabled' : '') + ' data-page="' + (page + 1) + '">下一页</button>')
+        pager.innerHTML = btns.join('')
+      }
+
+      function refreshStats() {
+        const total = USERS.length
+        const enabled = USERS.filter(function (u) { return u.status === 1 }).length
+        const admin = USERS.filter(function (u) { return u.role === 'ADMIN' }).length
+        document.getElementById('statTotal').textContent = total
+        document.getElementById('statEnabled').textContent = enabled
+        document.getElementById('statDisabled').textContent = total - enabled
+        document.getElementById('statAdmin').textContent = admin
+        document.getElementById('statToday').textContent = USERS.filter(function (u) {
+          return u.lastLoginTime && u.lastLoginTime.indexOf('2026-10-31') === 0
+        }).length
+      }
+
+      pager.addEventListener('click', function (e) {
+        const btn = e.target.closest('button[data-page]')
+        if (!btn || btn.disabled) return
+        const target = Number(btn.getAttribute('data-page'))
+        if (target >= 1) {
+          page = target
+          render()
+        }
+      })
+
+      kwInput.addEventListener('input', function () { render(true) })
+      roleSel.addEventListener('change', function () { render(true) })
+      statusSel.addEventListener('change', function () { render(true) })
+      sortSel.addEventListener('change', render)
+
+      refreshStats()
+      render(true)
+      if (window.fitTableRows) setTimeout(fitTableRows, 60)
+    })();
+  </script>
+</body>
+</html>

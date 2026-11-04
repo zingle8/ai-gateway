@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>自动接入（配置即接入） · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">① 自动接入（配置即接入）</div>
+              <div class="page-subtitle">应用启动时用一份配置声明自己 → 网关自动完成接入、下发默认配置、生成默认路由/鉴权/限流；只有需要定制时才手动改</div>
+            </div>
+            <div class="page-actions">
+              <a class="btn btn-secondary" href="system-onboard.html">手动接入 →</a>
+              <button class="btn btn-primary">生成接入配置</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">自动接入系统</div>
+                <div class="stat-value">68</div>
+                <div class="stat-trend up">▲ 占全部接入 78%</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">平均接入耗时</div>
+                <div class="stat-value">12 <span style="font-size:14px;color:var(--text-secondary);">秒</span></div>
+                <div class="stat-trend down">▼ 手动接入需 15~30 分钟</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">零配置（仅填 4 项）</div>
+                <div class="stat-value">41</div>
+                <div class="stat-trend up">▲ 其余全部走默认模板</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">手动锁定字段</div>
+                <div class="stat-value">27</div>
+                <div class="stat-trend down">▼ 自动接入不会覆盖</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">四种接入方式（选一条，或组合用）</div>
+                <div class="card-subtitle">手动接入是兜底，自动接入才是常态：只要应用能声明「我是谁、我在哪、我提供什么」，其余由网关补全</div>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:150px;">方式</th>
+                      <th style="width:110px;">触发时机</th>
+                      <th>需要做什么</th>
+                      <th style="width:130px;">生成内容</th>
+                      <th style="width:90px;">适用</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>① 控制台手动接入</b></td><td>人工点击</td>
+                      <td>在平台填入项目 ID / 名称 / 地域 / 等级 / 语言-服务名 / 类型 / Nacos 空间等全部字段</td>
+                      <td>系统 + 凭证 + 空白配置</td>
+                      <td><span class="tag tag-gray">兜底</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>② SDK Starter 自动注册</b><span class="tag tag-success tag-solid" style="margin-left:6px;">推荐</span></td><td>应用启动</td>
+                      <td>引一个 starter 依赖 + 在 <span class="code-inline">bootstrap.yml</span> 填最少 4 项（appcode / 服务名 / 地域 / 等级）</td>
+                      <td>系统 + 凭证 + 默认路由 + 默认鉴权 + 默认限流</td>
+                      <td><span class="tag tag-success">Spring Boot</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>③ 声明式 YAML（GitOps）</b></td><td>配置入库 / 变更</td>
+                      <td>仓库放一份 <span class="code-inline">gateway.yaml</span>，平台监听 Git 或配置中心并同步</td>
+                      <td>按声明全量对齐</td>
+                      <td><span class="tag tag-info">多语言 / 存量</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>④ K8s 注解自动发现</b></td><td>Pod 创建</td>
+                      <td>Deployment / Service 上打 annotation，Operator 监听并注册</td>
+                      <td>系统 + 路由（按 Service 端口）</td>
+                      <td><span class="tag tag-purple">K8s 部署</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">方式② · SDK Starter 自动注册</div>
+                  <div class="card-subtitle">应用启动即注册，无需在控制台点任何按钮</div>
+                </div>
+                <span class="tag tag-success tag-solid">零配置起步</span>
+              </div>
+              <div class="card-body">
+                <div style="font-size:13px; font-weight:600; margin-bottom:6px;">1. 引入依赖</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-key">&lt;dependency&gt;</span>
+  <span class="c-key">&lt;groupId&gt;</span>com.zimo.gateway<span class="c-key">&lt;/groupId&gt;</span>
+  <span class="c-key">&lt;artifactId&gt;</span>jv-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
+  <span class="c-key">&lt;version&gt;</span>1.6.2<span class="c-key">&lt;/version&gt;</span>
+<span class="c-key">&lt;/dependency&gt;</span>
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">2. 最小配置（只填 4 项，其余全部默认）</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-key">gateway</span>:
+  <span class="c-key">client</span>:
+    <span class="c-key">enabled</span>: <span class="c-str">true</span>                       <span class="c-cmt"># 默认 true，可关闭</span>
+    <span class="c-key">register-url</span>: <span class="c-str">http://gw-console:8080</span>   <span class="c-cmt"># 默认内置，可不填</span>
+    <span class="c-key">bootstrap-token</span>: <span class="c-str">${GATEWAY_BOOTSTRAP_TOKEN}</span>  <span class="c-cmt"># 平台颁发，环境变量注入</span>
+    <span class="c-key">appcode</span>: <span class="c-str">trade-order</span>               <span class="c-cmt"># 必填 · 我的代号</span>
+    <span class="c-key">appname</span>: <span class="c-str">交易订单系统</span>
+    <span class="c-key">service-name</span>: <span class="c-str">order-service</span>          <span class="c-cmt"># 必填 · 注册中心服务名</span>
+    <span class="c-key">region</span>: <span class="c-str">cn-east-1</span>                  <span class="c-cmt"># 必填 · 华东</span>
+    <span class="c-key">level</span>: <span class="c-str">P1</span>                          <span class="c-cmt"># 必填 · 决定默认模板</span>
+    <span class="c-key">protocol</span>: <span class="c-str">HTTP</span>                     <span class="c-cmt"># 默认 HTTP（可 gRPC / WS）</span>
+  <span class="c-cmt"># 以下全部走默认模板，不写即可：</span>
+  <span class="c-cmt">#   timeout / retry / limit-qps / circuit-breaker / 熔断阈值</span>
+  <span class="c-cmt">#   auth-mode（默认 AK-SK）/ 脱敏规则 / 日志采样率</span>
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">3. 启动日志（12 秒内完成接入）</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-cmt">[gateway-client] 读取配置：appcode=trade-order, service=order-service, region=cn-east-1, level=P1</span>
+<span class="c-cmt">[gateway-client] 注册中 → http://gw-console:8080/gateway/v1/systems:register</span>
+<span class="c-cmt">[gateway-client] ✔ 已接入 appid=10086 appcode=trade-order（幂等命中，未重复创建）</span>
+<span class="c-cmt">[gateway-client] ✔ 下发默认配置：qps=400 timeout=3s retry=1 breaker=50%</span>
+<span class="c-cmt">[gateway-client] ✔ 默认路由已生成：order-api → lb://order-service  /api/order/**</span>
+<span class="c-cmt">[gateway-client] ✔ Nacos 实例注册成功（10.24.6.11:8080），健康检查通过，已上线</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">自动接入时序</div>
+                  <div class="card-subtitle">注册是幂等的：重复启动、扩缩容、重启都不会重复创建</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="timeline">
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--primary);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">应用启动，Starter 读取 <span class="code-inline">bootstrap.yml</span></div>
+                      <div class="tl-meta">必填项缺失 → 启动失败并明确报错（fail-fast，避免半接入状态）</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--primary);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">携带 bootstrap token 调用注册 API</div>
+                      <div class="tl-meta">token 由平台颁发（有效期 90 天、可吊销），无 token 一律拒绝</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--success);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">网关按 <span class="code-inline">appcode + service-name</span> 幂等创建系统</div>
+                      <div class="tl-meta">已存在则复用 appid；不会覆盖「手动锁定」字段</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--success);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">按项目等级下发默认配置模板</div>
+                      <div class="tl-meta">P1 → 400 QPS / 超时 3s / 重试 1 次 / 熔断 50% / AK-SK 鉴权</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--success);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">生成默认路由（<span class="code-inline">/api/{服务名}/**</span>）</div>
+                      <div class="tl-meta">默认轮询 LB + 健康检查；后续可在控制台改，改后自动锁定</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--cyan);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">按约定创建 Nacos 空间与配置项骨架</div>
+                      <div class="tl-meta"><span class="code-inline">gw-cn-east-1-trade-order</span> / <span class="code-inline">GATEWAY_P1</span> + route / auth / limit / filter 四个 dataId（详见 ② Nacos 配置空间）</div>
+                    </div>
+                  </div>
+                  <div class="tl-item">
+                    <span class="tl-line"></span>
+                    <span class="tl-dot" style="background:var(--cyan);"></span>
+                    <div class="tl-body">
+                      <div class="tl-title">实例注册到 Nacos → 健康检查通过 → 上线</div>
+                      <div class="tl-meta">实例下线 / 进程退出 → 主动注销，30 秒摘除流量</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;">
+                  <div class="side-stack-title">失败与异常处理</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>注册失败</span><b>退避重试 5 次（1s→30s），仍失败则启动失败</b></div>
+                    <div class="side-stack-item"><span>控制台不可达</span><b>本地缓存上次配置继续启动（降级可用）</b></div>
+                    <div class="side-stack-item"><span>token 失效</span><b>拒绝注册并告警，需平台重新颁发</b></div>
+                    <div class="side-stack-item"><span>重复启动</span><b>幂等，不重复创建系统与路由</b></div>
+                    <div class="side-stack-item"><span>进程退出</span><b>优雅注销，实例摘除、路由保留</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">默认配置模板（按项目等级）· 约定大于配置</div>
+                <div class="card-subtitle">不写就有：接入即拿到一套经过验证的默认值；要改再覆盖，改哪算哪</div>
+              </div>
+              <a class="text-sm" style="color:var(--primary);" href="limit-fuse.html">流量治理 →</a>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:80px;">等级</th>
+                      <th style="width:100px;">默认 QPS</th>
+                      <th style="width:100px;">超时</th>
+                      <th style="width:90px;">重试</th>
+                      <th style="width:110px;">熔断阈值</th>
+                      <th style="width:110px;">默认鉴权</th>
+                      <th style="width:100px;">日志采样</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td><span class="tag tag-danger tag-solid">P0</span></td><td>2,000</td><td>2 s</td><td>2 次</td><td>60%（更敏感）</td><td>AK-SK + mTLS</td><td>100%</td><td>核心交易，全量审计、变更需审批</td></tr>
+                    <tr><td><span class="tag tag-warning tag-solid">P1</span></td><td>400</td><td>3 s</td><td>1 次</td><td>50%</td><td>AK-SK</td><td>50%</td><td>重要业务，默认开启脱敏与限流</td></tr>
+                    <tr><td><span class="tag tag-info tag-solid">P2</span></td><td>200</td><td>5 s</td><td>1 次</td><td>50%</td><td>JWT</td><td>10%</td><td>一般业务，默认轮询 LB</td></tr>
+                    <tr><td><span class="tag tag-gray tag-solid">P3</span></td><td>50</td><td>10 s</td><td>0 次</td><td>40%（更宽松）</td><td>JWT（可选）</td><td>1%</td><td>内部 / 实验性，配额收紧</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">覆盖优先级：谁说了算</div>
+                  <div class="card-subtitle">自动接入只填「未声明、未锁定」的字段，绝不抢手动配置的权</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="pipeline">
+                  <div class="pipe-step">
+                    <div class="pipe-name">① 平台默认模板</div>
+                    <div class="pipe-tech">按等级下发</div>
+                    <div class="pipe-metric">优先级最低</div>
+                  </div>
+                  <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                  <div class="pipe-step">
+                    <div class="pipe-name">② 应用配置声明</div>
+                    <div class="pipe-tech">bootstrap.yml</div>
+                    <div class="pipe-metric">覆盖默认</div>
+                  </div>
+                  <div class="pipe-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+                  <div class="pipe-step">
+                    <div class="pipe-name">③ 控制台手动配置</div>
+                    <div class="pipe-tech">人工改过即锁定</div>
+                    <div class="pipe-metric">优先级最高</div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;">
+                  <div class="side-stack-title">关键规则</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>字段级锁定</span><b>控制台改过的字段标记 locked，自动接入跳过</b></div>
+                    <div class="side-stack-item"><span>未锁定字段</span><b>应用重启时按配置重新对齐（可收敛漂移）</b></div>
+                    <div class="side-stack-item"><span>删除保护</span><b>自动接入只增不改已锁定项，永不删除路由</b></div>
+                    <div class="side-stack-item"><span>冲突提示</span><b>配置与控制台冲突时告警，不静默覆盖</b></div>
+                    <div class="side-stack-item"><span>解锁方式</span><b>控制台手动「恢复自动托管」才会重新托管</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">方式③ · 声明式 YAML（GitOps）</div>
+                  <div class="card-subtitle">一份配置描述全部期望状态，非 Spring 应用 / 存量系统同样适用</div>
+                </div>
+                <span class="tag tag-info tag-solid">可版本化</span>
+              </div>
+              <div class="card-body">
+                <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># gateway.yaml —— 提交到仓库即生效，变更可评审、可回滚</span>
+<span class="c-key">apiVersion</span>: gateway.example.com/v1
+<span class="c-key">kind</span>: SystemRegistration
+<span class="c-key">metadata</span>:
+  <span class="c-key">appcode</span>: erp-legacy
+  <span class="c-key">appname</span>: 存量 ERP 系统
+<span class="c-key">spec</span>:
+  <span class="c-key">region</span>: cn-east-1
+  <span class="c-key">level</span>: P2
+  <span class="c-key">runtime</span>: { <span class="c-key">lang</span>: java, <span class="c-key">arch</span>: monolith }
+  <span class="c-key">serviceName</span>: erp-service
+  <span class="c-key">protocol</span>: HTTP
+  <span class="c-key">routes</span>:
+    - <span class="c-key">id</span>: erp-api
+      <span class="c-key">path</span>: /api/erp/**
+      <span class="c-key">uri</span>: lb://erp-service
+      <span class="c-key">stripPrefix</span>: <span class="c-str">true</span>
+  <span class="c-cmt"># 不写的字段 → 走 P2 默认模板</span>
+  <span class="c-cmt"># 显式覆盖示例（可选）：</span>
+  <span class="c-cmt">#  limit: { qps: 100 }</span>
+  <span class="c-cmt">#  auth: { mode: JWT }</span>
+                </div>
+                <div style="margin-top:14px;">
+                  <div style="font-size:13px; font-weight:600; margin-bottom:6px;">方式④ · K8s 注解自动发现</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-key">metadata</span>:
+  <span class="c-key">annotations</span>:
+    <span class="c-key">gateway.example.com/register</span>: <span class="c-str">"true"</span>
+    <span class="c-key">gateway.example.com/appcode</span>: <span class="c-str">"trade-order"</span>
+    <span class="c-key">gateway.example.com/level</span>: <span class="c-str">"P1"</span>
+    <span class="c-key">gateway.example.com/route-path</span>: <span class="c-str">"/api/order/**"</span>
+                  </div>
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>同步方式</span><b>Operator 监听资源变更，实时注册 / 注销</b></div>
+                    <div class="side-stack-item"><span>配置漂移</span><b>平台每日与声明比对，差异告警</b></div>
+                    <div class="side-stack-item"><span>回滚</span><b>Git revert 即回滚接入配置</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">注册 API 契约（方式②③④ 共用）</div>
+                <div class="card-subtitle">手动接入本质是"人替系统调用了这个接口"——两条路径最终落到同一份系统模型</div>
+              </div>
+              <a class="text-sm" style="color:var(--primary);" href="api-docs.html">接口文档 →</a>
+            </div>
+            <div class="card-body">
+              <div class="grid-2e">
+                <div>
+                  <div style="font-size:13px; font-weight:600; margin-bottom:6px;">请求</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-cmt">POST /gateway/v1/systems:register</span>
+<span class="c-cmt">X-Bootstrap-Token: bt_7f2a••••c91d</span>
+{
+  <span class="c-str">"appcode"</span>: <span class="c-str">"trade-order"</span>,
+  <span class="c-str">"appname"</span>: <span class="c-str">"交易订单系统"</span>,
+  <span class="c-str">"serviceName"</span>: <span class="c-str">"order-service"</span>,
+  <span class="c-str">"region"</span>: <span class="c-str">"cn-east-1"</span>,
+  <span class="c-str">"level"</span>: <span class="c-str">"P1"</span>,
+  <span class="c-str">"protocol"</span>: <span class="c-str">"HTTP"</span>,
+  <span class="c-str">"idempotentKey"</span>: <span class="c-str">"trade-order:order-service"</span>
+}
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:13px; font-weight:600; margin-bottom:6px;">响应</div>
+                  <div class="code-block" style="font-size:12px;">
+{
+  <span class="c-str">"appid"</span>: <span class="c-num">10086</span>,
+  <span class="c-str">"appcode"</span>: <span class="c-str">"trade-order"</span>,
+  <span class="c-str">"created"</span>: <span class="c-key">false</span>,        <span class="c-cmt">// 幂等：已存在</span>
+  <span class="c-str">"routeId"</span>: <span class="c-str">"order-api"</span>,
+  <span class="c-str">"defaults"</span>: {
+    <span class="c-str">"qps"</span>: <span class="c-num">400</span>, <span class="c-str">"timeoutMs"</span>: <span class="c-num">3000</span>,
+    <span class="c-str">"retry"</span>: <span class="c-num">1</span>, <span class="c-str">"breakerRatio"</span>: <span class="c-num">0.5</span>,
+    <span class="c-str">"authMode"</span>: <span class="c-str">"AK-SK"</span>
+  },
+  <span class="c-str">"skipped"</span>: [<span class="c-str">"limit.qps"</span>]   <span class="c-cmt">// 该字段已手动锁定</span>
+}
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:16px;">
+                <div class="side-stack-title">安全与治理</div>
+                <div class="side-stack">
+                  <div class="side-stack-item"><span>注册凭证</span><b>bootstrap token，一系统一枚，有效期 90 天，支持吊销与轮换</b></div>
+                  <div class="side-stack-item"><span>准入校验</span><b>appcode 命名规范、服务名唯一性、地域合法性、等级权限校验</b></div>
+                  <div class="side-stack-item"><span>配额保护</span><b>自动接入受项目等级配额上限约束，防止随意占资源</b></div>
+                  <div class="side-stack-item"><span>审计留痕</span><b>自动接入同样进入变更审计，可追溯是谁、哪台机器、何时注册</b></div>
+                  <div class="side-stack-item"><span>手动优先</span><b>控制台已配置的系统，自动注册只做「对齐未锁定字段」</b></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Java 接入 · 三步</div>
+                  <div class="card-subtitle">Spring Boot 项目加依赖 + 填 4 项配置，启动即接入</div>
+                </div>
+                <span class="tag tag-success tag-solid">已支持</span>
+              </div>
+              <div class="card-body">
+                <div style="font-size:13px; font-weight:600; margin-bottom:6px;">1. 引入依赖</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-key">&lt;dependency&gt;</span>
+  <span class="c-key">&lt;groupId&gt;</span>com.zimo.gateway<span class="c-key">&lt;/groupId&gt;</span>
+  <span class="c-key">&lt;artifactId&gt;</span>jv-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
+  <span class="c-key">&lt;version&gt;</span>1.0.0<span class="c-key">&lt;/version&gt;</span>
+<span class="c-key">&lt;/dependency&gt;</span>
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">2. 填写配置</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-key">zimo</span>:
+  <span class="c-key">gateway</span>:
+    <span class="c-key">client</span>:
+      <span class="c-key">server-addr</span>: <span class="c-str">http://127.0.0.1:28080/api</span>   <span class="c-cmt"># 平台统一入口</span>
+      <span class="c-key">app-id</span>: <span class="c-str">app-order</span>
+      <span class="c-key">app-name</span>: <span class="c-str">订单中心</span>
+      <span class="c-key">service-name</span>: <span class="c-str">order-service</span>
+      <span class="c-key">port</span>: <span class="c-num">8000</span>
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">3. 启动应用</div>
+                <div style="font-size:12.5px; line-height:1.75; color:#5a6472;">
+                  启动完成后自动注册，每 30 秒心跳，退出时主动注销；请求经 Servlet Filter 采集，
+                  内存队列批量上报。<b>不需要写任何代码。</b>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">Python 接入 · 三步</div>
+                  <div class="card-subtitle">零第三方依赖（标准库实现），Flask / FastAPI / 脚本均支持</div>
+                </div>
+                <span class="tag tag-success tag-solid">已支持</span>
+              </div>
+              <div class="card-body">
+                <div style="font-size:13px; font-weight:600; margin-bottom:6px;">1. 引入 SDK</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># 无需安装，把 sdk/python 加进 PYTHONPATH 即可</span>
+<span class="c-key">export</span> PYTHONPATH=/path/to/ai-gateway/sdk/python:$PYTHONPATH
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">2. 接入（以 Flask 为例）</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-key">from</span> jv_gateway <span class="c-key">import</span> GatewayClient
+<span class="c-key">from</span> jv_gateway.wsgi <span class="c-key">import</span> WSGITraceMiddleware
+
+client = GatewayClient(
+    server_addr=<span class="c-str">"http://127.0.0.1:28080/api"</span>,
+    app_id=<span class="c-str">"app-order"</span>, app_name=<span class="c-str">"订单中心"</span>,
+    service_name=<span class="c-str">"order-service"</span>, port=<span class="c-num">8000</span>,
+)
+client.start()
+
+<span class="c-cmt"># 关键一行：自动采集请求与响应</span>
+app.wsgi_app = WSGITraceMiddleware(app.wsgi_app, client)
+                </div>
+                <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">3. FastAPI 只需换中间件</div>
+                <div class="code-block" style="font-size:12px;">
+<span class="c-key">from</span> jv_gateway.asgi <span class="c-key">import</span> ASGITraceMiddleware
+app.add_middleware(ASGITraceMiddleware, client=client)
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Java · 引用 jar 包接入（不接私服）</div>
+                <div class="card-subtitle">业务方拿不到源码、或没有 Maven 私服时：把 SDK 打包分发，装进本地仓库后照常声明依赖</div>
+              </div>
+              <span class="tag tag-info tag-solid">离线分发</span>
+            </div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div>
+                  <div style="font-size:13px; font-weight:600; margin-bottom:6px;">1. 生成分发包</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># 网关平台项目根目录执行</span>
+bash scripts/build-sdk-jar.sh
+
+<span class="c-cmt"># 产出 dist/sdk-jar/</span>
+<span class="c-cmt">#   install.sh                        一条命令装好</span>
+<span class="c-cmt">#   lib/api-gateway-1.0.0.pom         parent，解析依赖版本必需</span>
+<span class="c-cmt">#   lib/jv-gateway-client-common.jar  + .pom</span>
+<span class="c-cmt">#   lib/jv-gateway-client-starter.jar + .pom</span>
+                  </div>
+                  <div style="font-size:13px; font-weight:600; margin:14px 0 6px;">2. 业务机器上安装</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># 把 dist/sdk-jar 整个拷过去，然后：</span>
+cd dist/sdk-jar && ./install.sh
+
+<span class="c-cmt"># 等价手工命令（顺序不能反）</span>
+mvn install:install-file -Dfile=api-gateway-1.0.0.pom \
+  -DgroupId=com.zimo.gateway -DartifactId=api-gateway \
+  -Dversion=1.0.0 -Dpackaging=pom
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:13px; font-weight:600; margin-bottom:6px;">3. 声明依赖（与 Maven 方式一致）</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-key">&lt;dependency&gt;</span>
+  <span class="c-key">&lt;groupId&gt;</span>com.zimo.gateway<span class="c-key">&lt;/groupId&gt;</span>
+  <span class="c-key">&lt;artifactId&gt;</span>jv-gateway-client-starter<span class="c-key">&lt;/artifactId&gt;</span>
+  <span class="c-key">&lt;version&gt;</span>1.0.0<span class="c-key">&lt;/version&gt;</span>
+<span class="c-key">&lt;/dependency&gt;</span>
+                  </div>
+                  <div style="margin-top:16px;">
+                    <div style="font-size:13px; font-weight:600; margin-bottom:8px;">三个文件缺一不可</div>
+                    <ul style="margin:0; padding-left:18px; font-size:12.5px; line-height:1.95; color:#5a6472;">
+                      <li><b>parent 必须装</b>：starter 的 pom 继承 <span class="code-inline">com.zimo.gateway:api-gateway:1.0.0</span>，缺它解析不到依赖版本，直接报 Could not find artifact</li>
+                      <li><b>要带 -DpomFile</b>：只给 jar 会生成空 pom，传递依赖 jv-gateway-client-common 丢失，启动报 NoClassDefFoundError</li>
+                      <li><b>安装顺序</b>：parent → client-common → client-starter，install.sh 已按此顺序</li>
+                      <li><b>web 依赖</b>：starter 内 spring-boot-starter-web 为 optional，Web 项目本身自备</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">使用说明 · 接入后常见问题</div>
+                <div class="card-subtitle">接入不生效时，按这几条逐项对，基本都能定位</div>
+              </div>
+              <span class="tag tag-info tag-solid">排障手册</span>
+            </div>
+            <div class="card-body">
+              <div class="side-stack">
+                <div class="side-stack-item"><span>server-addr 填错</span><b>必须指向平台统一入口（如 http://127.0.0.1:28080/api），不是某个微服务端口；SDK 会自行拼接 /discovery、/trace 前缀，填成单服务端口必然一半请求 404</b></div>
+                <div class="side-stack-item"><span>服务发现看不到</span><b>检查 registry.enabled 是否为 true、网络是否可达、service-name 是否被别的实例覆盖</b></div>
+                <div class="side-stack-item"><span>日志追踪没数据</span><b>检查 trace.enabled、sample-rate 是否为 0、路径是否命中 exclude-paths；Python 需确认中间件真的挂到了应用上（Flask 赋给 wsgi_app，FastAPI 用 add_middleware）</b></div>
+                <div class="side-stack-item"><span>上报失败会拖累业务吗</span><b>不会。日志进内存队列立即返回，队列满直接丢弃，上报异常只记日志不重试、不抛出</b></div>
+                <div class="side-stack-item"><span>多实例部署</span><b>以 service-name 为唯一键幂等更新，多实例共享一条服务记录，不会重复创建</b></div>
+                <div class="side-stack-item"><span>只想注册或只想采集</span><b>两个开关独立：registry.enabled 控制注册 + 心跳，trace.enabled 控制采集上报</b></div>
+                <div class="side-stack-item"><span>报文体太大</span><b>调小 max-body-size（默认 8KB 截断）、降低 sample-rate，或把健康检查路径加进 exclude-paths</b></div>
+                <div class="side-stack-item"><span>怎么算接入成功</span><b>「服务发现」出现该服务名，「日志追踪」出现对应调用记录，错误类型按状态码自动归类（如 404 → 路由失败）</b></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('auto');</script>
+</body>
+</html>

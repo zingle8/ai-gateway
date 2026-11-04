@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>鉴权与安全规则 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">⑤ 鉴权与安全规则</div>
+              <div class="page-subtitle">谁可以访问（认证） + 能访问什么（授权） + 内容怎么防护（脱敏 / 过滤 / 黑白名单）</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">规则自检</button>
+              <button class="btn btn-primary">新建鉴权规则</button>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">安全能力边界</div>
+                <div class="card-subtitle">网关做「身份 + 授权 + 内容」三层；网络层攻击交给前置 WAF / 云防火墙，避免重复建设</div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="grid-3">
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;"><span class="tag tag-success tag-solid">网关自建</span></div>
+                  <div class="text-sm muted" style="margin-top:8px; line-height:1.9;">
+                    认证：JWT / AK-SK / OAuth2 / mTLS<br />
+                    授权：API 订阅授权、scope 校验<br />
+                    访问控制：IP 黑白名单、AppCode 黑白名单<br />
+                    内容：敏感数据脱敏、请求体字段过滤、响应裁剪<br />
+                    限流：与限流熔断页同一套规则引擎
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;"><span class="tag tag-warning tag-solid">网关协同</span></div>
+                  <div class="text-sm muted" style="margin-top:8px; line-height:1.9;">
+                    SSL/TLS 卸载：网关终止证书，内网 HTTP 回源<br />
+                    入侵检测：拦截结果透传 X-WAF-Risk 头，网关按风险等级处置<br />
+                    防爬虫：与风控系统联动，网关执行处置动作<br />
+                    审计：请求响应留痕，对接 SIEM
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:13.5px; font-weight:600;"><span class="tag tag-gray tag-solid">不建议网关做</span></div>
+                  <div class="text-sm muted" style="margin-top:8px; line-height:1.9;">
+                    DDoS 清洗、防病毒 / 木马查杀 → 交给云防火墙、安全网关<br />
+                    深度包检测（DPI）→ 交给专业安全设备<br />
+                    大文件病毒扫描 → 交给对象存储的内容安全服务<br />
+                    <b>理由</b>：网关是 Java 响应式链路，做重安全检测会拖垮吞吐与延迟
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">鉴权规则</div>
+                  <div class="card-subtitle">按 appcode 绑定认证方式，未匹配规则默认拒绝</div>
+                </div>
+                <span class="tag tag-primary tag-solid">8 条</span>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>appcode</th><th style="width:130px;">认证方式</th><th style="width:110px;">Token 有效期</th><th style="width:90px;">IP 策略</th><th style="width:90px;">脱敏</th><th style="width:90px;">状态</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">trade-order</td><td><span class="tag tag-primary tag-solid">AK-SK</span> <span class="tag tag-gray">mTLS</span></td><td>不适用（签名）</td><td>白名单</td><td>手机号 / 身份证</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td class="mono">trade-user</td><td><span class="tag tag-info tag-solid">JWT</span></td><td>2 小时</td><td>—</td><td>手机号</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td class="mono">mall-search</td><td><span class="tag tag-info tag-solid">JWT</span></td><td>30 分钟</td><td>—</td><td>—</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td class="mono">mall-pay</td><td><span class="tag tag-primary tag-solid">AK-SK</span> <span class="tag tag-info">JWT</span></td><td>15 分钟</td><td>白名单</td><td>银行卡 / 手机号</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td class="mono">open-partner</td><td><span class="tag tag-purple tag-solid">OAuth2</span></td><td>24 小时</td><td>白名单</td><td>全字段</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td class="mono">erp-legacy</td><td><span class="tag tag-primary tag-solid">AK-SK</span></td><td>不适用</td><td>白名单</td><td>—</td><td><span class="tag tag-warning">灰度</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">黑白名单</div>
+                  <div class="card-subtitle">网关层最后一道访问控制，命中即拦截，不进业务</div>
+                </div>
+                <button class="btn btn-sm btn-secondary">新增</button>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>类型</th><th>对象</th><th style="width:110px;">作用范围</th><th style="width:90px;">命中次数</th><th style="width:90px;">状态</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="tag tag-danger tag-solid">黑名单</span></td><td class="mono">203.0.113.0/24</td><td>全局</td><td>12,486</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td><span class="tag tag-danger tag-solid">黑名单</span></td><td class="mono">appcode: bi-report</td><td>支付域 API</td><td>326</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td><span class="tag tag-success tag-solid">白名单</span></td><td class="mono">10.20.0.0/16</td><td>mall-pay</td><td>—</td><td><span class="tag tag-success">启用</span></td></tr>
+                      <tr><td><span class="tag tag-success tag-solid">白名单</span></td><td class="mono">appcode: erp-sync</td><td>文件域 API</td><td>—</td><td><span class="tag tag-success">启用</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div style="padding:14px 20px;">
+                  <div class="side-stack-title">处置动作（命中后）</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>直接拒绝 403 + 审计留痕</span><b>默认</b></div>
+                    <div class="side-stack-item"><span>限速放行（1 QPS）</span><b>可疑对象</b></div>
+                    <div class="side-stack-item"><span>返回脱敏降级结果</span><b>部分开放对象</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">敏感数据防护</div>
+                  <div class="card-subtitle">响应回写前脱敏，请求入参过滤，密钥不出网关</div>
+                </div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>数据类型</th><th style="width:120px;">识别方式</th><th style="width:150px;">脱敏规则</th><th style="width:90px;">生效范围</th></tr></thead>
+                    <tbody>
+                      <tr><td>手机号</td><td>正则 1[3-9]\d{9}</td><td class="mono">138****8888</td><td>响应 + 日志</td></tr>
+                      <tr><td>身份证</td><td>正则 + 校验位</td><td class="mono">3301**********1234</td><td>响应 + 日志</td></tr>
+                      <tr><td>银行卡</td><td>Luhn 校验</td><td class="mono">**** **** **** 1234</td><td>响应</td></tr>
+                      <tr><td>地址 / 姓名</td><td>字典 + 分词</td><td>部分掩码</td><td>日志</td></tr>
+                      <tr><td>请求体大字段</td><td>长度 &gt; 8KB</td><td>截断 + 摘要</td><td>审计</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">与限流熔断的联动</div>
+                  <div class="card-subtitle">安全规则与流控共用同一套身份（appcode）与资源（路由）</div>
+                </div>
+                <a class="text-sm" style="color:var(--primary);" href="limit-fuse.html">去配置 →</a>
+              </div>
+              <div class="card-body">
+                <div class="kv-grid">
+                  <div class="kv-item"><span class="kv-key">限流维度</span><span class="kv-val">appcode / 路由 / 租户 / IP</span></div>
+                  <div class="kv-item"><span class="kv-key">黑名单加速</span><span class="kv-val">命中后进入极小配额池</span></div>
+                  <div class="kv-item"><span class="kv-key">鉴权失败</span><span class="kv-val">连续 20 次 → 临时封禁 10 分钟</span></div>
+                  <div class="kv-item"><span class="kv-key">熔断触发</span><span class="kv-val">按路由统计，与安全规则解耦</span></div>
+                  <div class="kv-item"><span class="kv-key">降级响应</span><span class="kv-val">脱敏后再返回，不泄露内部字段</span></div>
+                  <div class="kv-item"><span class="kv-key">审计</span><span class="kv-val">所有拦截动作留痕，可回溯</span></div>
+                </div>
+                <div class="code-block" style="margin-top:14px; font-size:12.5px;">
+<span class="c-cmt">// 过滤器顺序：先安全，后流控，再转发</span>
+<span class="c-num">-200</span> TraceIdFilter        <span class="c-cmt">// 生成 TraceId</span>
+<span class="c-num">-100</span> AuthGlobalFilter     <span class="c-cmt">// JWT / AK-SK / OAuth2 认证</span>
+<span class="c-num">-90</span>  TenantFilter         <span class="c-cmt">// 租户与 appcode 解析</span>
+<span class="c-num">-80</span>  BlackWhiteListFilter <span class="c-cmt">// 黑白名单（本页）</span>
+<span class="c-num">-70</span>  RateLimitFilter      <span class="c-cmt">// 限流（限流熔断页）</span>
+<span class="c-num">-60</span>  ResponseCacheFilter  <span class="c-cmt">// 响应缓存</span>
+<span class="c-num">-40</span>  CircuitBreakerFilter <span class="c-cmt">// 熔断降级</span>
+<span class="c-num">20</span>   DesensitizeFilter    <span class="c-cmt">// 敏感数据脱敏（本页）</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('auth');</script>
+</body>
+</html>

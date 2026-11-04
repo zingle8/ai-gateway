@@ -1,0 +1,18 @@
+{
+  "name": "@zimo/module-discovery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "服务治理模块：服务发现 / API 发布 / 路由配置 / 限流熔断（对应后端 jv-gateway-discovery 微服务）",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "peerDependencies": {
+    "@zimo/shared": "^1.0.0",
+    "@zimo/ui": "^1.0.0"
+  }
+}

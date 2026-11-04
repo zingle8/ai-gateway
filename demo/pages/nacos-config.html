@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nacos 配置空间 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">② Nacos 配置空间</div>
+              <div class="page-subtitle">接入时按约定<b>自动生成</b>命名空间与配置项骨架（默认可用）→ 需要定制再覆盖，改哪锁哪</div>
+            </div>
+            <div class="page-actions">
+              <a class="btn btn-secondary" href="auto-onboard.html">自动接入 →</a>
+              <button class="btn btn-secondary">对比差异</button>
+              <a class="btn btn-secondary" href="api-publish.html">下一步：API 定义 →</a>
+              <button class="btn btn-primary">发布配置</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">命名空间</div>
+                <div class="stat-value">14</div>
+                <div class="stat-trend up">▲ 按项目隔离</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l7-4 7 4v14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">配置项（dataId）</div>
+                <div class="stat-value">86</div>
+                <div class="stat-trend up">▲ 本月新增 12</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">监听客户端</div>
+                <div class="stat-value">24</div>
+                <div class="stat-trend up">▲ 网关实例全部在线</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">未同步</div>
+                <div class="stat-value">2</div>
+                <div class="stat-trend down">▼ 灰度批次推送中</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">自动生成空间</div>
+                <div class="stat-value">11 <span style="font-size:14px;color:var(--text-secondary);">/ 14</span></div>
+                <div class="stat-trend up">▲ 接入时零配置创建</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">约定式自动生成（接入即得，无需手配）</div>
+                <div class="card-subtitle">系统接入（手动或自动）时，网关按命名约定创建空间与配置项骨架；值来自项目等级默认模板，直接用就能跑</div>
+              </div>
+              <span class="tag tag-success tag-solid">默认生成 · 可覆盖</span>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:110px;">对象</th>
+                      <th style="width:230px;">生成规则（约定）</th>
+                      <th style="width:230px;">示例（appcode=trade-order, P1, 华东）</th>
+                      <th>说明</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><b>命名空间</b></td>
+                      <td class="mono">gw-{region}-{appcode}</td>
+                      <td class="mono">gw-cn-east-1-trade-order</td>
+                      <td>按「地域 + 应用」隔离；已存在则复用，不重建</td>
+                    </tr>
+                    <tr>
+                      <td><b>Group</b></td>
+                      <td class="mono">GATEWAY_{LEVEL}</td>
+                      <td class="mono">GATEWAY_P1</td>
+                      <td>按等级分组，便于批量下发与权限控制</td>
+                    </tr>
+                    <tr>
+                      <td><b>路由配置</b></td>
+                      <td class="mono">{appcode}-route.yaml</td>
+                      <td class="mono">trade-order-route.yaml</td>
+                      <td>默认路由 <span class="code-inline">/api/order/** → lb://order-service</span></td>
+                    </tr>
+                    <tr>
+                      <td><b>鉴权配置</b></td>
+                      <td class="mono">{appcode}-auth.yaml</td>
+                      <td class="mono">trade-order-auth.yaml</td>
+                      <td>默认 AK-SK（P0 追加 mTLS）</td>
+                    </tr>
+                    <tr>
+                      <td><b>限流配置</b></td>
+                      <td class="mono">{appcode}-limit.yaml</td>
+                      <td class="mono">trade-order-limit.yaml</td>
+                      <td>P1 默认 400 QPS + 突发 600</td>
+                    </tr>
+                    <tr>
+                      <td><b>插件配置</b></td>
+                      <td class="mono">{appcode}-filter.yaml</td>
+                      <td class="mono">trade-order-filter.yaml</td>
+                      <td>默认开启 TraceId / 限流 / 审计，其余按需</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="grid-2e" style="margin-top:18px;">
+                <div>
+                  <div class="side-stack-title">生成时做了什么</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># 接入时自动执行（幂等）</span>
+1. 创建/复用命名空间  gw-cn-east-1-trade-order
+2. 创建 Group        GATEWAY_P1
+3. 写入 4 个 dataId 骨架（值取自 P1 默认模板）
+4. 绑定监听：网关实例长轮询，1 秒内热更新
+5. 记录版本快照 v1，作为回滚基线
+                  </div>
+                  <div style="margin-top:14px;">
+                    <div class="side-stack-title">骨架文件内容（限流示例）</div>
+                    <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># trade-order-limit.yaml（自动生成，默认即可用）</span>
+<span class="c-key">limit</span>:
+  <span class="c-key">qps</span>: <span class="c-num">400</span>            <span class="c-cmt"># P1 默认</span>
+  <span class="c-key">burst</span>: <span class="c-num">600</span>
+  <span class="c-key">strategy</span>: token-bucket
+  <span class="c-key">dimension</span>: [appcode, routeId]
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="side-stack-title">怎么覆盖（两种方式）</div>
+                  <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># A. 应用侧声明（bootstrap.yml）</span>
+<span class="c-key">gateway</span>:
+  <span class="c-key">nacos</span>:
+    <span class="c-key">namespace</span>: <span class="c-str">gw-cn-east-1-trade-order</span>   <span class="c-cmt"># 可改</span>
+    <span class="c-key">group</span>: <span class="c-str">GATEWAY_P1</span>                        <span class="c-cmt"># 可改</span>
+    <span class="c-key">data-id-prefix</span>: <span class="c-str">trade-order</span>               <span class="c-cmt"># 可改</span>
+    <span class="c-cmt"># 不写 → 全部按约定生成（推荐）</span>
+
+<span class="c-cmt"># B. 控制台手动改 → 该 dataId 标记「手动锁定」</span>
+                  </div>
+                  <div style="margin-top:14px;">
+                    <div class="side-stack">
+                      <div class="side-stack-item"><span>命名冲突</span><b>空间已存在则复用，绝不覆盖已有配置</b></div>
+                      <div class="side-stack-item"><span>手动锁定</span><b>控制台改过的 dataId，自动生成跳过</b></div>
+                      <div class="side-stack-item"><span>前缀重复</span><b>dataId 前缀冲突时报错并提示，不静默覆盖</b></div>
+                      <div class="side-stack-item"><span>重新托管</span><b>需控制台点「恢复自动托管」</b></div>
+                      <div class="side-stack-item"><span>删除保护</span><b>自动流程永不删除 dataId，只增不改</b></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">命名空间</div>
+                  <div class="card-subtitle">一个业务系统一个空间，互不干扰；空间内按 Group 区分环境用途</div>
+                </div>
+                <button class="btn btn-sm btn-secondary">新建空间</button>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>命名空间 ID</th><th>名称</th><th style="width:110px;">关联项目</th><th style="width:80px;">配置数</th><th style="width:90px;">状态</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">ns-trade-prod</td><td>交易中心</td><td class="mono">PRJ-10086</td><td>32</td><td><span class="tag tag-success">已同步</span></td></tr>
+                      <tr><td class="mono">ns-mall-prod</td><td>商城</td><td class="mono">PRJ-20001</td><td>24</td><td><span class="tag tag-success">已同步</span></td></tr>
+                      <tr><td class="mono">ns-erp-prod</td><td>ERP 单体</td><td class="mono">PRJ-30001</td><td>9</td><td><span class="tag tag-warning">灰度中</span></td></tr>
+                      <tr><td class="mono">ns-bi-prod</td><td>BI 报表</td><td class="mono">PRJ-30002</td><td>6</td><td><span class="tag tag-gray">已停用</span></td></tr>
+                      <tr><td class="mono">ns-gateway-common</td><td>网关公共配置</td><td class="mono">—</td><td>15</td><td><span class="tag tag-success">已同步</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">配置项清单 · ns-trade-prod</div>
+                  <div class="card-subtitle">dataId 命名规范：{类型}-{业务}-{环境}.yaml</div>
+                </div>
+                <span class="tag tag-info">GATEWAY_GROUP</span>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>dataId</th><th style="width:90px;">类型</th><th style="width:80px;">版本</th><th style="width:110px;">更新时间</th><th style="width:90px;">状态</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">route-order.yaml</td><td><span class="tag tag-primary tag-solid">路由</span></td><td class="mono">v17</td><td>10-30 14:26</td><td><span class="tag tag-success">已生效</span></td></tr>
+                      <tr><td class="mono">route-user.yaml</td><td><span class="tag tag-primary tag-solid">路由</span></td><td class="mono">v9</td><td>10-29 18:02</td><td><span class="tag tag-success">已生效</span></td></tr>
+                      <tr><td class="mono">limit-order.yaml</td><td><span class="tag tag-warning tag-solid">限流</span></td><td class="mono">v6</td><td>10-30 11:40</td><td><span class="tag tag-success">已生效</span></td></tr>
+                      <tr><td class="mono">auth-trade.yaml</td><td><span class="tag tag-danger tag-solid">鉴权</span></td><td class="mono">v4</td><td>10-28 09:15</td><td><span class="tag tag-success">已生效</span></td></tr>
+                      <tr><td class="mono">filter-chain.yaml</td><td><span class="tag tag-purple tag-solid">插件</span></td><td class="mono">v12</td><td>10-27 20:33</td><td><span class="tag tag-success">已生效</span></td></tr>
+                      <tr><td class="mono">degrade-file.yaml</td><td><span class="tag tag-gray tag-solid">降级</span></td><td class="mono">v3</td><td>10-30 15:31</td><td><span class="tag tag-warning">灰度中</span></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">配置内容 · route-order.yaml</div>
+                  <div class="card-subtitle">修改后网关 1 秒内收到长轮询推送并热更新，无需重启</div>
+                </div>
+                <span class="tag tag-primary tag-solid">v17</span>
+              </div>
+              <div class="card-body">
+                <div class="code-block" style="font-size:12.5px;">
+<span class="c-cmt"># namespace: ns-trade-prod · group: GATEWAY_GROUP · dataId: route-order.yaml</span>
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: <span class="c-str">order-api</span>
+          uri: <span class="c-str">lb://order-service</span>
+          predicates:
+            - <span class="c-str">Path=/api/order/**</span>
+            - <span class="c-str">Method=GET,POST</span>
+          filters:
+            - <span class="c-str">StripPrefix=1</span>
+            - name: <span class="c-str">RequestRateLimiter</span>
+              args:
+                key-resolver: <span class="c-str">#{@appCodeResolver}</span>
+                redis-rate-limiter.replenishRate: <span class="c-num">200</span>
+                redis-rate-limiter.burstCapacity: <span class="c-num">400</span>
+          metadata:
+            protocol: <span class="c-str">http</span>            <span class="c-cmt"># http / grpc / websocket</span>
+            load-balancer: <span class="c-str">weighted</span>   <span class="c-cmt"># 轮询 / 权重 / 最小连接 / 一致性Hash</span>
+            ssl-offload: <span class="c-str">true</span>
+            appcode: <span class="c-str">trade-order</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">配置变更流程</div>
+                <div class="card-subtitle">编辑 → 校验 → 灰度批次 → 全量，任一环节异常自动回滚</div>
+              </div>
+              <div class="card-body">
+                <div class="pipeline" style="flex-direction:column; gap:10px;">
+                  <div class="pipe-step">
+                    <div class="pipe-name">① 编辑配置</div>
+                    <div class="pipe-tech">控制台表单或 YAML 双模式</div>
+                    <div class="pipe-metric">自动语法校验 + 影响面分析</div>
+                  </div>
+                  <div class="pipe-step">
+                    <div class="pipe-name">② 灰度批次</div>
+                    <div class="pipe-tech">2 台 → 6 台 → 全量 24 台</div>
+                    <div class="pipe-metric">每批观察 3 分钟错误率 / RT</div>
+                  </div>
+                  <div class="pipe-step">
+                    <div class="pipe-name">③ 全量发布</div>
+                    <div class="pipe-tech">Nacos 长轮询推送，秒级生效</div>
+                    <div class="pipe-metric">自动打版本快照</div>
+                  </div>
+                  <div class="pipe-step">
+                    <div class="pipe-name">④ 一键回滚</div>
+                    <div class="pipe-tech">选择历史版本 v16 回滚</div>
+                    <div class="pipe-metric">30 秒内恢复</div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;">
+                  <div class="side-stack-title">与实例的联动</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>配置推送成功率</span><b>100%（24/24）</b></div>
+                    <div class="side-stack-item"><span>实例配置版本号一致性</span><b>22 台 v17 / 2 台 v16</b></div>
+                    <div class="side-stack-item"><span>服务注册发现</span><b>Nacos 统一承载</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('nacos');</script>
+</body>
+</html>

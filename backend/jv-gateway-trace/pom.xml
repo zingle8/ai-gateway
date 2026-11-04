@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.zimo.gateway</groupId>
+    <artifactId>api-gateway</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>jv-gateway-trace</artifactId>
+  <name>jv-gateway-trace</name>
+  <description>日志追踪模块：调用日志列表、日志详情（含 Header / 报文体）</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-gateway-common</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-gateway-client-common</artifactId>
+    </dependency>
+    <!-- 接入自身平台的 SDK：注册实例 + 心跳（埋点由网关代理完成，这里关闭避免重复采集） -->
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-gateway-client-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>jv-gateway-trace</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

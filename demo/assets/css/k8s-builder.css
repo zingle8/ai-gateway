@@ -1,0 +1,120 @@
+/* ============================================================
+   API网关平台 Demo · K8s 可视化配置模块样式
+   ============================================================ */
+
+.k8s-layout {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(480px, 1.05fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 1280px) { .k8s-layout { grid-template-columns: 1fr; } }
+
+/* ---------- 模板库 ---------- */
+.tpl-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .tpl-grid { grid-template-columns: repeat(2, 1fr); } }
+.tpl-card {
+  border: 1px solid var(--border-light); border-radius: var(--radius); padding: 12px 14px;
+  background: #fff; cursor: pointer; transition: all .15s; text-align: left;
+}
+.tpl-card:hover { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft-2); }
+.tpl-card.active { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft-2); }
+.tpl-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tpl-name { font-size: 13.5px; font-weight: 600; }
+.tpl-sub { font-size: 12px; color: var(--text-tertiary); margin-top: 6px; line-height: 1.6; }
+
+/* ---------- 表单区 ---------- */
+.fsec { border: 1px solid var(--border-light); border-radius: var(--radius); margin-bottom: 12px; background: #fff; }
+.fsec > summary {
+  padding: 12px 16px; font-size: 13.5px; font-weight: 600; cursor: pointer;
+  display: flex; align-items: center; gap: 8px; list-style: none;
+}
+.fsec > summary::-webkit-details-marker { display: none; }
+.fsec > summary::after {
+  content: ""; width: 6px; height: 6px; border-right: 1.5px solid var(--text-tertiary);
+  border-bottom: 1.5px solid var(--text-tertiary); transform: rotate(-45deg); margin-left: auto; transition: transform .18s;
+}
+.fsec[open] > summary::after { transform: rotate(45deg); }
+.fsec-body { padding: 4px 16px 16px; border-top: 1px solid var(--border-light); padding-top: 16px; }
+.fsec-body .form-row:last-child { margin-bottom: 0; }
+
+.hint-tip {
+  display: inline-flex; align-items: center; margin-left: 6px; cursor: help; color: var(--text-quaternary);
+}
+.hint-tip svg { width: 13px; height: 13px; }
+
+.dyn-row { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 8px; margin-bottom: 8px; }
+.dyn-row .form-input { height: 34px; }
+.icon-btn {
+  width: 34px; height: 34px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-tertiary); font-size: 16px; line-height: 1; background: #fff;
+}
+.icon-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.res-toggle {
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px; border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm); font-size: 13px;
+}
+.res-toggle .rt-kind { font-weight: 600; }
+.res-toggle .rt-desc { font-size: 11.5px; color: var(--text-tertiary); margin-left: 4px; }
+.res-toggle .switch { margin-left: auto; }
+
+/* ---------- YAML 面板 ---------- */
+.yaml-pane { position: sticky; top: 64px; }
+.yaml-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 12px; border-bottom: 1px solid var(--border-light);
+}
+.yaml-tab {
+  font-size: 12.5px; padding: 6px 10px; border-radius: 6px; color: var(--text-secondary);
+  cursor: pointer; transition: all .15s; border: 1px solid var(--border-light);
+}
+.yaml-tab:hover { color: var(--text-primary); background: var(--bg-soft); }
+.yaml-tab.active { background: var(--text-primary); color: #fff; border-color: var(--text-primary); }
+.yaml-body {
+  background: #0F1115; max-height: 620px; overflow: auto; padding: 14px 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.8;
+}
+.yaml-body table { width: 100%; border-collapse: collapse; }
+.yaml-body td { padding: 0; border: 0; background: transparent; }
+.yaml-body tbody tr:hover { background: transparent; }
+.yl-num {
+  width: 40px; text-align: right; padding-right: 12px !important; color: #4A5060;
+  user-select: none; vertical-align: top;
+}
+.yl-code { color: #D6DEEB; white-space: pre-wrap; word-break: break-all; }
+.yaml-foot {
+  display: flex; align-items: center; gap: 8px; padding: 12px; border-top: 1px solid var(--border-light);
+  flex-wrap: wrap;
+}
+.yaml-foot .spacer { flex: 1; }
+
+/* ---------- 校验清单 ---------- */
+.check-item { display: flex; gap: 10px; align-items: flex-start; padding: 9px 0; border-bottom: 1px dashed var(--border-light); font-size: 13px; }
+.check-item:last-child { border-bottom: 0; }
+.check-mark {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; color: #fff; margin-top: 1px;
+}
+.check-mark.ok { background: var(--success); }
+.check-mark.bad { background: var(--danger); }
+.check-desc { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
+
+/* ---------- 终端输出 ---------- */
+.term {
+  background: #0F1115; border-radius: var(--radius); padding: 14px 16px; max-height: 260px; overflow: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12.5px; line-height: 1.9;
+  color: #D6DEEB;
+}
+.term .t-cmd { color: #fff; }
+.term .t-cmd::before { content: "$ "; color: #7B9CFF; }
+.term .t-ok { color: #8AD48A; }
+.term .t-info { color: #6B7280; }
+.term .t-warn { color: #F2B36B; }
+.term .t-err { color: #FF7B84; }
+
+/* ---------- 名词解释 ---------- */
+.gloss-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+@media (max-width: 1100px) { .gloss-grid { grid-template-columns: repeat(2, 1fr); } }
+.gloss-item { border: 1px solid var(--border-light); border-radius: var(--radius); padding: 12px 14px; }
+.gloss-term { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.gloss-text { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; line-height: 1.7; }

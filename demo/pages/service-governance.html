@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>服务发现 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+  <style>
+    /* 单页紧凑排版：让 10 条记录在一屏内铺满且不产生纵向滚动 */
+    .content { padding: 14px 18px 16px; }
+    .page-header { margin-bottom: 10px; }
+    .page-title { font-size: 19px; }
+    .stat-grid.compact { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
+    @media (max-width: 1400px) {
+      .stat-grid.compact { gap: 6px; }
+      .stat-grid.compact .stat-card { padding: 8px 10px; }
+      .stat-grid.compact .stat-label { font-size: 11px; margin-bottom: 3px; }
+      .stat-grid.compact .stat-value { font-size: 15.5px; }
+      .stat-grid.compact .stat-trend { font-size: 10.5px; }
+      .stat-grid.compact .stat-icon { width: 22px; height: 22px; }
+    }
+    .stat-grid.compact .stat-card { padding: 10px 14px; }
+    .stat-grid.compact .stat-label { font-size: 11.5px; margin-bottom: 4px; }
+    .stat-grid.compact .stat-value { font-size: 19px; }
+    .stat-grid.compact .stat-trend { font-size: 11px; margin-top: 4px; }
+    .stat-grid.compact .stat-icon { width: 26px; height: 26px; }
+    .card-header { padding: 10px 16px; }
+    .card-body.no-pad th { padding: 7px 12px; font-size: 12px; }
+    .card-body.no-pad td { padding: 6px 12px; font-size: 13px; line-height: 1.5; }
+    .card-body.no-pad td .text-sm { font-size: 11.5px; line-height: 1.35; }
+    .card-footer { padding: 8px 16px; }
+    /* 分页条固定在页面底部：卡片撑满剩余高度，表格区吸收空白 */
+    .content { display: flex; flex-direction: column; min-height: 0; }
+    .content > .card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card > .card-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card > .card-body > .table-wrap { flex: 1; min-height: 0; overflow: auto; }
+    .content > .card > .card-body > .card-footer { margin-top: auto; }
+    /* 操作列：蓝色加粗 */
+    .op-link { color: #2563EB; font-weight: 600; text-decoration: none; }
+    .op-link:hover { color: #1D4ED8; text-decoration: underline; }
+    .card-body.no-pad table { width: 100%; table-layout: fixed; }
+    .card-body.no-pad table td, .card-body.no-pad table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">服务发现</div>
+            </div>
+          </div>
+
+          <div class="stat-grid compact">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">注册服务数</div>
+                <div class="stat-value">18</div>
+                <div class="stat-trend up">▲ 本月新增 2</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">注册应用数</div>
+                <div class="stat-value">12</div>
+                <div class="stat-trend up">▲ 本月新增 1</div>
+              </div>
+              <div class="stat-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">健康实例</div>
+                <div class="stat-value">124 / 128</div>
+                <div class="stat-trend down">▼ 4 个亚健康</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">服务发现延迟</div>
+                <div class="stat-value">12ms</div>
+                <div class="stat-trend up">▲ 本地缓存优先</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">心跳间隔 / 超时</div>
+                <div class="stat-value">5s / 15s</div>
+                <div class="stat-trend">Nacos AP 模式（Distro）</div>
+              </div>
+              <div class="stat-icon warning"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">服务列表</div>
+              </div>
+              <div class="filter-bar">
+                <input class="form-input" style="width:200px;" placeholder="搜索应用ID / 应用名 / 服务名" />
+                <select class="form-select" style="width:140px;" data-filter="app">
+                  <option value="">全部应用</option>
+                  <option value="app-order">app-order · 订单中心</option>
+                  <option value="app-user">app-user · 用户中心</option>
+                  <option value="app-search">app-search · 搜索服务</option>
+                  <option value="app-file">app-file · 文件服务</option>
+                  <option value="app-pay">app-pay · 支付中心</option>
+                  <option value="app-auth">app-auth · 统一认证</option>
+                  <option value="app-msg">app-msg · 消息通知</option>
+                </select>
+                <select class="form-select" style="width:150px;" data-filter="service">
+                  <option value="">全部服务</option>
+                  <option value="order-service">order-service</option>
+                  <option value="user-service">user-service</option>
+                  <option value="search-service">search-service</option>
+                  <option value="file-service">file-service</option>
+                  <option value="pay-service">pay-service</option>
+                  <option value="auth-service">auth-service</option>
+                  <option value="msg-service">msg-service</option>
+                </select>
+                <select class="form-select" style="width:110px;" data-filter="lang">
+                  <option value="">全部语言</option>
+                  <option value="Java 17">Java 17</option>
+                  <option value="Go 1.22">Go 1.22</option>
+                  <option value="Node.js 20">Node.js 20</option>
+                </select>
+                <select class="form-select" style="width:110px;" data-filter="status">
+                  <option value="">全部状态</option>
+                  <option value="健康">健康</option>
+                  <option value="亚健康">亚健康</option>
+                  <option value="下线中">下线中</option>
+                </select>
+                <select class="form-select" style="width:130px;" data-filter="sort">
+                  <option value="name">按服务名排序</option>
+                  <option value="qps">按 QPS 排序</option>
+                  <option value="rt">按平均 RT 排序</option>
+                  <option value="flow">按出网流量排序</option>
+                </select>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:10.5%;">应用ID</th>
+                      <th style="width:9.5%;">应用名</th>
+                      <th style="width:10.5%;">服务名</th>
+                      <th style="width:6.5%;">端口</th>
+                      <th style="width:8.5%;">语言类型</th>
+                      <th style="width:8.5%;">版本号</th>
+                      <th style="width:7%;">QPS</th>
+                      <th style="width:7.5%;">平均 RT</th>
+                      <th style="width:8.5%;">健康状态</th>
+                      <th style="width:12.5%;">入站 / 出网流量</th>
+                      <th style="width:10.5%;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr data-port="8080" data-instances="12" data-regtime="2024-03-18 10:24:06">
+                      <td class="mono">app-order</td>
+                      <td>订单中心</td>
+                      <td class="mono"><b>order-service</b></td>
+                      <td class="mono">8080</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v2.4.0</span></td>
+                      <td>4,820</td>
+                      <td>168ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">3.8 GB / 26.4 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-order">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8081" data-instances="8" data-regtime="2024-05-02 14:11:38">
+                      <td class="mono">app-user</td>
+                      <td>用户中心</td>
+                      <td class="mono"><b>user-service</b></td>
+                      <td class="mono">8081</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v1.9.2</span></td>
+                      <td>1,204</td>
+                      <td>324ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">1.2 GB / 8.6 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-user">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8082" data-instances="16" data-regtime="2024-01-09 09:37:52">
+                      <td class="mono">app-search</td>
+                      <td>搜索服务</td>
+                      <td class="mono"><b>search-service</b></td>
+                      <td class="mono">8082</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v3.1.0</span></td>
+                      <td>1,946</td>
+                      <td>212ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">4.1 GB / 28.7 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-search">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8083" data-instances="6" data-regtime="2024-06-21 16:05:19">
+                      <td class="mono">app-file</td>
+                      <td>文件服务</td>
+                      <td class="mono"><b>file-service</b></td>
+                      <td class="mono">8083</td>
+                      <td><span class="tag tag-gray">Go 1.22</span></td>
+                      <td><span class="tag tag-primary tag-solid">v1.4.6</span></td>
+                      <td>742</td>
+                      <td><span style="color:var(--danger);">2,860ms</span></td>
+                      <td><span class="status-dot danger"></span> 亚健康</td>
+                      <td class="mono">2.4 GB / 9.8 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-file">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8084" data-instances="10" data-regtime="2024-02-14 11:48:03">
+                      <td class="mono">app-pay</td>
+                      <td>支付中心</td>
+                      <td class="mono"><b>pay-service</b></td>
+                      <td class="mono">8084</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v0.8.1</span></td>
+                      <td>968</td>
+                      <td>146ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">0.9 GB / 12.1 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-pay">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8443" data-instances="8" data-regtime="2023-11-27 08:52:44">
+                      <td class="mono">app-auth</td>
+                      <td>统一认证</td>
+                      <td class="mono"><b>auth-service</b></td>
+                      <td class="mono">8443</td>
+                      <td><span class="tag tag-gray">Go 1.22</span></td>
+                      <td><span class="tag tag-primary tag-solid">v2.0.3</span></td>
+                      <td>3,412</td>
+                      <td>28ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">1.1 GB / 4.2 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-auth">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8085" data-instances="6" data-regtime="2024-07-08 13:26:57">
+                      <td class="mono">app-msg</td>
+                      <td>消息通知</td>
+                      <td class="mono"><b>msg-service</b></td>
+                      <td class="mono">8085</td>
+                      <td><span class="tag tag-gray">Node.js 20</span></td>
+                      <td><span class="tag tag-primary tag-solid">v1.7.0</span></td>
+                      <td>2,180</td>
+                      <td>42ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">0.8 GB / 3.6 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-msg">请求日志</a></td>
+                    </tr>
+                    <tr data-port="9000" data-instances="10" data-regtime="2024-04-26 15:39:12">
+                      <td class="mono">app-open</td>
+                      <td>开放平台</td>
+                      <td class="mono"><b>open-service</b></td>
+                      <td class="mono">9000</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v2.1.0</span></td>
+                      <td>1,880</td>
+                      <td>76ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">2.2 GB / 14.6 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-open">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8086" data-instances="8" data-regtime="2024-08-03 10:07:41">
+                      <td class="mono">app-inventory</td>
+                      <td>库存中心</td>
+                      <td class="mono"><b>inventory-service</b></td>
+                      <td class="mono">8086</td>
+                      <td><span class="tag tag-gray">Go 1.22</span></td>
+                      <td><span class="tag tag-primary tag-solid">v2.6.1</span></td>
+                      <td>2,760</td>
+                      <td>34ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">1.4 GB / 11.8 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-inventory">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8087" data-instances="4" data-regtime="2024-09-15 17:22:08">
+                      <td class="mono">app-coupon</td>
+                      <td>优惠券中心</td>
+                      <td class="mono"><b>coupon-service</b></td>
+                      <td class="mono">8087</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v1.2.0</span></td>
+                      <td>1,320</td>
+                      <td>88ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">0.6 GB / 5.4 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-coupon">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8088" data-instances="6" data-regtime="2024-05-30 12:14:35">
+                      <td class="mono">app-settle</td>
+                      <td>结算中心</td>
+                      <td class="mono"><b>settle-service</b></td>
+                      <td class="mono">8088</td>
+                      <td><span class="tag tag-gray">Java 17</span></td>
+                      <td><span class="tag tag-primary tag-solid">v3.0.2</span></td>
+                      <td>610</td>
+                      <td>412ms</td>
+                      <td><span class="status-dot success"></span> 健康</td>
+                      <td class="mono">0.7 GB / 6.9 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-settle">请求日志</a></td>
+                    </tr>
+                    <tr data-port="8089" data-instances="4" data-regtime="2024-10-11 09:58:26">
+                      <td class="mono">app-report</td>
+                      <td>报表中心</td>
+                      <td class="mono"><b>report-service</b></td>
+                      <td class="mono">8089</td>
+                      <td><span class="tag tag-gray">Node.js 20</span></td>
+                      <td><span class="tag tag-primary tag-solid">v0.9.4</span></td>
+                      <td>420</td>
+                      <td><span style="color:var(--danger);">1,180ms</span></td>
+                      <td><span class="status-dot danger"></span> 亚健康</td>
+                      <td class="mono">0.5 GB / 3.2 GB</td>
+                      <td><a class="op-link" href="trace-log.html?appcode=app-report">请求日志</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-footer">
+                <div class="text-sm muted" id="svcPagerInfo"></div>
+                <div class="pagination" id="svcPager"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('service');</script>
+  <script>initCellTips();</script>
+  <script>
+    /* 服务列表：搜索 + 应用 / 服务 / 语言 / 状态 过滤 + 排序 */
+    (function () {
+      const table = document.querySelector('.card-body.no-pad table');
+      if (!table) return;
+      const tbody = table.querySelector('tbody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      const input = document.querySelector('.filter-bar .form-input');
+      const sel = (k) => document.querySelector(`[data-filter="${k}"]`);
+
+      /* 列序：0 应用ID / 1 应用名 / 2 服务名 / 3 端口 / 4 语言 / 5 版本 / 6 QPS / 7 RT / 8 状态 / 9 流量 / 10 操作 */
+      const data = rows.map((tr) => {
+        const td = tr.querySelectorAll('td');
+        const txt = (i) => (td[i] ? td[i].textContent.trim() : '');
+        const b = td[2] ? td[2].querySelector('b') : null;
+        return {
+          tr,
+          app: txt(0),
+          appName: txt(1),
+          service: b ? b.textContent.trim() : txt(2),
+          port: txt(3),
+          lang: txt(4),
+          status: txt(8),
+          qps: parseFloat(txt(6).replace(/[^\d.]/g, '')) || 0,
+          rt: parseFloat(txt(7).replace(/[^\d.]/g, '')) || 0,
+          flow: parseFloat(txt(9).split('/').pop().replace(/[^\d.]/g, '')) || 0,
+          hay: (txt(0) + ' ' + txt(1) + ' ' + txt(2)).toLowerCase()
+        };
+      });
+
+      const PAGE_SIZE = 10;
+      let page = 1;
+
+      function renderPager(total, pages) {
+        const info = document.getElementById('svcPagerInfo');
+        const pager = document.getElementById('svcPager');
+        if (!info || !pager) return;
+        info.textContent = `共 ${total} 条 · 每页 ${PAGE_SIZE} 条 · 第 ${page} / ${pages} 页`;
+        let html = `<button class="page-btn" data-go="prev">上一页</button>`;
+        for (let i = 1; i <= pages; i += 1) {
+          html += `<button class="page-btn${i === page ? ' active' : ''}" data-go="${i}">${i}</button>`;
+        }
+        html += `<button class="page-btn" data-go="next">下一页</button>`;
+        pager.innerHTML = html;
+        pager.querySelectorAll('.page-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const go = btn.getAttribute('data-go');
+            if (go === 'prev') page = Math.max(1, page - 1);
+            else if (go === 'next') page = Math.min(pages, page + 1);
+            else page = Number(go);
+            render();
+          });
+        });
+      }
+
+      function render(resetPage) {
+        if (resetPage) page = 1;
+        const kw = (input && input.value.trim().toLowerCase()) || '';
+        const fApp = sel('app') ? sel('app').value : '';
+        const fSvc = sel('service') ? sel('service').value : '';
+        const fLang = sel('lang') ? sel('lang').value : '';
+        const fSt = sel('status') ? sel('status').value : '';
+        const sort = sel('sort') ? sel('sort').value : 'name';
+
+        const shown = data.filter((d) => {
+          if (kw && d.hay.indexOf(kw) === -1) return false;
+          if (fApp && d.app !== fApp) return false;
+          if (fSvc && d.service !== fSvc) return false;
+          if (fLang && d.lang !== fLang) return false;
+          if (fSt && d.status !== fSt) return false;
+          return true;
+        });
+
+        const cmp = {
+          name: (a, b) => a.service.localeCompare(b.service),
+          qps: (a, b) => b.qps - a.qps,
+          rt: (a, b) => b.rt - a.rt,
+          flow: (a, b) => b.flow - a.flow
+        }[sort] || (() => 0);
+        shown.sort(cmp);
+
+        const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+        if (page > pages) page = pages;
+        const slice = shown.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+        data.forEach((d) => { d.tr.style.display = 'none'; });
+        slice.forEach((d) => {
+          d.tr.style.display = '';
+          tbody.appendChild(d.tr);
+        });
+        renderPager(shown.length, pages);
+        if (window.fitTableRows) fitTableRows();
+      }
+
+      [input, sel('app'), sel('service'), sel('lang'), sel('status'), sel('sort')].forEach((el) => {
+        if (!el) return;
+        el.addEventListener('input', () => render(true));
+        el.addEventListener('change', () => {
+          if (el.getAttribute('data-filter') === 'sort') render();
+          else render(true);
+        });
+      });
+      /* 点击行：右侧抽屉展示该服务的完整详情（含端口） */
+      function svcDetailHtml(d) {
+        const td = d.tr.querySelectorAll('td');
+        const txt = (i) => (td[i] ? td[i].textContent.trim() : '');
+        const fields = [
+          ['应用ID', d.app], ['应用名', d.appName],
+          ['服务名', d.service], ['端口', d.tr.dataset.port],
+          ['语言类型', txt(4)], ['版本号', txt(5)],
+          ['QPS', txt(6)], ['平均 RT', txt(7)],
+          ['健康状态', txt(8)], ['入站 / 出网流量', txt(9)],
+          ['实例数', d.tr.dataset.instances], ['注册时间', d.tr.dataset.regtime]
+        ];
+        const kv = fields.map((f) =>
+          '<div class="kv-item"><span class="text-sm muted">' + f[0] + '</span><b>' + f[1] + '</b></div>'
+        ).join('');
+        return '<div class="drawer-sec">'
+            + '<div class="drawer-sec-title">基本信息</div>'
+            + '<div class="kv-grid">' + kv + '</div>'
+          + '</div>';
+      }
+
+      data.forEach((d) => {
+        d.tr.style.cursor = 'pointer';
+        d.tr.addEventListener('click', (e) => {
+          if (e.target.closest('a')) return;    /* 操作链接单独处理 */
+          openDrawer('服务详情 · ' + d.service, svcDetailHtml(d));
+        });
+      });
+
+      render(true);
+      setTimeout(function () { if (window.fitTableRows) fitTableRows(); }, 60);
+    })();
+  </script>
+</body>
+</html>

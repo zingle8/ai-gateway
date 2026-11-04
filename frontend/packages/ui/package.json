@@ -1,0 +1,20 @@
+{
+  "name": "@zimo/ui",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "网关平台前端 UI 外壳：布局框架、侧边菜单、顶部栏、占位页",
+  "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "element-plus": "^2.8.8",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "peerDependencies": {
+    "@zimo/shared": "^1.0.0"
+  }
+}

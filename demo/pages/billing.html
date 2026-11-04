@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>计费与账单 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">计费与账单</div>
+              <div class="page-subtitle">以网关出入流量与调用次数为依据：按租户 / 应用出账，支持套餐包与阶梯计价</div>
+            </div>
+            <div class="page-actions">
+              <a class="btn btn-secondary" href="traffic-quota.html">流量与配额 →</a>
+              <button class="btn btn-secondary">导出账单</button>
+              <button class="btn btn-primary">购买套餐包</button>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">本月预估费用</div>
+                <div class="stat-value">¥ 86,420</div>
+                <div class="stat-trend up">▲ 12.6% 环比</div>
+              </div>
+              <div class="stat-icon primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">本月计费出网流量</div>
+                <div class="stat-value">372.6 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend up">▲ 占总费用 71%</div>
+              </div>
+              <div class="stat-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22V8"/><polyline points="6 14 12 8 18 14"/><path d="M4 3h16"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">本月计费调用次数</div>
+                <div class="stat-value">2.42 <span style="font-size:14px;color:var(--text-secondary);">亿次</span></div>
+                <div class="stat-trend up">▲ 占总费用 22%</div>
+              </div>
+              <div class="stat-icon info"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            </div>
+            <div class="stat-card">
+              <div>
+                <div class="stat-label">套餐包剩余</div>
+                <div class="stat-value">127.4 <span style="font-size:14px;color:var(--text-secondary);">TB</span></div>
+                <div class="stat-trend down">▼ 有效期至 2026-12-31</div>
+              </div>
+              <div class="stat-icon success"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+            </div>
+          </div>
+
+          <div class="grid-2 mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">计费模型</div>
+                  <div class="card-subtitle">三条计费线，各自独立累加；套餐包优先抵扣</div>
+                </div>
+                <span class="tag tag-primary tag-solid">按量 + 套餐包</span>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th style="width:130px;">计费项</th><th style="width:130px;">单价</th><th>阶梯 / 说明</th><th style="width:100px;">本月费用</th></tr></thead>
+                    <tbody>
+                      <tr><td><b>出网流量</b></td><td>¥ 0.20 / GB</td><td>0–50 TB 原价；50–200 TB 九折；&gt; 200 TB 八折</td><td>¥ 61,320</td></tr>
+                      <tr><td><b>调用次数</b></td><td>¥ 0.03 / 万次</td><td>被拒绝请求（429 / 403）不计费</td><td>¥ 18,960</td></tr>
+                      <tr><td><b>WebSocket</b></td><td>¥ 0.05 / 万条消息</td><td>长连接按消息数计，连接时长不单独计费</td><td>¥ 4,140</td></tr>
+                      <tr><td><b>入站流量</b></td><td>免费</td><td>客户端 → 网关不计费</td><td>¥ 0</td></tr>
+                      <tr><td><b>回源流量</b></td><td>免费</td><td>内网流量不计费</td><td>¥ 0</td></tr>
+                      <tr><td><b>套餐包抵扣</b></td><td>— </td><td>500 TB 年包，优先抵扣出网流量</td><td style="color:var(--success);">- ¥ 12,000</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">费用构成与趋势</div>
+                  <div class="card-subtitle">出网流量是主要成本，优化重点在响应体</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="bar-row mb-8"><span style="width:110px;">出网流量</span><div class="bar-track"><div class="bar-fill" style="width:71%;background:var(--primary);"></div></div><b>¥ 61,320</b></div>
+                <div class="bar-row mb-8"><span style="width:110px;">调用次数</span><div class="bar-track"><div class="bar-fill" style="width:22%;background:var(--cyan);"></div></div><b>¥ 18,960</b></div>
+                <div class="bar-row mb-16"><span style="width:110px;">WebSocket</span><div class="bar-track"><div class="bar-fill" style="width:7%;background:var(--purple);"></div></div><b>¥ 4,140</b></div>
+                <div class="side-stack-title">近 6 个月费用</div>
+                <div class="side-stack">
+                  <div class="side-stack-item"><span>2026-05</span><b>¥ 62,180</b></div>
+                  <div class="side-stack-item"><span>2026-06</span><b>¥ 68,940</b></div>
+                  <div class="side-stack-item"><span>2026-07</span><b>¥ 71,260</b></div>
+                  <div class="side-stack-item"><span>2026-08</span><b>¥ 74,510</b></div>
+                  <div class="side-stack-item"><span>2026-09</span><b>¥ 76,730</b></div>
+                  <div class="side-stack-item"><span>2026-10（本月预估）</span><b>¥ 86,420</b></div>
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="side-stack-title">出账方式</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>出账维度</span><b>租户 → 应用（appcode）</b></div>
+                    <div class="side-stack-item"><span>出账周期</span><b>自然月，次月 3 日出账</b></div>
+                    <div class="side-stack-item"><span>对账差异</span><b>&lt; 0.1%（每日 02:00 核对）</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">消耗方排行（本月）</div>
+                <div class="card-subtitle">按费用排序，点击可下钻到路由级明细</div>
+              </div>
+              <a class="text-sm" style="color:var(--primary);" href="data-query.html">查明细 →</a>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>租户 / 应用</th>
+                      <th style="width:110px;">业务域</th>
+                      <th style="width:110px;">调用次数</th>
+                      <th style="width:110px;">出网流量</th>
+                      <th style="width:110px;">WS 消息</th>
+                      <th style="width:110px;">费用</th>
+                      <th style="width:150px;">占比</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr><td class="mono">tenant-10086 / trade-order</td><td>订单域</td><td>8,642 万</td><td>128.4 TB</td><td>—</td><td>¥ 28,640</td><td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:33%;background:var(--primary);"></div></div><b>33.1%</b></div></td></tr>
+                    <tr><td class="mono">tenant-20001 / mall-search</td><td>搜索域</td><td>5,126 万</td><td>96.2 TB</td><td>1,240 万</td><td>¥ 21,380</td><td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:25%;background:var(--cyan);"></div></div><b>24.7%</b></div></td></tr>
+                    <tr><td class="mono">tenant-10086 / trade-user</td><td>用户域</td><td>4,318 万</td><td>62.8 TB</td><td>—</td><td>¥ 14,120</td><td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:16%;background:var(--success);"></div></div><b>16.3%</b></div></td></tr>
+                    <tr><td class="mono">tenant-20001 / mall-pay</td><td>支付域</td><td>2,042 万</td><td>48.6 TB</td><td>—</td><td>¥ 11,260</td><td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:13%;background:var(--warning);"></div></div><b>13.0%</b></div></td></tr>
+                    <tr><td class="mono">tenant-30001 / erp-legacy</td><td>文件域</td><td>1,286 万</td><td>36.6 TB</td><td>—</td><td>¥ 8,420</td><td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:10%;background:var(--text-tertiary);"></div></div><b>9.7%</b></div></td></tr>
+                    <tr><td class="mono">— / open-partner</td><td>开放平台</td><td>286 万</td><td>2.0 TB</td><td>—</td><td>¥ 2,600</td><td><div class="bar-row" style="margin:0;"><div class="bar-track"><div class="bar-fill" style="width:3%;background:var(--danger);"></div></div><b>3.0%</b></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">历史账单</div>
+                  <div class="card-subtitle">出账后 90 天内可申诉复核</div>
+                </div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th>账期</th><th style="width:110px;">出网流量</th><th style="width:110px;">调用次数</th><th style="width:110px;">金额</th><th style="width:90px;">状态</th><th style="width:90px;">操作</th></tr></thead>
+                    <tbody>
+                      <tr><td class="mono">2026-10</td><td>372.6 TB</td><td>2.42 亿</td><td>¥ 86,420</td><td><span class="tag tag-warning">预估中</span></td><td><a style="color:var(--primary);" href="#">明细</a></td></tr>
+                      <tr><td class="mono">2026-09</td><td>341.2 TB</td><td>2.21 亿</td><td>¥ 76,730</td><td><span class="tag tag-success">已结算</span></td><td><a style="color:var(--primary);" href="#">下载</a></td></tr>
+                      <tr><td class="mono">2026-08</td><td>332.8 TB</td><td>2.14 亿</td><td>¥ 74,510</td><td><span class="tag tag-success">已结算</span></td><td><a style="color:var(--primary);" href="#">下载</a></td></tr>
+                      <tr><td class="mono">2026-07</td><td>318.4 TB</td><td>2.06 亿</td><td>¥ 71,260</td><td><span class="tag tag-success">已结算</span></td><td><a style="color:var(--primary);" href="#">下载</a></td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">成本优化建议</div>
+                  <div class="card-subtitle">按预估收益排序，均可在网关侧一键开启</div>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="side-stack">
+                  <div class="side-stack-item"><span>开启响应压缩（gzip / br）</span><b>省 ¥ 9,800 / 月</b></div>
+                  <div class="side-stack-item"><span>提升响应缓存命中率 23.6% → 40%</span><b>省 ¥ 7,200 / 月</b></div>
+                  <div class="side-stack-item"><span>响应字段裁剪（去掉无用大字段）</span><b>省 ¥ 5,400 / 月</b></div>
+                  <div class="side-stack-item"><span>大响应改分页 / 游标</span><b>省 ¥ 3,100 / 月</b></div>
+                  <div class="side-stack-item"><span>购买 500 TB 年包（替代按量）</span><b>省 ¥ 12,000 / 月</b></div>
+                </div>
+                <div style="margin-top:14px;">
+                  <div class="side-stack-title">不计费项（明确边界，避免争议）</div>
+                  <div class="side-stack">
+                    <div class="side-stack-item"><span>入站流量 / 回源流量</span><b>免费</b></div>
+                    <div class="side-stack-item"><span>被拒绝请求（429 / 403 / 401）</span><b>免费</b></div>
+                    <div class="side-stack-item"><span>健康检查与探活</span><b>免费</b></div>
+                    <div class="side-stack-item"><span>网关内部重定向</span><b>免费</b></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('billing');</script>
+</body>
+</html>

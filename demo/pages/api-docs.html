@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>接口文档 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">接口文档</div>
+              <div class="page-subtitle">网关统一 Base URL：<span class="code-inline">https://gw.example.com</span> · 后端微服务地址不对外暴露</div>
+            </div>
+            <div class="page-actions">
+              <button class="btn btn-secondary">下载 OpenAPI 3.0</button>
+              <button class="btn btn-primary">申请接入</button>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div class="card-title">公共请求头</div>
+              <div class="card-subtitle">所有接口统一由网关 AuthFilter 校验，业务服务无需重复实现鉴权</div>
+            </div>
+            <div class="card-body">
+              <div class="kv-grid">
+                <div class="kv-item"><span class="kv-key">X-App-Code</span><span class="kv-val">应用标识，用于限流 / 计量 / 审计</span></div>
+                <div class="kv-item"><span class="kv-key">X-Signature</span><span class="kv-val">AK-SK 签名结果（HmacSHA256）</span></div>
+                <div class="kv-item"><span class="kv-key">X-Timestamp</span><span class="kv-val">秒级时间戳，5 分钟内有效</span></div>
+                <div class="kv-item"><span class="kv-key">X-Nonce</span><span class="kv-val">随机串，防重放</span></div>
+                <div class="kv-item"><span class="kv-key">Authorization</span><span class="kv-val">JWT 模式：Bearer &lt;token&gt;</span></div>
+                <div class="kv-item"><span class="kv-key">X-Tenant-Id</span><span class="kv-val">租户标识（多租户隔离）</span></div>
+                <div class="kv-item"><span class="kv-key">X-Trace-Id</span><span class="kv-val">可选，未传由网关生成并透传</span></div>
+                <div class="kv-item"><span class="kv-key">Content-Type</span><span class="kv-val mono">application/json;charset=UTF-8</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e mb-16">
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <div class="card-title">创建订单</div>
+                  <div class="card-subtitle">POST /api/order/create</div>
+                </div>
+                <span class="tag tag-danger tag-solid">需幂等键</span>
+              </div>
+              <div class="card-body">
+                <div class="code-block" style="font-size:12px;">
+<span class="c-cmt"># 请求</span>
+curl -X POST https://gw.example.com/api/order/create \
+  -H <span class="c-str">"X-App-Code: crm-app"</span> \
+  -H <span class="c-str">"X-Signature: &lt;sign&gt;"</span> \
+  -H <span class="c-str">"X-Timestamp: 1761780000"</span> \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{
+    "userId": "U10086",
+    "items": [{"skuId": "SKU-1", "qty": 2}],
+    "idempotentKey": "8f2a91c7"
+  }'</span>
+
+<span class="c-cmt"># 响应</span>
+{
+  <span class="c-str">"code"</span>: <span class="c-num">0</span>,
+  <span class="c-str">"message"</span>: <span class="c-str">"success"</span>,
+  <span class="c-str">"data"</span>: {
+    <span class="c-str">"orderId"</span>: <span class="c-str">"SO20261030001"</span>,
+    <span class="c-str">"amount"</span>: <span class="c-num">199.00</span>,
+    <span class="c-str">"status"</span>: <span class="c-str">"CREATED"</span>
+  },
+  <span class="c-str">"traceId"</span>: <span class="c-str">"6f2c1a9b8e7d4c3f"</span>
+}
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Java 调用示例（OpenFeign）</div>
+                <div class="card-subtitle">内部服务通过 Feign 走网关，统一鉴权与灰度</div>
+              </div>
+              <div class="card-body">
+                <div class="code-block" style="font-size:12px;">
+<span class="c-cmt">// 1) 声明式客户端</span>
+<span class="c-key">@FeignClient</span>(name = <span class="c-str">"api-gateway"</span>, url = <span class="c-str">"https://gw.example.com"</span>)
+<span class="c-key">public interface</span> OrderClient {
+  <span class="c-key">@PostMapping</span>(<span class="c-str">"/api/order/create"</span>)
+  OrderResult create(<span class="c-key">@RequestHeader</span>(<span class="c-str">"X-App-Code"</span>) String appCode,
+                     <span class="c-key">@RequestHeader</span>(<span class="c-str">"X-Signature"</span>) String sign,
+                     <span class="c-key">@RequestBody</span> OrderCmd cmd);
+}
+
+<span class="c-cmt">// 2) 统一加签拦截器</span>
+<span class="c-key">@Bean</span>
+RequestInterceptor signInterceptor(Signer signer) {
+  <span class="c-key">return</span> template -&gt; {
+    String ts = String.valueOf(System.currentTimeMillis() / <span class="c-num">1000</span>);
+    template.header(<span class="c-str">"X-App-Code"</span>, appCode);
+    template.header(<span class="c-str">"X-Timestamp"</span>, ts);
+    template.header(<span class="c-str">"X-Nonce"</span>, UUID.randomUUID().toString());
+    template.header(<span class="c-str">"X-Signature"</span>, signer.sign(template, ts));
+  };
+}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2e">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">接口清单</div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th style="width:80px;">方法</th><th>路径</th><th>说明</th><th style="width:90px;">默认限流</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="tag tag-gray">POST</span></td><td class="mono">/api/order/create</td><td>创建订单（幂等）</td><td>200 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">GET</span></td><td class="mono">/api/order/detail/{id}</td><td>订单详情</td><td>500 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">GET</span></td><td class="mono">/api/order/list</td><td>订单分页列表</td><td>300 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">GET</span></td><td class="mono">/api/user/profile</td><td>用户资料</td><td>300 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">POST</span></td><td class="mono">/api/search/query</td><td>商品检索</td><td>100 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">POST</span></td><td class="mono">/api/pay/create</td><td>发起支付</td><td>50 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">POST</span></td><td class="mono">/api/file/upload</td><td>文件上传（异步）</td><td>50 QPS</td></tr>
+                      <tr><td><span class="tag tag-gray">GET</span></td><td class="mono">/actuator/health</td><td>网关健康检查</td><td>不限</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">错误码</div>
+              </div>
+              <div class="card-body no-pad">
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th style="width:80px;">HTTP</th><th style="width:110px;">code</th><th>说明与处理建议</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="tag tag-danger">400</span></td><td class="mono">40001</td><td>参数校验失败，检查必填项与格式</td></tr>
+                      <tr><td><span class="tag tag-danger">401</span></td><td class="mono">40101</td><td>签名无效或已过期，校准本地时间</td></tr>
+                      <tr><td><span class="tag tag-danger">403</span></td><td class="mono">40301</td><td>未订阅该 API，需在控制台申请授权</td></tr>
+                      <tr><td><span class="tag tag-danger">404</span></td><td class="mono">40401</td><td>路由不存在，确认路径与版本</td></tr>
+                      <tr><td><span class="tag tag-warning">409</span></td><td class="mono">40901</td><td>幂等键冲突，重复提交已被拦截</td></tr>
+                      <tr><td><span class="tag tag-warning">429</span></td><td class="mono">42901</td><td>触发限流，建议指数退避重试</td></tr>
+                      <tr><td><span class="tag tag-danger">503</span></td><td class="mono">50301</td><td>后端熔断，已返回降级结果</td></tr>
+                      <tr><td><span class="tag tag-danger">504</span></td><td class="mono">50401</td><td>上游超时（默认 60s）</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('apidoc');</script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.2.12</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>com.zimo.gateway</groupId>
+  <artifactId>api-gateway</artifactId>
+  <version>1.0.0</version>
+  <packaging>pom</packaging>
+
+  <name>api-gateway</name>
+  <description>AI 网关平台 - 后端微服务聚合工程（Spring Boot 3.2.12 / Spring Cloud 2023 / Nacos / MySQL）</description>
+
+  <modules>
+    <module>jv-gateway-common</module>
+    <module>jv-gateway-client-common</module>
+    <module>jv-gateway-client-starter</module>
+    <module>jv-gateway-user</module>
+    <module>jv-gateway-overview</module>
+    <module>jv-gateway-discovery</module>
+    <module>jv-gateway-trace</module>
+    <module>jv-gateway-proxy</module>
+  </modules>
+
+  <properties>
+    <java.version>17</java.version>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <spring-cloud.version>2023.0.3</spring-cloud.version>
+    <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
+    <!-- 覆盖 Boot BOM：1.18.36 在 JDK 21+ 上会抛 TypeTag::UNKNOWN -->
+    <lombok.version>1.18.46</lombok.version>
+    <mybatis.version>3.0.4</mybatis.version>
+    <jjwt.version>0.12.5</jjwt.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-dependencies</artifactId>
+        <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.alibaba.cloud</groupId>
+        <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+        <version>${spring-cloud-alibaba.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.mybatis.spring.boot</groupId>
+        <artifactId>mybatis-spring-boot-starter</artifactId>
+        <version>${mybatis.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zimo.gateway</groupId>
+        <artifactId>jv-gateway-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zimo.gateway</groupId>
+        <artifactId>jv-gateway-client-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zimo.gateway</groupId>
+        <artifactId>jv-gateway-client-starter</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <build>
+    <plugins>
+      <!-- 统一启用 Lombok 注解处理器，所有子模块继承 -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>17</release>
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.projectlombok</groupId>
+              <artifactId>lombok</artifactId>
+              <version>${lombok.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+    </plugins>
+
+    <!-- 只声明管理，由各可启动模块自行引入，避免公共模块被 repackage -->
+    <pluginManagement>
+      <plugins>
+        <plugin>
+          <groupId>org.springframework.boot</groupId>
+          <artifactId>spring-boot-maven-plugin</artifactId>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+  </build>
+</project>

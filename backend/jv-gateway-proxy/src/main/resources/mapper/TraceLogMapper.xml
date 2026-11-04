@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.proxy.mapper.TraceLogMapper">
+
+    <!--
+      网关侧直连写库：内存队列每秒攒批一次 INSERT。
+      create_time 用数据库默认值，deleted 显式写 0。
+      req_params 是 URL query string；表单参数原文在 req_body 里。
+    -->
+    <insert id="batchInsert">
+        INSERT INTO tb_gw_trace_log
+            (app_id, app_name, service_name, api, req_params, trace_id, protocol,
+             req_format, res_format, req_ip, req_port, res_ip, res_port, status_code, err_type,
+             cost, req_time, res_time, req_header, res_header, req_body, res_body,
+             req_bytes, res_bytes, deleted)
+        VALUES
+        <foreach collection="records" item="r" separator=",">
+            (#{r.appId}, #{r.appName}, #{r.serviceName}, #{r.api}, #{r.reqParams}, #{r.traceId}, #{r.protocol},
+             #{r.reqFormat}, #{r.resFormat}, #{r.reqIp}, #{r.reqPort}, #{r.resIp}, #{r.resPort},
+             #{r.statusCode}, #{r.errType}, #{r.cost}, #{r.reqTime}, #{r.resTime},
+             #{r.reqHeader}, #{r.resHeader}, #{r.reqBody}, #{r.resBody},
+             #{r.reqBytes}, #{r.resBytes}, 0)
+        </foreach>
+    </insert>
+</mapper>

@@ -1,0 +1,31 @@
+{
+  "name": "@zimo/portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AI 网关平台主应用（壳工程）：负责路由装配、登录、全局状态与布局外壳",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 28080"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@zimo/module-discovery": "^1.0.0",
+    "@zimo/module-overview": "^1.0.0",
+    "@zimo/module-stats": "^1.0.0",
+    "@zimo/module-system": "^1.0.0",
+    "@zimo/module-trace": "^1.0.0",
+    "@zimo/shared": "^1.0.0",
+    "@zimo/ui": "^1.0.0",
+    "axios": "^1.7.7",
+    "element-plus": "^2.8.8",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.0",
+    "vite": "^5.4.11"
+  }
+}

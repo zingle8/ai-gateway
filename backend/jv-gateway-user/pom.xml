@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.zimo.gateway</groupId>
+    <artifactId>api-gateway</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>jv-gateway-user</artifactId>
+  <name>jv-gateway-user</name>
+  <description>用户模块：登录 / 退出 / 用户管理</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-gateway-common</artifactId>
+    </dependency>
+    <!-- Redis：登录失败计数跨实例共享。不可用时自动降级为内存计数，不影响启动与登录 -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <!-- 连接池 -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+    </dependency>
+    <!-- 接入自身平台的 SDK：注册实例 + 心跳（埋点由网关代理完成，这里关闭避免重复采集） -->
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-gateway-client-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>jv-gateway-user</finalName>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,158 @@
+package com.zimo.gateway.client.registry;
+
+import com.zimo.gateway.client.common.constant.GatewayClientConstant;
+import com.zimo.gateway.client.common.dto.ServiceInstanceDTO;
+import com.zimo.gateway.client.properties.GatewayClientProperties;
+import com.zimo.gateway.client.support.LocalIps;
+import com.zimo.gateway.client.support.RestClientFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.env.Environment;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestClient;
+
+import java.time.LocalDateTime;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 自动接入：业务系统启动后把自身实例注册到网关平台（jv-gateway-discovery），
+ * 运行期间按固定间隔上报心跳，进程退出时主动下线。
+ *
+ * 对应控制台「接入中心 → 自动接入」。
+ */
+@Slf4j
+public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
+
+    private final GatewayClientProperties properties;
+    private final Environment environment;
+    private final RestClient restClient;
+    private final ScheduledExecutorService executor;
+
+    public ServiceRegistrar(GatewayClientProperties properties, Environment environment) {
+        this.properties = properties;
+        this.environment = environment;
+        this.restClient = RestClientFactory.create(normalize(properties.getServerAddr()));
+        this.executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "zimo-gateway-registry");
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
+    @Override
+    public void run(ApplicationArguments args) {
+        if (!properties.isEnabled() || !properties.getRegistry().isEnabled()) {
+            return;
+        }
+        register();
+        long interval = Math.max(5000L, properties.getRegistry().getHeartbeatInterval());
+        executor.scheduleWithFixedDelay(this::heartbeatQuietly, interval, interval, TimeUnit.MILLISECONDS);
+    }
+
+    /** 注册 / 更新服务实例 */
+    public void register() {
+        ServiceInstanceDTO instance = buildInstance();
+        try {
+            restClient.post()
+                    .uri(GatewayClientConstant.PATH_SERVICE_REGISTER)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(instance)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("已注册到网关平台：{} ({}) {}:{}",
+                    instance.getAppId(), instance.getServiceName(), instance.getIp(), instance.getPort());
+        } catch (Exception e) {
+            log.warn("注册到网关平台失败（不影响业务启动）：{}", e.getMessage());
+        }
+    }
+
+    /** 心跳 */
+    public void heartbeat() {
+        ServiceInstanceDTO instance = buildInstance();
+        try {
+            restClient.post()
+                    .uri(GatewayClientConstant.PATH_SERVICE_HEARTBEAT)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(instance)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (Exception e) {
+            log.debug("网关平台心跳失败：{}", e.getMessage());
+        }
+    }
+
+    @Override
+    public void destroy() {
+        executor.shutdownNow();
+        if (properties.isEnabled() && properties.getRegistry().isEnabled()) {
+            deregister();
+        }
+    }
+
+    /** 主动下线 */
+    private void deregister() {
+        ServiceInstanceDTO instance = buildInstance();
+        try {
+            restClient.method(org.springframework.http.HttpMethod.DELETE)
+                    .uri(GatewayClientConstant.PATH_SERVICE_DEREGISTER)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(instance)
+                    .retrieve()
+                    .toBodilessEntity();
+            log.info("已从网关平台下线：{} {}", instance.getServiceName(), instance.getPort());
+        } catch (Exception e) {
+            log.debug("从网关平台下线失败：{}", e.getMessage());
+        }
+    }
+
+    private void heartbeatQuietly() {
+        try {
+            heartbeat();
+        } catch (Exception e) {
+            log.debug("心跳异常：{}", e.getMessage());
+        }
+    }
+
+    private ServiceInstanceDTO buildInstance() {
+        ServiceInstanceDTO instance = new ServiceInstanceDTO();
+        instance.setAppId(properties.getAppId());
+        instance.setAppName(properties.getAppName());
+        instance.setServiceName(properties.getServiceName());
+        // 显式配置优先，多网卡机器上自动探测可能选中虚拟网卡
+        instance.setIp(properties.getIp() != null && !properties.getIp().isEmpty()
+                ? properties.getIp() : LocalIps.get());
+        instance.setPort(resolvePort());
+        instance.setLanguage(properties.getLanguage());
+        instance.setVersion(properties.getVersion());
+        instance.setRegisterTime(LocalDateTime.now());
+        return instance;
+    }
+
+    private static String normalize(String serverAddr) {
+        if (serverAddr == null || serverAddr.isEmpty()) {
+            return GatewayClientConstant.DEFAULT_SERVER_ADDR;
+        }
+        return serverAddr.endsWith("/") ? serverAddr.substring(0, serverAddr.length() - 1) : serverAddr;
+    }
+
+    /**
+     * 端口优先级：显式配置 &gt; server.port &gt; 8080
+     */
+    private int resolvePort() {
+        if (properties.getPort() != null) {
+            return properties.getPort();
+        }
+        if (environment != null) {
+            try {
+                return Integer.parseInt(String.valueOf(environment.getProperty("server.port", "8080")));
+            } catch (Exception ignored) {
+                return 8080;
+            }
+        }
+        return 8080;
+    }
+}

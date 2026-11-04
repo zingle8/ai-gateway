@@ -1,0 +1,18 @@
+{
+  "name": "@zimo/module-onboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "接入中心模块：系统接入指引 / 自动接入状态 / 上线发布（对应后端 jv-gateway-discovery 与 jv-gateway-client-starter）",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js"
+  },
+  "dependencies": {
+    "vue": "^3.5.13"
+  },
+  "peerDependencies": {
+    "@zimo/shared": "^1.0.0",
+    "@zimo/ui": "^1.0.0"
+  }
+}

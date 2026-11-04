@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>日志追踪 · API网关平台</title>
+  <link rel="stylesheet" href="../assets/css/style.css?v=20261103" />
+  <link rel="stylesheet" href="../assets/css/gateway.css?v=20261103" />
+  <style>
+        /* 紧凑排版：每页 10 条铺满一屏 */
+    .content { padding: 14px 18px 16px; }
+    .page-header { margin-bottom: 10px; }
+    .page-title { font-size: 19px; }
+    .card-header { padding: 10px 16px; flex-wrap: wrap; row-gap: 8px; }
+    .filter-bar { gap: 8px; }
+    .filter-bar .form-input, .filter-bar .form-select { height: 30px; font-size: 12.5px; }
+    .card-body.no-pad th { padding: 7px 12px; font-size: 12px; }
+    .card-body.no-pad td { padding: 6px 12px; font-size: 13px; line-height: 1.5; }
+    .card-footer { padding: 8px 16px; }
+    /* 分页条固定在页面底部：卡片撑满剩余高度，表格区吸收空白 */
+    .content { display: flex; flex-direction: column; min-height: 0; }
+    .content > .card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card > .card-body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+    .content > .card > .card-body > .table-wrap { flex: 1; min-height: 0; overflow: auto; }
+    .content > .card > .card-body > .card-footer { margin-top: auto; }
+    .card-body.no-pad table { width: 100%; table-layout: fixed; }
+    .card-body.no-pad table td, .card-body.no-pad table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .lnk { color: #2563EB; font-weight: 600; text-decoration: none; }
+    .lnk:hover { color: #1D4ED8; text-decoration: underline; }
+    .form-select[data-filter="fmt"] { max-width: 170px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="main-wrap">
+      <div id="sidebar-root"></div>
+      <main class="main">
+        <div id="topbar-root"></div>
+        <div class="content">
+
+          <div class="page-header">
+            <div>
+              <div class="page-title">日志追踪</div>
+            </div>
+          </div>
+
+          <div class="card mb-16">
+            <div class="card-header">
+              <div>
+                <div class="card-title">请求日志</div>
+              </div>
+              <div class="filter-bar" style="margin:0;">
+                <input class="form-input" style="width:170px;" data-filter="trace" placeholder="traceId" />
+                <select class="form-select" style="width:150px;" data-filter="app">
+                  <option value="">全部应用</option>
+                  <option value="app-order · 订单中心">app-order · 订单中心</option>
+                  <option value="app-search · 搜索服务">app-search · 搜索服务</option>
+                  <option value="app-pay · 支付中心">app-pay · 支付中心</option>
+                  <option value="app-file · 文件服务">app-file · 文件服务</option>
+                  <option value="app-user · 用户中心">app-user · 用户中心</option>
+                  <option value="app-msg · 消息通知">app-msg · 消息通知</option>
+                  <option value="app-auth · 统一认证">app-auth · 统一认证</option>
+                                  <option value="app-inventory">app-inventory · 库存中心</option>
+                  <option value="app-coupon">app-coupon · 优惠券中心</option>
+                  <option value="app-settle">app-settle · 结算中心</option>
+                  <option value="app-report">app-report · 报表中心</option>
+                                </select>
+                <select class="form-select" style="width:140px;" data-filter="service">
+                  <option value="">全部服务</option>
+                  <option value="order-service">order-service</option>
+                  <option value="search-service">search-service</option>
+                  <option value="pay-service">pay-service</option>
+                  <option value="file-service">file-service</option>
+                  <option value="user-service">user-service</option>
+                  <option value="msg-service">msg-service</option>
+                  <option value="auth-service">auth-service</option>
+                                  <option value="inventory-service">inventory-service</option>
+                  <option value="coupon-service">coupon-service</option>
+                  <option value="settle-service">settle-service</option>
+                  <option value="report-service">report-service</option>
+                </select>
+                <select class="form-select" style="width:200px;" data-filter="api">
+                  <option value="">全部接口</option>
+                  <option value="POST /api/v1/order/create">POST /api/v1/order/create</option>
+                  <option value="GET /api/v1/search">GET /api/v1/search</option>
+                  <option value="POST /api/v1/pay/confirm">POST /api/v1/pay/confirm</option>
+                  <option value="POST /api/v1/file/upload">POST /api/v1/file/upload</option>
+                  <option value="GET /api/v1/user/profile">GET /api/v1/user/profile</option>
+                  <option value="POST /api/v1/msg/send">POST /api/v1/msg/send</option>
+                  <option value="POST /api/v1/oauth/token">POST /api/v1/oauth/token</option>
+                  <option value="GET /api/v1/order/detail">GET /api/v1/order/detail</option>
+                                  <option value="GET /api/v1/inventory/query">GET /api/v1/inventory/query</option>
+                  <option value="POST /api/v1/coupon/use">POST /api/v1/coupon/use</option>
+                  <option value="GET /api/v1/settle/bill">GET /api/v1/settle/bill</option>
+                  <option value="POST /api/v1/report/export">POST /api/v1/report/export</option>
+                </select>
+                <select class="form-select" style="width:100px;" data-filter="proto">
+                  <option value="">全部协议</option>
+                  <option value="HTTP/1.1">HTTP/1.1</option>
+                  <option value="gRPC">gRPC</option>
+                  <option value="HTTP/2">HTTP/2</option>
+                                  <option value="WebSocket">WebSocket</option>
+                </select>
+                <select class="form-select" style="width:170px;" data-filter="fmt">
+                  <option value="">全部请求格式</option>
+                  <option value="JSON">JSON</option>
+                  <option value="Protobuf">Protobuf</option>
+                  <option value="multipart/form-data">multipart/form-data</option>
+                  <option value="x-www-form-urlencoded">x-www-form-urlencoded</option>
+                </select>
+                <select class="form-select" style="width:110px;" data-filter="status">
+                  <option value="">全部状态码</option>
+                  <option value="200">200</option>
+                  <option value="400">400</option>
+                  <option value="403">403</option>
+                  <option value="429">429</option>
+                  <option value="502">502</option>
+                  <option value="503">503</option>
+                  <option value="504">504</option>
+                </select>
+                <select class="form-select" style="width:140px;" data-filter="errtype">
+                  <option value="">全部错误类型</option>
+                  <option value="无">无（成功）</option>
+                  <option value="鉴权失败">鉴权失败</option>
+                  <option value="路由失败">路由失败</option>
+                  <option value="限流拒绝">限流拒绝</option>
+                  <option value="参数校验失败">参数校验失败</option>
+                  <option value="上游响应超时">上游响应超时</option>
+                  <option value="上游响应异常">上游响应异常</option>
+                </select>
+                <input class="form-input" style="width:150px;" type="date" data-filter="reqtime" title="请求时间" />
+                <select class="form-select" style="width:110px;" data-filter="cost">
+                  <option value="">全部耗时</option>
+                  <option value="500">耗时 > 500ms</option>
+                  <option value="1000">耗时 > 1s</option>
+                  <option value="3000">耗时 > 3s</option>
+                </select>
+                <button class="btn btn-sm btn-primary" id="logSearch">查询</button>
+                <button class="btn btn-sm btn-secondary" id="logReset">重置</button>
+              </div>
+            </div>
+            <div class="card-body no-pad">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style="width:8.5%;">服务名</th>
+                      <th style="width:16%;">接口名</th>
+                      <th style="width:10%;">traceId</th>
+                      <th style="width:6.5%;">协议</th>
+                      <th style="width:8%;">请求格式</th>
+                      <th style="width:8%;">返回格式</th>
+                      <th style="width:8.5%;">请求IP</th>
+                      <th style="width:6%;">实例端口</th>
+                      <th style="width:5.5%;">状态码</th>
+                      <th style="width:9%;">请求时间</th>
+                      <th style="width:4.5%;">耗时</th>
+                      <th style="width:9.5%;">操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr data-idx="1" data-app="app-order" data-name="订单中心" data-service="order-service" data-api="POST /api/v1/order/create" data-trace="6f2c1a9b8e7d4c3f" data-reqip="10.20.3.11" data-resip="10.20.16.7" data-proto="HTTP/1.1" data-fmt="JSON" data-status="200" data-reqtime="2026-10-30 15:42:10.284" data-rettime="2026-10-30 15:42:10.470" data-cost="186" data-req="{&#10;  &quot;appCode&quot;: &quot;app-order&quot;,&#10;  &quot;orderNo&quot;: &quot;SO20261030001542&quot;,&#10;  &quot;amount&quot;: 129.00,&#10;  &quot;currency&quot;: &quot;CNY&quot;,&#10;  &quot;items&quot;: [&#10;    { &quot;skuId&quot;: &quot;SKU-88231&quot;, &quot;qty&quot;: 2 },&#10;    { &quot;skuId&quot;: &quot;SKU-77120&quot;, &quot;qty&quot;: 1 }&#10;  ],&#10;  &quot;buyerId&quot;: &quot;U100238841&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 0,&#10;  &quot;message&quot;: &quot;OK&quot;,&#10;  &quot;data&quot;: {&#10;    &quot;orderId&quot;: &quot;SO20261030001542&quot;,&#10;    &quot;status&quot;: &quot;CREATED&quot;,&#10;    &quot;payDeadline&quot;: &quot;2026-10-30 16:12:10&quot;&#10;  },&#10;  &quot;traceId&quot;: &quot;6f2c1a9b8e7d4c3f&quot;&#10;}" data-reqh="POST /api/v1/order/create HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-order&#10;X-Request-Id: 6f2c1a9b8e7d4c3f&#10;X-Forwarded-For: 10.20.3.11&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.6f2c1a9b...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 214&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 200 OK&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 168&#10;X-Response-Time: 186ms&#10;X-Gateway-Node: gw-node-07&#10;X-Upstream-Host: 10.20.16.7:8080&#10;X-Trace-Id: 6f2c1a9b8e7d4c3f&#10;Date: Fri, 30 Oct 2026 07:42:11 GMT" data-reqlen="214" data-reslen="168" data-resfmt="JSON" data-reqport="52134" data-resport="8080" data-errtype="无">
+                      <td class="mono">order-service</td>
+                      <td class="mono">POST /api/v1/order/create</td>
+                      <td class="mono">6f2c1a9b8e7d4c3f</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">10.20.3.11</td>
+                      <td class="mono">8080</td>
+                      <td><span class="tag tag-success">200</span></td>
+                      <td class="mono">10-30 15:42:10.284</td>
+                      <td>186 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="1" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="1" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="2" data-app="app-search" data-name="搜索服务" data-service="search-service" data-api="GET /api/v1/search" data-trace="a71c4e2b91f6d08a" data-reqip="172.16.8.42" data-resip="10.20.16.21" data-proto="HTTP/1.1" data-fmt="JSON" data-status="503" data-reqtime="2026-10-30 15:42:09.912" data-rettime="2026-10-30 15:42:11.152" data-cost="1240" data-req="{&#10;  &quot;appCode&quot;: &quot;app-search&quot;,&#10;  &quot;keyword&quot;: &quot;运动鞋&quot;,&#10;  &quot;page&quot;: 1,&#10;  &quot;size&quot;: 20,&#10;  &quot;sort&quot;: &quot;relevance&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 503,&#10;  &quot;message&quot;: &quot;上游熔断，已走本地兜底&quot;,&#10;  &quot;data&quot;: { &quot;items&quot;: [], &quot;total&quot;: 0 },&#10;  &quot;traceId&quot;: &quot;a71c4e2b91f6d08a&quot;&#10;}" data-reqh="GET /api/v1/search HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-search&#10;X-Request-Id: a71c4e2b91f6d08a&#10;X-Forwarded-For: 172.16.8.42&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.a71c4e2b...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 132&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 503 Service Unavailable&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 96&#10;X-Response-Time: 1240ms&#10;X-Gateway-Node: gw-node-03&#10;X-Upstream-Host: 10.20.16.21:8082&#10;X-Trace-Id: a71c4e2b91f6d08a&#10;Date: Fri, 30 Oct 2026 07:42:12 GMT" data-reqlen="132" data-reslen="96" data-resfmt="JSON" data-reqport="48712" data-resport="8082" data-errtype="路由失败">
+                      <td class="mono">search-service</td>
+                      <td class="mono">GET /api/v1/search</td>
+                      <td class="mono">a71c4e2b91f6d08a</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">172.16.8.42</td>
+                      <td class="mono">8082</td>
+                      <td><span class="tag tag-danger">503</span></td>
+                      <td class="mono">10-30 15:42:09.912</td>
+                      <td>1,240 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="2" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="2" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="3" data-app="app-pay" data-name="支付中心" data-service="pay-service" data-api="POST /api/v1/pay/confirm" data-trace="3d9f2b7c4a1e8065" data-reqip="10.20.3.11" data-resip="10.20.16.34" data-proto="gRPC" data-fmt="Protobuf" data-status="429" data-reqtime="2026-10-30 15:42:09.640" data-rettime="2026-10-30 15:42:09.643" data-cost="3" data-req="{&#10;  &quot;appCode&quot;: &quot;app-pay&quot;,&#10;  &quot;payOrderNo&quot;: &quot;PO20261030001538&quot;,&#10;  &quot;channel&quot;: &quot;ALIPAY&quot;,&#10;  &quot;amount&quot;: 129.00&#10;}" data-res="{&#10;  &quot;code&quot;: 429,&#10;  &quot;message&quot;: &quot;超过 QPS 配额（50 QPS）&quot;,&#10;  &quot;traceId&quot;: &quot;3d9f2b7c4a1e8065&quot;&#10;}" data-reqh="POST /api/v1/pay/confirm HTTP/2&#10;Host: api-gw.example.com&#10;Content-Type: application/grpc+proto&#10;X-AppCode: app-pay&#10;X-Request-Id: 3d9f2b7c4a1e8065&#10;X-Forwarded-For: 10.20.3.11&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.3d9f2b7c...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 118&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/2 200&#10;Content-Type: application/grpc+proto&#10;Content-Length: 92&#10;X-Response-Time: 3ms&#10;X-Gateway-Node: gw-node-11&#10;X-Upstream-Host: 10.20.16.34:8084&#10;X-Trace-Id: 3d9f2b7c4a1e8065&#10;Date: Fri, 30 Oct 2026 07:42:13 GMT" data-reqlen="118" data-reslen="92" data-resfmt="Protobuf" data-reqport="53408" data-resport="8084" data-errtype="限流拒绝">
+                      <td class="mono">pay-service</td>
+                      <td class="mono">POST /api/v1/pay/confirm</td>
+                      <td class="mono">3d9f2b7c4a1e8065</td>
+                      <td><span class="tag tag-gray">gRPC</span></td>
+                      <td>Protobuf</td>
+                      <td class="mono" title="Protobuf">Protobuf</td>
+                      <td class="mono">10.20.3.11</td>
+                      <td class="mono">8084</td>
+                      <td><span class="tag tag-warning">429</span></td>
+                      <td class="mono">10-30 15:42:09.640</td>
+                      <td>3 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="3" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="3" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="4" data-app="app-file" data-name="文件服务" data-service="file-service" data-api="POST /api/v1/file/upload" data-trace="c82e5a1f7b3d9042" data-reqip="172.16.9.7" data-resip="10.20.16.12" data-proto="HTTP/1.1" data-fmt="multipart/form-data" data-status="403" data-reqtime="2026-10-30 15:42:09.118" data-rettime="2026-10-30 15:42:09.120" data-cost="2" data-req="{&#10;  &quot;appCode&quot;: &quot;app-file&quot;,&#10;  &quot;fileName&quot;: &quot;contract-2026.pdf&quot;,&#10;  &quot;size&quot;: 1048576,&#10;  &quot;bucket&quot;: &quot;gw-contract&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 403,&#10;  &quot;message&quot;: &quot;未订阅该 API（授权拒绝）&quot;,&#10;  &quot;traceId&quot;: &quot;c82e5a1f7b3d9042&quot;&#10;}" data-reqh="POST /api/v1/file/upload HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxk&#10;X-AppCode: app-file&#10;X-Request-Id: c82e5a1f7b3d9042&#10;X-Forwarded-For: 172.16.9.7&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.c82e5a1f...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 1048576&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 403 Forbidden&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 128&#10;X-Response-Time: 2ms&#10;X-Gateway-Node: gw-node-05&#10;X-Upstream-Host: 10.20.16.12:8083&#10;X-Trace-Id: c82e5a1f7b3d9042&#10;Date: Fri, 30 Oct 2026 07:42:14 GMT" data-reqlen="1048576" data-reslen="128" data-resfmt="JSON" data-reqport="51276" data-resport="8083" data-errtype="鉴权失败">
+                      <td class="mono">file-service</td>
+                      <td class="mono">POST /api/v1/file/upload</td>
+                      <td class="mono">c82e5a1f7b3d9042</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>multipart/form-data</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">172.16.9.7</td>
+                      <td class="mono">8083</td>
+                      <td><span class="tag tag-purple">403</span></td>
+                      <td class="mono">10-30 15:42:09.118</td>
+                      <td>2 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="4" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="4" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="5" data-app="app-user" data-name="用户中心" data-service="user-service" data-api="GET /api/v1/user/profile" data-trace="9b4a7d2e6c1f5038" data-reqip="10.20.4.28" data-resip="10.20.16.7" data-proto="HTTP/1.1" data-fmt="JSON" data-status="200" data-reqtime="2026-10-30 15:42:08.776" data-rettime="2026-10-30 15:42:08.858" data-cost="96" data-req="{&#10;  &quot;appCode&quot;: &quot;app-user&quot;,&#10;  &quot;userId&quot;: &quot;U100238841&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 0,&#10;  &quot;message&quot;: &quot;OK&quot;,&#10;  &quot;data&quot;: { &quot;userId&quot;: &quot;U100238841&quot;, &quot;nickName&quot;: &quot;张三&quot;, &quot;level&quot;: &quot;P1&quot; },&#10;  &quot;traceId&quot;: &quot;9b4a7d2e6c1f5038&quot;&#10;}" data-reqh="GET /api/v1/user/profile HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-user&#10;X-Request-Id: 9b4a7d2e6c1f5038&#10;X-Forwarded-For: 10.20.4.28&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.9b4a7d2e...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 86&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 200 OK&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 142&#10;X-Response-Time: 96ms&#10;X-Gateway-Node: gw-node-09&#10;X-Upstream-Host: 10.20.16.7:8081&#10;X-Trace-Id: 9b4a7d2e6c1f5038&#10;Date: Fri, 30 Oct 2026 07:42:15 GMT" data-reqlen="86" data-reslen="142" data-resfmt="JSON" data-reqport="49823" data-resport="8081" data-errtype="无">
+                      <td class="mono">user-service</td>
+                      <td class="mono">GET /api/v1/user/profile</td>
+                      <td class="mono">9b4a7d2e6c1f5038</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">10.20.4.28</td>
+                      <td class="mono">8081</td>
+                      <td><span class="tag tag-success">200</span></td>
+                      <td class="mono">10-30 15:42:08.776</td>
+                      <td>96 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="5" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="5" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="6" data-app="app-msg" data-name="消息通知" data-service="msg-service" data-api="POST /api/v1/msg/send" data-trace="1e7c3b9a5d2f6084" data-reqip="172.16.8.42" data-resip="10.20.16.9" data-proto="HTTP/2" data-fmt="JSON" data-status="504" data-reqtime="2026-10-30 15:42:08.402" data-rettime="2026-10-30 15:42:13.402" data-cost="5000" data-req="{&#10;  &quot;appCode&quot;: &quot;app-msg&quot;,&#10;  &quot;to&quot;: &quot;138****8841&quot;,&#10;  &quot;templateId&quot;: &quot;TPL_ORDER_PAID&quot;,&#10;  &quot;params&quot;: { &quot;orderNo&quot;: &quot;SO20261030001542&quot; }&#10;}" data-res="{&#10;  &quot;code&quot;: 504,&#10;  &quot;message&quot;: &quot;上游超时（5s），已重试 1 次&quot;,&#10;  &quot;traceId&quot;: &quot;1e7c3b9a5d2f6084&quot;&#10;}" data-reqh="POST /api/v1/msg/send HTTP/2&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-msg&#10;X-Request-Id: 1e7c3b9a5d2f6084&#10;X-Forwarded-For: 172.16.8.42&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.1e7c3b9a...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 196&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/2 504 Gateway Timeout&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 124&#10;X-Response-Time: 5000ms&#10;X-Gateway-Node: gw-node-02&#10;X-Upstream-Host: 10.20.16.9:8085&#10;X-Trace-Id: 1e7c3b9a5d2f6084&#10;Date: Fri, 30 Oct 2026 07:42:16 GMT" data-reqlen="196" data-reslen="124" data-resfmt="JSON" data-reqport="52617" data-resport="8085" data-errtype="上游响应超时">
+                      <td class="mono">msg-service</td>
+                      <td class="mono">POST /api/v1/msg/send</td>
+                      <td class="mono">1e7c3b9a5d2f6084</td>
+                      <td><span class="tag tag-gray">HTTP/2</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">172.16.8.42</td>
+                      <td class="mono">8085</td>
+                      <td><span class="tag tag-danger">504</span></td>
+                      <td class="mono">10-30 15:42:08.402</td>
+                      <td>5,000 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="6" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="6" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="7" data-app="app-auth" data-name="统一认证" data-service="auth-service" data-api="POST /api/v1/oauth/token" data-trace="7a3f8c2e5b1d9046" data-reqip="203.0.113.24" data-resip="10.20.16.3" data-proto="HTTP/1.1" data-fmt="x-www-form-urlencoded" data-status="200" data-reqtime="2026-10-30 15:42:07.981" data-rettime="2026-10-30 15:42:08.009" data-cost="28" data-req="grant_type=client_credentials&amp;appCode=app-auth&amp;scope=order.read" data-res="{&#10;  &quot;access_token&quot;: &quot;eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,&#10;  &quot;expires_in&quot;: 7200,&#10;  &quot;traceId&quot;: &quot;7a3f8c2e5b1d9046&quot;&#10;}" data-reqh="POST /api/v1/oauth/token HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: application/x-www-form-urlencoded&#10;X-AppCode: app-auth&#10;X-Request-Id: 7a3f8c2e5b1d9046&#10;X-Forwarded-For: 203.0.113.24&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.7a3f8c2e...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 164&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 200 OK&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 288&#10;X-Response-Time: 28ms&#10;X-Gateway-Node: gw-node-08&#10;X-Upstream-Host: 10.20.16.3:8443&#10;X-Trace-Id: 7a3f8c2e5b1d9046&#10;Date: Fri, 30 Oct 2026 07:42:17 GMT" data-reqlen="164" data-reslen="288" data-resfmt="JSON" data-reqport="47392" data-resport="8443" data-errtype="无">
+                      <td class="mono">auth-service</td>
+                      <td class="mono">POST /api/v1/oauth/token</td>
+                      <td class="mono">7a3f8c2e5b1d9046</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>x-www-form-urlencoded</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">203.0.113.24</td>
+                      <td class="mono">8443</td>
+                      <td><span class="tag tag-success">200</span></td>
+                      <td class="mono">10-30 15:42:07.981</td>
+                      <td>28 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="7" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="7" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="8" data-app="app-order" data-name="订单中心" data-service="order-service" data-api="GET /api/v1/order/detail" data-trace="5c2e9a1f7b3d8064" data-reqip="10.20.3.11" data-resip="10.20.16.7" data-proto="gRPC" data-fmt="Protobuf" data-status="200" data-reqtime="2026-10-30 15:42:07.540" data-rettime="2026-10-30 15:42:07.612" data-cost="72" data-req="{&#10;  &quot;appCode&quot;: &quot;app-order&quot;,&#10;  &quot;orderNo&quot;: &quot;SO20261030001542&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 0,&#10;  &quot;message&quot;: &quot;OK&quot;,&#10;  &quot;data&quot;: { &quot;orderNo&quot;: &quot;SO20261030001542&quot;, &quot;status&quot;: &quot;PAID&quot;, &quot;amount&quot;: 129.00 },&#10;  &quot;traceId&quot;: &quot;5c2e9a1f7b3d8064&quot;&#10;}" data-reqh="GET /api/v1/order/detail HTTP/2&#10;Host: api-gw.example.com&#10;Content-Type: application/grpc+proto&#10;X-AppCode: app-order&#10;X-Request-Id: 5c2e9a1f7b3d8064&#10;X-Forwarded-For: 10.20.3.11&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.5c2e9a1f...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 96&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/2 200&#10;Content-Type: application/grpc+proto&#10;Content-Length: 156&#10;X-Response-Time: 72ms&#10;X-Gateway-Node: gw-node-07&#10;X-Upstream-Host: 10.20.16.7:8080&#10;X-Trace-Id: 5c2e9a1f7b3d8064&#10;Date: Fri, 30 Oct 2026 07:42:18 GMT" data-reqlen="96" data-reslen="156" data-resfmt="Protobuf" data-reqport="54051" data-resport="8080" data-errtype="无">
+                      <td class="mono">order-service</td>
+                      <td class="mono">GET /api/v1/order/detail</td>
+                      <td class="mono">5c2e9a1f7b3d8064</td>
+                      <td><span class="tag tag-gray">gRPC</span></td>
+                      <td>Protobuf</td>
+                      <td class="mono" title="Protobuf">Protobuf</td>
+                      <td class="mono">10.20.3.11</td>
+                      <td class="mono">8080</td>
+                      <td><span class="tag tag-success">200</span></td>
+                      <td class="mono">10-30 15:42:07.540</td>
+                      <td>72 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="8" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="8" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="9" data-app="app-inventory" data-name="库存中心" data-service="inventory-service" data-trace="2f8b6d4c1a9e7053" data-api="GET /api/v1/inventory/query" data-reqip="172.16.5.33" data-resip="10.20.16.18" data-proto="HTTP/1.1" data-fmt="JSON" data-status="200" data-reqtime="2026-10-30 15:42:06.884" data-rettime="2026-10-30 15:42:06.938" data-cost="54" data-req="{&#10;  &quot;appCode&quot;: &quot;app-inventory&quot;,&#10;  &quot;skuIds&quot;: [&quot;SKU-88231&quot;, &quot;SKU-77120&quot;],&#10;  &quot;warehouse&quot;: &quot;WH-SH-01&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 0,&#10;  &quot;message&quot;: &quot;OK&quot;,&#10;  &quot;data&quot;: { &quot;SKU-88231&quot;: 128, &quot;SKU-77120&quot;: 46 },&#10;  &quot;traceId&quot;: &quot;2f8b6d4c1a9e7053&quot;&#10;}" data-reqh="GET /api/v1/inventory/query HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-inventory&#10;X-Request-Id: 2f8b6d4c1a9e7053&#10;X-Forwarded-For: 172.16.5.33&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.2f8b6d4c...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 104&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 200 OK&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 268&#10;X-Response-Time: 54ms&#10;X-Gateway-Node: gw-node-12&#10;X-Upstream-Host: 10.20.16.18:8086&#10;X-Trace-Id: 2f8b6d4c1a9e7053&#10;Date: Fri, 30 Oct 2026 07:42:19 GMT" data-reqlen="104" data-reslen="268" data-resfmt="JSON" data-reqport="50984" data-resport="8086" data-errtype="无">
+                      <td class="mono">inventory-service</td>
+                      <td class="mono">GET /api/v1/inventory/query</td>
+                      <td class="mono">2f8b6d4c1a9e7053</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">172.16.5.33</td>
+                      <td class="mono">8086</td>
+                      <td><span class="tag tag-success">200</span></td>
+                      <td class="mono">10-30 15:42:06.884</td>
+                      <td>54 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="9" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="9" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="10" data-app="app-coupon" data-name="优惠券中心" data-service="coupon-service" data-trace="b4e7a1c93d2f6085" data-api="POST /api/v1/coupon/use" data-reqip="10.20.4.28" data-resip="10.20.16.26" data-proto="HTTP/2" data-fmt="JSON" data-status="400" data-reqtime="2026-10-30 15:42:06.412" data-rettime="2026-10-30 15:42:06.418" data-cost="6" data-req="{&#10;  &quot;appCode&quot;: &quot;app-coupon&quot;,&#10;  &quot;couponNo&quot;: &quot;CP202610300011&quot;,&#10;  &quot;orderNo&quot;: &quot;SO20261030001542&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 400,&#10;  &quot;message&quot;: &quot;参数校验失败：couponNo 已使用&quot;,&#10;  &quot;traceId&quot;: &quot;b4e7a1c93d2f6085&quot;&#10;}" data-reqh="POST /api/v1/coupon/use HTTP/2&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-coupon&#10;X-Request-Id: b4e7a1c93d2f6085&#10;X-Forwarded-For: 10.20.4.28&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.b4e7a1c9...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 128&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/2 400 Bad Request&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 118&#10;X-Response-Time: 6ms&#10;X-Gateway-Node: gw-node-04&#10;X-Upstream-Host: 10.20.16.26:8087&#10;X-Trace-Id: b4e7a1c93d2f6085&#10;Date: Fri, 30 Oct 2026 07:42:20 GMT" data-reqlen="128" data-reslen="118" data-resfmt="JSON" data-reqport="48265" data-resport="8087" data-errtype="参数校验失败">
+                      <td class="mono">coupon-service</td>
+                      <td class="mono">POST /api/v1/coupon/use</td>
+                      <td class="mono">b4e7a1c93d2f6085</td>
+                      <td><span class="tag tag-gray">HTTP/2</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">10.20.4.28</td>
+                      <td class="mono">8087</td>
+                      <td><span class="tag tag-warning">400</span></td>
+                      <td class="mono">10-30 15:42:06.412</td>
+                      <td>6 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="10" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="10" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="11" data-app="app-settle" data-name="结算中心" data-service="settle-service" data-trace="8c1d5f2a7b3e9041" data-api="GET /api/v1/settle/bill" data-reqip="10.20.3.11" data-resip="10.20.16.41" data-proto="gRPC" data-fmt="Protobuf" data-status="200" data-reqtime="2026-10-30 15:42:05.976" data-rettime="2026-10-30 15:42:06.382" data-cost="406" data-req="{&#10;  &quot;appCode&quot;: &quot;app-settle&quot;,&#10;  &quot;merchantId&quot;: &quot;M200139&quot;,&#10;  &quot;period&quot;: &quot;2026-10&quot;&#10;}" data-res="{&#10;  &quot;code&quot;: 0,&#10;  &quot;message&quot;: &quot;OK&quot;,&#10;  &quot;data&quot;: { &quot;billNo&quot;: &quot;BL20261000031&quot;, &quot;amount&quot;: 86420.00 },&#10;  &quot;traceId&quot;: &quot;8c1d5f2a7b3e9041&quot;&#10;}" data-reqh="GET /api/v1/settle/bill HTTP/2&#10;Host: api-gw.example.com&#10;Content-Type: application/grpc+proto&#10;X-AppCode: app-settle&#10;X-Request-Id: 8c1d5f2a7b3e9041&#10;X-Forwarded-For: 10.20.3.11&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.8c1d5f2a...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 236&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/2 200&#10;Content-Type: application/grpc+proto&#10;Content-Length: 186&#10;X-Response-Time: 406ms&#10;X-Gateway-Node: gw-node-06&#10;X-Upstream-Host: 10.20.16.41:8088&#10;X-Trace-Id: 8c1d5f2a7b3e9041&#10;Date: Fri, 30 Oct 2026 07:42:21 GMT" data-reqlen="236" data-reslen="186" data-resfmt="Protobuf" data-reqport="53307" data-resport="8088" data-errtype="无">
+                      <td class="mono">settle-service</td>
+                      <td class="mono">GET /api/v1/settle/bill</td>
+                      <td class="mono">8c1d5f2a7b3e9041</td>
+                      <td><span class="tag tag-gray">gRPC</span></td>
+                      <td>Protobuf</td>
+                      <td class="mono" title="Protobuf">Protobuf</td>
+                      <td class="mono">10.20.3.11</td>
+                      <td class="mono">8088</td>
+                      <td><span class="tag tag-success">200</span></td>
+                      <td class="mono">10-30 15:42:05.976</td>
+                      <td>406 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="11" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="11" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                    <tr data-idx="12" data-app="app-report" data-name="报表中心" data-service="report-service" data-trace="e93a4c7b1d2f5068" data-api="POST /api/v1/report/export" data-reqip="172.16.9.7" data-resip="10.20.16.29" data-proto="HTTP/1.1" data-fmt="JSON" data-status="502" data-reqtime="2026-10-30 15:42:05.530" data-rettime="2026-10-30 15:42:08.210" data-cost="2680" data-req="{&#10;  &quot;appCode&quot;: &quot;app-report&quot;,&#10;  &quot;reportType&quot;: &quot;DAILY_TRADE&quot;,&#10;  &quot;dateRange&quot;: [&quot;2026-10-01&quot;, &quot;2026-10-30&quot;]&#10;}" data-res="{&#10;  &quot;code&quot;: 502,&#10;  &quot;message&quot;: &quot;上游返回非法响应（Bad Gateway）&quot;,&#10;  &quot;traceId&quot;: &quot;e93a4c7b1d2f5068&quot;&#10;}" data-reqh="POST /api/v1/report/export HTTP/1.1&#10;Host: api-gw.example.com&#10;Content-Type: application/json;charset=UTF-8&#10;X-AppCode: app-report&#10;X-Request-Id: e93a4c7b1d2f5068&#10;X-Forwarded-For: 172.16.9.7&#10;Authorization: Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.e93a4c7b...&#10;User-Agent: okhttp/4.12.0&#10;Content-Length: 152&#10;Accept-Encoding: gzip, deflate" data-resh="HTTP/1.1 502 Bad Gateway&#10;Content-Type: application/json;charset=UTF-8&#10;Content-Length: 342&#10;X-Response-Time: 2680ms&#10;X-Gateway-Node: gw-node-01&#10;X-Upstream-Host: 10.20.16.29:8089&#10;X-Trace-Id: e93a4c7b1d2f5068&#10;Date: Fri, 30 Oct 2026 07:42:22 GMT" data-reqlen="152" data-reslen="342" data-resfmt="JSON" data-reqport="49518" data-resport="8089" data-errtype="上游响应异常">
+                      <td class="mono">report-service</td>
+                      <td class="mono">POST /api/v1/report/export</td>
+                      <td class="mono">e93a4c7b1d2f5068</td>
+                      <td><span class="tag tag-gray">HTTP/1.1</span></td>
+                      <td>JSON</td>
+                      <td class="mono" title="JSON">JSON</td>
+                      <td class="mono">172.16.9.7</td>
+                      <td class="mono">8089</td>
+                      <td><span class="tag tag-danger">502</span></td>
+                      <td class="mono">10-30 15:42:05.530</td>
+                      <td>2,680 ms</td>
+                      <td><a class="lnk" data-open="req" data-idx="12" href="javascript:void(0)">请求参数</a> · <a class="lnk" data-open="res" data-idx="12" href="javascript:void(0)">返回参数</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-footer">
+                <div class="text-sm muted" id="logPagerInfo"></div>
+                <div class="pagination" id="logPager"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+  <script src="../assets/js/nav.js?v=20261103"></script>
+  <script>initLayout('trace');</script>
+  <script>initCellTips();</script>
+  <script>
+    /* 请求日志：条件过滤 + 分页 + 请求/返回参数展开 */
+    (function () {
+      const tbody = document.querySelector('.card-body.no-pad table tbody');
+      if (!tbody) return;
+      const rows = Array.from(tbody.querySelectorAll('tr[data-idx]'));
+      /* 请求 / 返回参数直接存在行的 data-req、data-res 上，不再有行内展开块 */
+      const data = rows.map((tr) => ({ tr, d: tr.dataset }));
+      const sel = (k) => document.querySelector('[data-filter="' + k + '"]');
+      const PAGE_SIZE = 10;
+      let page = 1;
+
+      function match(row) {
+        const d = row.d;
+        const kw = (sel('trace') && sel('trace').value.trim().toLowerCase()) || '';
+        if (kw && d.trace.toLowerCase().indexOf(kw) === -1) return false;
+        const app = sel('app') ? sel('app').value : '';
+        if (app && (d.app + ' · ' + d.name) !== app) return false;
+        const svc = sel('service') ? sel('service').value : '';
+        if (svc && d.service !== svc) return false;
+        const api = sel('api') ? sel('api').value : '';
+        if (api && d.api !== api) return false;
+        const proto = sel('proto') ? sel('proto').value : '';
+        if (proto && d.proto !== proto) return false;
+        const fmt = sel('fmt') ? sel('fmt').value : '';
+        if (fmt && d.fmt !== fmt) return false;
+        const st = sel('status') ? sel('status').value : '';
+        if (st && d.status !== st) return false;
+        const rt = sel('reqtime') ? sel('reqtime').value : '';
+        if (rt && d.reqtime.indexOf(rt) !== 0) return false;
+        const et = sel('errtype') ? sel('errtype').value : '';
+        if (et && d.errtype !== et) return false;
+        const cost = sel('cost') ? Number(sel('cost').value) : 0;
+        if (cost && Number(d.cost) <= cost) return false;
+        return true;
+      }
+
+      function renderPager(total, pages) {
+        const info = document.getElementById('logPagerInfo');
+        const pager = document.getElementById('logPager');
+        if (!info || !pager) return;
+        info.textContent = '共 ' + total + ' 条 · 每页 ' + PAGE_SIZE + ' 条 · 第 ' + page + ' / ' + pages + ' 页';
+        let html = '<button class="page-btn" data-go="prev">上一页</button>';
+        for (let i = 1; i <= pages; i += 1) {
+          html += '<button class="page-btn' + (i === page ? ' active' : '') + '" data-go="' + i + '">' + i + '</button>';
+        }
+        html += '<button class="page-btn" data-go="next">下一页</button>';
+        pager.innerHTML = html;
+        pager.querySelectorAll('.page-btn').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const go = btn.getAttribute('data-go');
+            if (go === 'prev') page = Math.max(1, page - 1);
+            else if (go === 'next') page = Math.min(pages, page + 1);
+            else page = Number(go);
+            render();
+          });
+        });
+      }
+
+      function render(resetPage) {
+        if (resetPage) page = 1;
+        const shown = data.filter(match);
+        const pages = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
+        if (page > pages) page = pages;
+        const slice = shown.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+        data.forEach((row) => { row.tr.style.display = 'none'; });
+        slice.forEach((row) => {
+          row.tr.style.display = '';
+          tbody.appendChild(row.tr);
+        });
+        renderPager(shown.length, pages);
+        if (window.fitTableRows) fitTableRows();
+      }
+
+      /* 点击行 / 操作链接：右侧抽屉展示这条记录的完整详情 */
+      /* Header 按 key & value 展示；首行（请求行 / 状态行）单独成行 */
+      function headerKv(text) {
+        const lines = (text || '').split('\n');
+        let html = '';
+        lines.forEach((line) => {
+          const i = line.indexOf(': ');
+          if (i === -1) {
+            html += '<div class="hdr-start">' + line + '</div>';
+          } else {
+            html += '<div class="hdr-line">'
+                  + '<span class="hdr-k">' + line.slice(0, i) + '</span>'
+                  + '<span class="hdr-v">' + line.slice(i + 2) + '</span>'
+                + '</div>';
+          }
+        });
+        return '<div class="hdr-box">' + html + '</div>';
+      }
+
+      function detailHtml(row) {
+        const td = row.tr.querySelectorAll('td');
+        const cost = td[10] ? td[10].textContent.trim() : '';
+        const fields = [
+          ['应用ID', row.d.app], ['应用名', row.d.name],
+          ['服务名', row.d.service], ['接口名', row.d.api],
+          ['traceId', row.d.trace], ['协议', row.d.proto],
+          ['请求格式', row.d.fmt], ['返回格式', row.d.resfmt],
+          ['请求IP', row.d.reqip], ['请求端口', row.d.reqport],
+          ['回复IP', row.d.resip], ['回复端口', row.d.resport], ['状态码', row.d.status],
+          ['请求时间', row.d.reqtime], ['返回时间', row.d.rettime],
+          ['耗时', cost],
+          ['请求字节数', fmtBytes(row.d.reqlen)], ['返回字节数', fmtBytes(row.d.reslen)],
+          ['网关错误类型', row.d.errtype === '无' ? '—' : row.d.errtype]
+        ];
+        const kv = fields.map((f) =>
+          '<div class="kv-item"><span class="text-sm muted">' + f[0] + '</span><b>' + f[1] + '</b></div>'
+        ).join('');
+        const req = row.d.req || '（无）';
+        const res = row.d.res || '（无）';
+        const reqh = row.d.reqh || '（无）';
+        const resh = row.d.resh || '（无）';
+
+        return '<div class="drawer-sec">'
+            + '<div class="drawer-sec-title">基本信息</div>'
+            + '<div class="kv-grid">' + kv + '</div>'
+          + '</div>'
+          + '<div class="drawer-sec" id="secReqH">'
+            + '<div class="drawer-sec-title">请求 Header</div>'
+            + headerKv(reqh)
+          + '</div>'
+          + '<div class="drawer-sec" id="secReq">'
+            + '<div class="drawer-sec-title">请求参数</div>'
+            + '<div class="code-block">' + req + '</div>'
+          + '</div>'
+          + '<div class="drawer-sec" id="secResH">'
+            + '<div class="drawer-sec-title">响应 Header</div>'
+            + headerKv(resh)
+          + '</div>'
+          + '<div class="drawer-sec" id="secRes">'
+            + '<div class="drawer-sec-title">返回参数</div>'
+            + '<div class="code-block">' + res + '</div>'
+          + '</div>';
+      }
+
+      function showDetail(row, focusId) {
+        openDrawer('请求详情 · ' + row.d.trace, detailHtml(row), focusId);
+      }
+
+      data.forEach((row) => {
+        row.tr.style.cursor = 'pointer';
+        row.tr.addEventListener('click', (e) => {
+          if (e.target.closest('a')) return;    /* 操作链接单独处理 */
+          showDetail(row);
+        });
+      });
+
+      document.querySelectorAll('a.lnk[data-open]').forEach((a) => {
+        a.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const idx = a.getAttribute('data-idx');
+          const kind = a.getAttribute('data-open');
+          const row = data.find((r) => r.d.idx === idx);
+          if (!row) return;
+          showDetail(row, kind === 'req' ? 'secReq' : 'secRes');
+        });
+      });
+
+      ['trace', 'app', 'service', 'api', 'proto', 'fmt', 'status', 'errtype', 'reqtime', 'cost'].forEach((k) => {
+        const el = sel(k);
+        if (!el) return;
+        el.addEventListener('input', () => render(true));
+        el.addEventListener('change', () => render(true));
+      });
+
+      const searchBtn = document.getElementById('logSearch');
+      if (searchBtn) searchBtn.addEventListener('click', () => render(true));
+      const resetBtn = document.getElementById('logReset');
+      if (resetBtn) resetBtn.addEventListener('click', () => {
+        ['trace', 'reqtime', 'app', 'service', 'api', 'proto', 'fmt', 'status', 'errtype', 'cost'].forEach((k) => {
+          if (sel(k)) sel(k).value = '';
+        });
+        render(true);
+      });
+
+      render(true);
+      setTimeout(function () { if (window.fitTableRows) fitTableRows(); }, 60);
+    })();
+  </script>
+</body>
+</html>
