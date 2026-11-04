@@ -100,4 +100,18 @@ const onCommand = async (cmd) => {
 .user-chip:hover { background: var(--sidebar-hover); }
 .avatar { background: var(--gw-primary); font-size: 12px; }
 .user-name { font-size: 12.5px; }
+
+/* ===== 响应式：按可用宽度逐级丢弃次要信息，标题始终保留 ===== */
+@media (max-width: 1100px) {
+  .page-subtitle { display: none; }
+}
+
+@media (max-width: 768px) {
+  .topbar { padding: 0 10px; }
+  .topbar-right { gap: 8px; }
+  /* Nacos 状态标签最次要，窄屏让位给用户菜单 */
+  .topbar-right > .el-tag { display: none; }
+  .user-name { display: none; }
+  .user-chip { padding: 4px 6px; }
+}
 </style>

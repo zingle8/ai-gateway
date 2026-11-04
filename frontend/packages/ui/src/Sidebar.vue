@@ -6,7 +6,13 @@
     </div>
     <nav class="nav">
       <template v-for="(item, i) in menus" :key="i">
-        <div v-if="item.path" class="nav-item" :class="{ active: isActive(item.path) }" @click="go(item.path)">
+        <div
+          v-if="item.path"
+          class="nav-item"
+          :class="{ active: isActive(item.path) }"
+          :title="item.title"
+          @click="go(item.path)"
+        >
           <el-icon><component :is="item.icon" /></el-icon>
           <span>{{ item.title }}</span>
         </div>
@@ -17,6 +23,7 @@
             :key="child.path"
             class="nav-item sub"
             :class="{ active: isActive(child.path) }"
+            :title="child.title"
             @click="go(child.path)"
           >
             <el-icon><component :is="child.icon" /></el-icon>
@@ -118,5 +125,24 @@ const go = (path) => router.push(path)
   font-size: 11px;
   color: var(--gw-text-tertiary);
   letter-spacing: .04em;
+}
+
+/* ===== 响应式：中等宽度收起为图标栏，只留图标（悬停有 title 提示） ===== */
+@media (max-width: 1100px) {
+  .sidebar { width: 60px; }
+  .brand { justify-content: center; padding: 0 6px; gap: 0; }
+  .brand-text,
+  .brand-mark,
+  .nav-group-title { display: none; }
+  .nav-item,
+  .nav-item.sub {
+    justify-content: center;
+    padding: 9px 0;
+  }
+  .nav-item span { display: none; }
+  .nav-item .el-icon { font-size: 17px; }
+  /* 图标模式下一级与子项之间的分组分隔线，弥补分组标题消失后的层级感 */
+  .nav-group + .nav-item,
+  .nav-item + .nav-group { border-top: 1px solid var(--gw-border-light); margin-top: 4px; padding-top: 8px; }
 }
 </style>

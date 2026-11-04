@@ -97,7 +97,7 @@ const onLogin = async () => {
   background: linear-gradient(135deg, #F7F8FA 0%, #EDF0F4 100%);
 }
 
-.login-card { width: 380px; padding: 28px; }
+.login-card { width: min(380px, calc(100vw - 32px)); padding: 28px; }
 
 .login-hd {
   display: flex;

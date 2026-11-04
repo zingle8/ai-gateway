@@ -71,9 +71,11 @@
           <el-table-column label="耗时" width="90">
             <template #default="{ row }">{{ row.cost }} ms</template>
           </el-table-column>
-          <el-table-column label="操作" width="130" fixed="right">
+          <el-table-column label="操作" :width="narrow ? 88 : 130" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click.stop="openDetail(row)">请求参数 · 返回参数</el-button>
+              <el-button link type="primary" @click.stop="openDetail(row)">
+                {{ narrow ? '详情' : '请求参数 · 返回参数' }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -93,7 +95,7 @@
     </section>
 
     <!-- 日志详情抽屉 -->
-    <el-drawer v-model="detailVisible" :title="'请求详情 · ' + (detail.traceId || '')" size="620px">
+    <el-drawer v-model="detailVisible" :title="'请求详情 · ' + (detail.traceId || '')" size="min(620px, 94vw)">
       <div v-if="detail.traceId" v-loading="detailLoading">
         <div class="drawer-sec">
           <div class="drawer-sec-title">基本信息</div>
@@ -167,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { fetchTraceLogs, fetchTraceFilters, fetchTraceLogDetail } from '../api'
 import { fmtTime, fmtBytes, statusTagType, parseHeaders } from '@zimo/shared'
 
@@ -328,6 +330,14 @@ const basicFields = computed(() => {
     { label: '网关错误类型', value: d.errType === '无' ? '—' : d.errType }
   ]
 })
+
+// 窄屏（≤768px）把固定操作列收窄为「详情」，避免长文案在固定列里被裁
+const narrow = ref(false)
+const mq = window.matchMedia('(max-width: 768px)')
+narrow.value = mq.matches
+const onMqChange = (e) => { narrow.value = e.matches }
+mq.addEventListener('change', onMqChange)
+onUnmounted(() => mq.removeEventListener('change', onMqChange))
 
 onMounted(async () => {
   await loadFilters()

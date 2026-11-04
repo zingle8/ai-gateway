@@ -41,6 +41,24 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* 页面容器：统一内边距 + 自身滚动。
+   之前没有样式，shell-content 又是 overflow:hidden，窗口高度不足时列表底部与分页会被裁掉。 */
+.page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px;
+}
+
+/* 过滤栏：统一换行，避免各页面各写一份 */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 .gw-card {
   background: var(--gw-card);
   border: 1px solid var(--gw-border);
@@ -67,10 +85,11 @@ body {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-/* 指标卡 */
+/* 指标卡：列数随宽度自适应（桌面 5 列 → 平板 4/3 列 → 手机 1 列）。
+   minmax 取 215px 是为了在 1440 宽下仍落在 5 列，保持原有版式。 */
 .gw-stats {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(215px, 1fr));
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -142,4 +161,38 @@ body {
   .gw-stat-value { font-size: 15.5px; }
   .gw-stat-trend { font-size: 10.5px; }
   .gw-icon { width: 22px; height: 22px; }
+}
+
+/* ===== 窄屏（平板竖屏 / 手机） ===== */
+@media (max-width: 768px) {
+  .page { padding: 8px; }
+
+  /* 过滤栏改两列网格：9 个控件一行一个太占屏，两列可省一半高度。
+     控件内联 width（如 style="width:220px"）一并覆盖。 */
+  .filter-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: 8px;
+  }
+  .filter-bar .el-input,
+  .filter-bar .el-select { width: 100% !important; }
+  /* 按钮与其他非控件元素不拉伸，说明文字独占一行 */
+  .filter-bar > .el-button { justify-self: start; }
+  .filter-bar > span { grid-column: 1 / -1; }
+
+  /* 卡片标题行（含趋势粒度切换）允许换行，避免按钮组被挤出右侧 */
+  .gw-card-hd { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+  .gw-card-bd { padding: 10px 12px; }
+
+  /* 趋势粒度 / 时间窗口按钮组自带换行 */
+  .trend-switch { flex-wrap: wrap; }
+
+  /* 分页条：空间不够时纵向排列，翻页器居中 */
+  .gw-card-ft { flex-wrap: wrap; justify-content: center; }
+}
+
+/* 手机竖屏：指标卡单列 */
+@media (max-width: 480px) {
+  .gw-stats { grid-template-columns: 1fr; }
 }

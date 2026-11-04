@@ -75,7 +75,7 @@
     </section>
 
     <!-- 服务详情抽屉 -->
-    <el-drawer v-model="detailVisible" :title="'服务详情 · ' + (detail.serviceName || '')" size="560px">
+    <el-drawer v-model="detailVisible" :title="'服务详情 · ' + (detail.serviceName || '')" size="min(560px, 94vw)">
       <div v-if="detail.serviceName" class="drawer-sec">
         <div class="drawer-sec-title">基本信息</div>
         <div class="kv-grid">
@@ -195,12 +195,7 @@ const detailFields = computed(() => {
 </script>
 
 <style scoped>
-.filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
+/* .filter-bar 布局由 @zimo/shared 全局样式统一提供（含窄屏两列网格），此处不再重复定义 */
 
 .status-dot {
   display: inline-block;

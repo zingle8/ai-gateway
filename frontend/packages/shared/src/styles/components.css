@@ -107,3 +107,16 @@
 .status-dot.success { background: var(--gw-success); }
 .status-dot.warning { background: var(--gw-warning); }
 .status-dot.danger { background: var(--gw-danger); }
+
+/* ===== 窄屏适配（抽屉内的键值区与 Header 行） ===== */
+@media (max-width: 900px) {
+  /* 两列键值区在窄抽屉里挤成两行字，改为单列 */
+  .kv-grid { grid-template-columns: 1fr; gap: 8px; }
+}
+
+@media (max-width: 768px) {
+  /* Header 键名列固定 150px 太占空间 */
+  .hdr-k { width: 92px; font-size: 11.5px; }
+  .hdr-line { gap: 8px; padding: 6px 10px; }
+  .code-block { max-height: 240px; padding: 10px; }
+}
