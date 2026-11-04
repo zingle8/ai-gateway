@@ -43,8 +43,6 @@
           <el-table-column prop="port" label="端口" width="80" />
           <el-table-column prop="language" label="语言类型" width="110" />
           <el-table-column prop="version" label="版本号" width="100" />
-          <el-table-column prop="qps" label="QPS" width="90" />
-          <el-table-column prop="avgRt" label="平均 RT" width="100" />
           <el-table-column label="健康状态" width="110">
             <template #default="{ row }">
               <span class="status-dot" :class="dotClass(row.status)"></span> {{ row.status }}
