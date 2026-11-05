@@ -113,3 +113,14 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 1. **环境变量**：如 `GATEWAY_JWT_SECRET=xxx ./scripts/start.sh`（已支持 `${VAR:default}` 占位符的项）；
 2. **Nacos 配置中心**：在控制台修改 `api-jv-api-gateway-<service>.yaml`，服务重启后生效（当前为 optional 引入）；
 3. **直接改 `application.yml`**：改完需 `./scripts/restart.sh backend --build` 重新构建生效。
+
+## 平台配置的多来源存储
+
+| 来源 | 位置 | 默认值 |
+| --- | --- | --- |
+| DB | MySQL `api_gateway.tb_sys_config.config_value` | 3 个平台开关默认落这里 |
+| Redis | Hash `gw:config:platform`（field = 配置键） | 连接沿用 `spring.data.redis.*` |
+| Nacos | `DEFAULT_GROUP / gw-platform-config.properties`（properties 文本） | 地址 `127.0.0.1:8848`，账号 `nacos/nacos`，可用 `NACOS_ADDR` / `NACOS_USERNAME` / `NACOS_PASSWORD` 覆盖 |
+
+> 元数据（key / 来源 / 平台 / 应用 / 服务）始终在 MySQL；值在所选存储里。
+> 远端不可达时控制台展示最后写入快照并标记 STALE。

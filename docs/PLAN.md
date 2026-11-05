@@ -43,7 +43,14 @@
 
 - **结论**：平台级配置统一存 `tb_sys_config`，由 `jv-api-gateway-config`（28085）提供读写，其他模块短周期轮询实现"改完即生效"。
 - **理由**：菜单状态标识、鉴权缓存模式、开放认证开关这类开关需要**运行时热切换**且要能被控制台编辑；直接读 Nacos 会引入配置中心强依赖，且 Nacos 变更无法从控制台可视化回写。
-- **当前能力**：`GET /configs`（需登录）、`GET /configs/public`（免登录公开开关）、`PUT /configs/{key}`；3 个种子配置（`platform.menu.health.enabled`、`platform.auth.cache.mode`、`platform.open.auth.enabled`）。
+- **当前能力**：`GET /configs`（需登录）、`GET /configs/public`（免登录公开开关）、`POST /configs`、`PUT /configs/{key}`、`DELETE /configs/{key}`；3 个种子配置（`platform.menu.health.enabled`、`platform.auth.cache.mode`、`platform.open.auth.enabled`）。
+- **多来源托管（ADR-003 补充）**：**元数据永远在 MySQL**（key / 来源 / 平台 / 应用 / 服务 / 类型 / 备注），值可落三种存储：
+  | 来源 | 存储形态 | 定位（source_ref） | 说明 |
+  | --- | --- | --- | --- |
+  | `DB` | `tb_sys_config.config_value` | 无需 | 默认，零依赖 |
+  | `REDIS` | Hash，field = 配置键 | Hash 键（默认 `gw:config:platform`） | 多实例共享，读写走 `spring.data.redis` |
+  | `NACOS` | properties 文本（dataId 级文件） | `dataId|groupName`（默认 `gw-platform-config.properties|DEFAULT_GROUP`） | 走 Nacos 3.x v3 admin OpenAPI，改单 key 时读整份文件再整体发布，不覆盖同文件其他配置 |
+- **降级语义**：远端不可达或 key 被外部删除时，接口返回 MySQL 快照并置 `valueState=STALE`，控制台显示"来源不可达 · 显示最后写入值"，不会因中间件故障打不开系统设置页。
 
 ### ADR-004 鉴权缓存：Redis 优先、MySQL 兜底
 
@@ -91,6 +98,9 @@
 
 ### 配置（config）
 - 3 个平台开关的读写；公开开关免登录；变更 10~30 秒内在各模块生效
+- **多来源托管**：配置项可指定落 DB / Redis Hash / Nacos（properties），列表展示来源、来源定位（连接串+Hash/dataId）、所属平台 / 应用 / 服务
+- 新增 / 编辑 / 删除均同步目标存储；远端不可达回落快照并标记 `STALE`
+- 控制台：来源统计卡片（可点击筛选）、新增对话框（来源 + 归属 + 定位）、删除二次确认
 
 ### 前端
 - 登录 / 注册双 Tab；分组与权限三页接真实接口；API Key 管理页（含统计看板）
@@ -121,8 +131,8 @@
 | 日志追踪检索页 | 后端 span / log / 拓扑已就绪，前端筛选、链路详情、慢调用定位待完善 |
 | 服务发现控制台 | 注册表与心跳已有，缺实例下线 / 权重 / 健康剔除的可视化 |
 | 菜单按权限动态渲染 | 现有权限点已下发 `permCodes`，前端菜单尚未按权限过滤（全部可见） |
-| 配置变更审计 | `tb_sys_config` 只有 `update_time`，缺"谁改的、改前值"；建议复用审计表模式 |
-| 配置与 Nacos 联动 | 当前只读本地表；若要推 Nacos，需在 `jv-api-gateway-config` 增加发布动作与失败回滚 |
+| 配置变更审计 | `tb_sys_config` 只有 `update_time`，缺"谁改的、改前值"；建议复用 `tb_gw_api_key_log` 的审计表模式 |
+| Nacos 复杂格式 | 当前 NACOS 来源只处理 properties 扁平键值；YAML 多层级配置仍建议在 Nacos 控制台维护、平台只读接入 |
 | 告警 | 总览页有告警设计稿，后端无规则引擎与通知渠道 |
 
 ### P2 —— 长期演进

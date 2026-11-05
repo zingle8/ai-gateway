@@ -15,6 +15,7 @@ public enum ResultCode {
     UNAUTHORIZED(401, "未登录或登录已过期"),
     FORBIDDEN(403, "没有操作权限"),
     NOT_FOUND(404, "资源不存在"),
+    CONFLICT(409, "资源已存在或状态冲突"),
     TOO_MANY_REQUESTS(429, "请求过于频繁"),
     ERROR(500, "服务器内部错误");
 

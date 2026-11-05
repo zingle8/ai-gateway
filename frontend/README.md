@@ -76,7 +76,7 @@ modules/<name>/
 - 「登录方式 / 单点登录 / 令牌与会话 / 安全策略」四页为**前端设计稿**：交互可用、数据为本地示例，
   接口约定见 `modules/auth/src/api.js` 末尾注释，后端就绪后替换数据源即可，页面结构不动；
 - **已对接后端**：用户管理 / API Key（`/keys`）/ 分组管理 / 部门组织 / 平台功能与菜单
-  （`/perm/*`）/ 系统设置（`/configs`，jv-api-gateway-config 服务）/ 开放认证文档页，
+  （`/perm/*`）/ 系统设置（`/configs`，支持 DB / Redis / Nacos 多来源托管与平台/应用/服务归属）/ 开放认证文档页，
   登录页含「账号登录 / 注册账号」双 Tab（`/auth/register`，注册即登录）；
 - 菜单 `icon` 需在 `apps/portal/src/main.js` 注册（本次新增 `Lock / Key / Link / Timer / SetUp / Tools`）。
 
@@ -133,7 +133,7 @@ modules/<name>/
 | `@zimo/module-discovery` | `/api/discovery` | `jv-api-gateway-discovery` | 28083 |
 | `@zimo/module-trace` | `/api/trace` | `jv-api-gateway-trace` | 28084 |
 | `@zimo/module-auth` + `@zimo/shared/api/auth` | `/api/users`、`/api/auth` | `jv-api-gateway-user`（认证中心） | 28081 |
-| `@zimo/module-system` | —（角色 / 系统设置页待接入） | `jv-api-gateway-user` | 28081 |
+| `@zimo/module-system` | 系统设置已接入（多来源配置） | `jv-api-gateway-config` | 28085 |
 | `@zimo/module-onboard` | `/api/discovery` | `jv-api-gateway-discovery` | 28083 |
 | 全部模块（统一入口） | `/api/**` | `jv-api-gateway-proxy`（按路由转发） | 28090 |
 

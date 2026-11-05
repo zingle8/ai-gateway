@@ -606,3 +606,19 @@ java -jar jv-api-gateway-proxy/target/jv-api-gateway-proxy.jar      # 流量入�
 - **入参 / 出参**：`XxxRequest` / `XxxVO`，Controller 不直接暴露实体
 - **服务**：`XxxService` 接口 + `XxxServiceImpl` 实现
 - **SQL**：`backend/sql/<模块>-<功能>-<主表>.sql`，幂等（`CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE`）
+
+## 平台配置的多来源存储
+
+配置**元数据**（key、来源、平台、应用、服务、类型、备注）永远在 MySQL `tb_sys_config`，
+**值**按 `config_source` 落到不同存储：
+
+| 来源 | 存储 | source_ref | 实现 |
+| --- | --- | --- | --- |
+| `DB` | `tb_sys_config.config_value` | — | `DbConfigStore` |
+| `REDIS` | Hash（field = 配置键） | Hash 键，默认 `gw:config:platform` | `RedisConfigStore`（`StringRedisTemplate`） |
+| `NACOS` | properties 文本（dataId 级） | `dataId|groupName`，默认 `gw-platform-config.properties|DEFAULT_GROUP` | `NacosConfigStore`（v3 admin OpenAPI + token 缓存） |
+
+- 写入单 key 到 Nacos 时先读整份 dataId 内容、替换目标行再整体发布，不会覆盖同文件其他配置
+- 远端不可达 / key 被外部删除：接口返回 MySQL 快照并置 `valueState=STALE`，控制台提示"来源不可达 · 显示最后写入值"
+- 连接参数：`spring.data.redis.*`、`gateway.config-store.nacos.*`（`NACOS_ADDR` / `NACOS_USERNAME` / `NACOS_PASSWORD` 可覆盖）
+- 存量库补列由 `ConfigSchemaInitializer` 用 `DatabaseMetaData` 判断后 ALTER（MySQL 5.7 无 `ADD COLUMN IF NOT EXISTS`）

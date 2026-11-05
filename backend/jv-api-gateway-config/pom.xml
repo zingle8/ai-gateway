@@ -24,6 +24,16 @@
       <groupId>com.zimo.gateway</groupId>
       <artifactId>jv-api-gateway-common</artifactId>
     </dependency>
+    <!-- Redis：平台配置可托管在 Redis Hash（Redis 不可用不阻塞服务启动） -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+    </dependency>
+
     <!-- 接入自身平台的 SDK：注册实例 + 心跳 -->
     <dependency>
       <groupId>com.zimo.gateway</groupId>

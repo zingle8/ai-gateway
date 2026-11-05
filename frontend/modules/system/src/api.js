@@ -7,6 +7,12 @@ import request from '@zimo/shared/request'
 /** 全量配置（需登录） */
 export const fetchConfigs = () => request.get('/configs')
 
+/** 新增配置：可指定落 DB / Redis / Nacos，并标注平台/应用/服务 */
+export const createConfig = (data) => request.post('/configs', data)
+
+/** 删除配置（同时清理对应存储） */
+export const deleteConfig = (key) => request.delete(`/configs/${key}`)
+
 /** 修改单个配置值，30 秒内生效 */
 export const updateConfig = (key, value) => request.put(`/configs/${key}`, { value })
 
