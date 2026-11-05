@@ -23,6 +23,12 @@ public interface ApiKeyService {
     /** 轮换：keyId 不变、换新密钥，旧 Key 立即失效 */
     ApiKeyCreatedVO rotate(Long id);
 
+    /**
+     * 续期：延长有效期，密钥不变。
+     * 未过期在原到期时间上顺延；已过期从当前时间起算（续期后立即恢复可用）；永久 Key 不允许续期。
+     */
+    ApiKeyVO renew(Long id, int renewDays);
+
     void delete(Long id);
 
     /** 统计看板（总数 / 今日新增·轮换·吊销·删除·启用 / 7 日内到期） */

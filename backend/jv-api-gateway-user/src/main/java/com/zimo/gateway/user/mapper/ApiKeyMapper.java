@@ -39,6 +39,10 @@ public interface ApiKeyMapper {
     @Update("UPDATE tb_gw_api_key SET secret_hash = #{secretHash} WHERE id = #{id}")
     int updateSecret(@Param("id") Long id, @Param("secretHash") String secretHash);
 
+    /** 续期：只改到期时间，密钥与 keyId 不变 */
+    @Update("UPDATE tb_gw_api_key SET expire_at = #{expireAt} WHERE id = #{id}")
+    int updateExpireAt(@Param("id") Long id, @Param("expireAt") LocalDateTime expireAt);
+
     @Delete("DELETE FROM tb_gw_api_key WHERE id = #{id}")
     int deleteById(@Param("id") Long id);
 

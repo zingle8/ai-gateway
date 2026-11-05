@@ -50,6 +50,7 @@ export function updateUserStatus(id, status) {
 
 /* ==========================================================================
  * 已对接：API Key 管理（后端 /keys 接口；明文仅签发 / 轮换响应返回一次）
+ * 操作：签发 / 启停 / 轮换密钥 / 续期 / 吊销
  * ========================================================================== */
 
 export function fetchApiKeys() {
@@ -68,11 +69,16 @@ export function rotateApiKey(id) {
   return request.post(`/keys/${id}/rotate`)
 }
 
+/** 续期：只延长有效期（天数），密钥与 keyId 不变 */
+export function renewApiKey(id, renewDays) {
+  return request.post(`/keys/${id}/renew`, { renewDays })
+}
+
 export function revokeApiKey(id) {
   return request.delete(`/keys/${id}`)
 }
 
-/** 统计看板：总数 / 今日新增·轮换·吊销·删除·启用 / 7 日内到期 */
+/** 统计看板：总数 / 今日新增·轮换·续期·吊销·删除·启用 / 7 日内到期 */
 export function fetchApiKeyStats() {
   return request.get('/keys/stats')
 }

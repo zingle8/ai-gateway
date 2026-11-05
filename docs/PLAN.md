@@ -92,8 +92,9 @@
 - 登录 / 注册（注册即登录）/ 退出（token_version 自增）/ 当前用户权限点
 - 用户 CRUD、状态、重置密码
 - 分组权限：ORG 部门树 + PERM 权限组、成员、权限点全量替换、权限字典
-- API Key：签发 / 启停 / 轮换 / 删除，明文仅返回一次，库内只存 SHA-256
-- **API Key 统计看板**：总数、启用/停用、今日新增/轮换/吊销/删除/启用、7 日内到期；`tb_gw_api_key_log` 审计表 + `GET /keys/logs`
+- API Key：签发 / 启停 / 轮换 / **续期** / 删除，明文仅返回一次，库内只存 SHA-256
+- **API Key 续期**：`POST /keys/{id}/renew`（`renewDays` 1~3650）只延长有效期、不换密钥；未过期顺延、已过期从当前时间起算、永久 Key 拒绝
+- **API Key 统计看板**：总数、启用/停用、今日新增/轮换/续期/吊销/删除/启用、7 日内到期；`tb_gw_api_key_log` 审计表 + `GET /keys/logs`
 - **开放认证**：`/api/open/auth/{register,login,logout,token/verify}`，verify 同时支持用户 JWT 与 API Key
 
 ### 配置（config）
@@ -177,3 +178,4 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 | 日期 | 内容 |
 | --- | --- |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
+| 2026-11-05 | API Key 增加「续期」操作（`POST /keys/{id}/renew`），审计新增 `RENEW` 动作，看板增加「今日续期」；菜单「接入中心」移到「认证与安全」之后 |

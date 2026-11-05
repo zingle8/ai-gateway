@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS tb_gw_api_key_log (
   id               BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   key_id           VARCHAR(32)  NOT NULL                COMMENT 'Key 短标识（gwak-<keyId>-<secret>）',
   key_name         VARCHAR(64)           DEFAULT NULL   COMMENT '操作时的 Key 名称快照',
-  action           VARCHAR(16)  NOT NULL                COMMENT '动作：CREATE/ENABLE/DISABLE/ROTATE/DELETE',
+  action           VARCHAR(16)  NOT NULL                COMMENT '动作：CREATE/ENABLE/DISABLE/ROTATE/RENEW/DELETE',
   operator_user_id BIGINT               DEFAULT NULL   COMMENT '操作人用户 ID（开放接口/定时任务为 NULL）',
   operator_name    VARCHAR(64)           DEFAULT NULL   COMMENT '操作人账号快照',
   remark           VARCHAR(255)          DEFAULT NULL   COMMENT '备注',

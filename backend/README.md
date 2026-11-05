@@ -472,7 +472,9 @@ proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴
 ### API Key
 
 - 明文 `gwak-<keyId>-<secret>` 仅签发 / 轮换响应返回一次，服务端只存 SHA-256
-- 支持：签发（可选有效期）、启停、轮换（keyId 不变换新密钥）、吊销（删除）
+- 支持：签发（可选有效期）、启停、轮换（keyId 不变换新密钥）、**续期**（只延长有效期）、吊销（删除）
+- **续期语义**：未过期在原到期时间上顺延；已过期从当前时间起算（续期后立即恢复可用）；永久 Key 拒绝续期（400）
+- 每次变更写 `tb_gw_api_key_log`（CREATE / ENABLE / DISABLE / ROTATE / RENEW / DELETE），统计看板据此汇总今日动作
 - Key 管理接口本身属于控制台接口，仅支持 Bearer JWT；API Key 用于调用**业务路由**
 
 ## 接口清单
@@ -500,7 +502,10 @@ proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴
 | POST | `/api/keys` | 签发 API Key（明文仅此一次） |
 | PUT | `/api/keys/{id}/status` | 启用 / 停用 |
 | POST | `/api/keys/{id}/rotate` | 轮换密钥 |
+| POST | `/api/keys/{id}/renew` | 续期（`{"renewDays": 30}`，1~3650 天） |
 | DELETE | `/api/keys/{id}` | 吊销并删除 |
+| GET | `/api/keys/stats` | 统计看板（总数 / 今日新增·轮换·续期·吊销·删除·启用 / 7 日内到期） |
+| GET | `/api/keys/logs?limit=20` | 最近操作审计 |
 | GET | `/api/users` | 用户分页列表 |
 | GET | `/api/users/{id}` | 用户详情 |
 | POST | `/api/users` | 新增用户 |

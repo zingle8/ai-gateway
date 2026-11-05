@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.List;
 
@@ -29,7 +30,7 @@ import java.util.List;
  * 服务端仅存 SHA-256(secret)；网关用 X-Api-Key 头携带明文，比对哈希后放行。
  *
  * <p>每次变更写一条审计（tb_gw_api_key_log），统计看板据此汇总今日新增 /
- * 轮换 / 吊销 / 删除；主表只保留当前状态。
+ * 轮换 / 续期 / 吊销 / 删除；主表只保留当前状态。
  */
 @Slf4j
 @Service
@@ -91,6 +92,26 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     }
 
     @Override
+    public ApiKeyVO renew(Long id, int renewDays) {
+        ApiKeyEntity key = requireKey(id);
+        LocalDateTime current = key.getExpireAt();
+        if (current == null) {
+            throw new BizException(ResultCode.BAD_REQUEST.getCode(),
+                    "「" + key.getName() + "」为永久有效，无需续期");
+        }
+        boolean expired = current.isBefore(LocalDateTime.now());
+        // 未过期：在原到期时间上顺延；已过期：从当前时间起算，续期后立即恢复可用
+        LocalDateTime base = expired ? LocalDateTime.now() : current;
+        LocalDateTime next = base.plusDays(renewDays);
+        apiKeyMapper.updateExpireAt(id, next);
+        audit(key, "RENEW", String.format("续期 +%d 天（%s%s → %s）", renewDays,
+                fmt(current), expired ? "，已过期从当前时间起算" : "", fmt(next)));
+        log.info("API Key 续期：keyId={} +{} 天，{} -> {}", key.getKeyId(), renewDays, fmt(current), fmt(next));
+        return new ApiKeyVO(key.getId(), key.getKeyId(), key.getName(), key.getStatus(),
+                next, key.getLastUsedAt(), key.getLastUsedIp(), key.getCreateTime());
+    }
+
+    @Override
     public void delete(Long id) {
         ApiKeyEntity key = requireKey(id);
         apiKeyMapper.deleteById(id);
@@ -133,6 +154,12 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
     private LocalDateTime expireAt(Integer expireDays) {
         return expireDays == null || expireDays <= 0 ? null : LocalDateTime.now().plusDays(expireDays);
+    }
+
+    private static final DateTimeFormatter MINUTE = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private String fmt(LocalDateTime time) {
+        return time == null ? "永久" : time.format(MINUTE);
     }
 
     private String randomKey(int length) {

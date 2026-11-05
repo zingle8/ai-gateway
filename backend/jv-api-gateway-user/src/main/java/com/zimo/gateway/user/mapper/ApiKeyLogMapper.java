@@ -30,6 +30,7 @@ public interface ApiKeyLogMapper {
               (SELECT COUNT(*) FROM tb_gw_api_key WHERE status = 0)                              AS disabled,
               (SELECT COUNT(*) FROM tb_gw_api_key_log WHERE action = 'CREATE' AND create_time >= CURDATE())  AS todayCreated,
               (SELECT COUNT(*) FROM tb_gw_api_key_log WHERE action = 'ROTATE' AND create_time >= CURDATE())  AS todayRotated,
+              (SELECT COUNT(*) FROM tb_gw_api_key_log WHERE action = 'RENEW' AND create_time >= CURDATE())   AS todayRenewed,
               (SELECT COUNT(*) FROM tb_gw_api_key_log WHERE action = 'DISABLE' AND create_time >= CURDATE()) AS todayRevoked,
               (SELECT COUNT(*) FROM tb_gw_api_key_log WHERE action = 'DELETE' AND create_time >= CURDATE())  AS todayDeleted,
               (SELECT COUNT(*) FROM tb_gw_api_key_log WHERE action = 'ENABLE' AND create_time >= CURDATE())  AS todayEnabled,

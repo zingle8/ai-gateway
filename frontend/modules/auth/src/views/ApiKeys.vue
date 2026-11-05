@@ -39,9 +39,14 @@
               />
             </template>
           </el-table-column>
-          <el-table-column label="有效期至" width="120">
+          <el-table-column label="有效期至" width="190">
             <template #default="{ row }">
-              <span :class="{ 'gw-danger': expiring(row) }">{{ row.expireAt || '永久' }}</span>
+              <span v-if="!row.expireAt" class="gw-muted">永久</span>
+              <span v-else :class="{ 'gw-danger': expiring(row) }">{{ fmtDate(row.expireAt) }}</span>
+              <el-tag v-if="expired(row)" size="small" type="danger" effect="plain" class="expire-tag">已过期</el-tag>
+              <el-tag v-else-if="expiring(row)" size="small" type="warning" effect="plain" class="expire-tag">
+                即将到期
+              </el-tag>
             </template>
           </el-table-column>
           <el-table-column prop="lastUsedAt" label="最近使用" width="170">
@@ -50,9 +55,10 @@
             </template>
           </el-table-column>
           <el-table-column prop="createTime" label="创建时间" width="170" />
-          <el-table-column label="操作" width="170" fixed="right">
+          <el-table-column label="操作" width="230" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="rotate(row)">轮换密钥</el-button>
+              <el-button link type="primary" :disabled="!row.expireAt" @click="openRenew(row)">续期</el-button>
               <el-button link type="danger" @click="remove(row)">吊销</el-button>
             </template>
           </el-table-column>
@@ -60,7 +66,8 @@
       </div>
       <div class="gw-card-ft">
         <span class="gw-sm gw-muted">
-          明文只在签发 / 轮换时返回一次，服务端仅存 SHA-256；网关校验失败 / 停用 / 过期一律 401，缓存 30 秒后失效
+          明文只在签发 / 轮换时返回一次，服务端仅存 SHA-256；续期只延长有效期、不换密钥（已过期续期后立即恢复）；
+          网关校验失败 / 停用 / 过期一律 401，缓存 30 秒后失效
         </span>
       </div>
     </section>
@@ -83,6 +90,36 @@
       <template #footer>
         <el-button @click="issueDialog = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="issue">签发</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 续期 -->
+    <el-dialog v-model="renewDialog" title="续期 API Key" width="480px">
+      <el-form label-width="96px" size="small">
+        <el-form-item label="Key 名称">{{ renewRow?.name }}</el-form-item>
+        <el-form-item label="当前到期">
+          <span :class="{ 'gw-danger': expired(renewRow) }">{{ fmtDate(renewRow?.expireAt) }}</span>
+          <span class="gw-sm gw-muted renew-hint">{{ currentHint }}</span>
+        </el-form-item>
+        <el-form-item label="快捷续期">
+          <el-radio-group v-model="renewDays">
+            <el-radio-button :label="30">30 天</el-radio-button>
+            <el-radio-button :label="90">90 天</el-radio-button>
+            <el-radio-button :label="180">180 天</el-radio-button>
+            <el-radio-button :label="365">365 天</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="自定义天数">
+          <el-input-number v-model="renewDays" :min="1" :max="3650" size="small" />
+          <span class="gw-sm gw-muted renew-hint">1~3650 天</span>
+        </el-form-item>
+        <el-form-item label="续期后到期">
+          <b class="gw-mono">{{ renewPreview }}</b>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="renewDialog = false">取消</el-button>
+        <el-button type="primary" :loading="renewing" @click="submitRenew">确认续期</el-button>
       </template>
     </el-dialog>
 
@@ -110,7 +147,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  fetchApiKeys, fetchApiKeyStats, issueApiKey, setApiKeyStatus, rotateApiKey, revokeApiKey
+  fetchApiKeys, fetchApiKeyStats, issueApiKey, setApiKeyStatus, rotateApiKey, renewApiKey, revokeApiKey
 } from '../api.js'
 
 const loading = ref(false)
@@ -125,6 +162,7 @@ const statCards = computed(() => {
     { label: 'Key 总数', value: s.total ?? 0, hint: `启用 ${s.enabled ?? 0} · 停用 ${s.disabled ?? 0}`, tone: '' },
     { label: '今日新增', value: s.todayCreated ?? 0, hint: '签发 CREATE', tone: 'is-green' },
     { label: '今日轮换', value: s.todayRotated ?? 0, hint: '更换密钥 ROTATE', tone: 'is-blue' },
+    { label: '今日续期', value: s.todayRenewed ?? 0, hint: '延长有效期 RENEW', tone: 'is-blue' },
     { label: '今日吊销', value: s.todayRevoked ?? 0, hint: '停用 DISABLE', tone: 'is-orange' },
     { label: '今日删除', value: s.todayDeleted ?? 0, hint: '删除 DELETE', tone: 'is-red' },
     { label: '7 日内到期', value: s.expiringIn7Days ?? 0, hint: '建议提前轮换', tone: 'is-orange' }
@@ -137,13 +175,72 @@ const secretTitle = ref('API Key 签发成功')
 const created = ref(null)
 const form = reactive({ name: '', expireDays: 90 })
 
+/* 续期：只改到期时间，密钥不变 */
+const renewDialog = ref(false)
+const renewRow = ref(null)
+const renewDays = ref(90)
+const renewing = ref(false)
+
 const filtered = computed(() => {
   const k = keyword.value.trim()
   if (!k) return rows.value
   return rows.value.filter((r) => r.name.includes(k) || r.keyId.includes(k))
 })
 
-const expiring = (row) => row.expireAt && new Date(row.expireAt.replace(' ', 'T')).getTime() - Date.now() < 7 * 86400_000
+const parseTime = (value) => (value ? new Date(String(value).replace(' ', 'T')) : null)
+
+const fmtDate = (value) => {
+  if (value === null || value === undefined || value === '') return '永久'
+  const d = value instanceof Date ? value : parseTime(value)
+  if (!d || Number.isNaN(d.getTime())) return '—'
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+const expired = (row) => {
+  const d = parseTime(row?.expireAt)
+  return !!d && d.getTime() < Date.now()
+}
+
+const expiring = (row) => {
+  const d = parseTime(row?.expireAt)
+  return !!d && d.getTime() - Date.now() < 7 * 86400_000
+}
+
+/** 续期基准：未过期顺延，已过期从当前时间起算 */
+const renewBase = computed(() => {
+  const current = parseTime(renewRow.value?.expireAt)
+  return current && current.getTime() > Date.now() ? current : new Date()
+})
+
+const renewPreview = computed(() =>
+  fmtDate(new Date(renewBase.value.getTime() + (renewDays.value || 0) * 86400_000))
+)
+
+const currentHint = computed(() => {
+  if (!renewRow.value?.expireAt) return '永久有效'
+  if (expired(renewRow.value)) return '已过期，续期后从当前时间重新计时'
+  const days = Math.max(1, Math.ceil((parseTime(renewRow.value.expireAt).getTime() - Date.now()) / 86400_000))
+  return `剩余 ${days} 天`
+})
+
+const openRenew = (row) => {
+  renewRow.value = row
+  renewDays.value = 90
+  renewDialog.value = true
+}
+
+const submitRenew = async () => {
+  renewing.value = true
+  try {
+    const vo = await renewApiKey(renewRow.value.id, renewDays.value)
+    renewDialog.value = false
+    ElMessage.success(`已续期 ${renewDays.value} 天，到期时间 ${fmtDate(vo.expireAt)}（网关 30 秒内生效）`)
+    await load()
+  } finally {
+    renewing.value = false
+  }
+}
 
 const load = async () => {
   loading.value = true
@@ -220,7 +317,7 @@ onMounted(load)
 /* 统计看板 */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 12px;
 }
@@ -255,9 +352,17 @@ onMounted(load)
   color: var(--gw-text-tertiary);
 }
 
-@media (max-width: 1280px) {
-  .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 1440px) {
+  .stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.expire-tag { margin-left: 6px; }
+
+.renew-hint { margin-left: 8px; }
 
 .hd-actions {
   display: flex;

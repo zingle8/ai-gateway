@@ -4,6 +4,7 @@ import com.zimo.gateway.common.context.UserContext;
 import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.user.entity.ApiKeyLogEntity;
 import com.zimo.gateway.user.model.ApiKeyCreatedVO;
+import com.zimo.gateway.user.model.ApiKeyRenewRequest;
 import com.zimo.gateway.user.model.ApiKeySaveRequest;
 import com.zimo.gateway.user.model.ApiKeyStatsVO;
 import com.zimo.gateway.user.model.ApiKeyVO;
@@ -23,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * API Key 管理：签发 / 列表 / 启停 / 轮换 / 吊销
+ * API Key 管理：签发 / 列表 / 启停 / 轮换 / 续期 / 吊销
  */
 @RestController
 @RequestMapping("/keys")
@@ -63,6 +64,12 @@ public class ApiKeyController {
     @PostMapping("/{id}/rotate")
     public R<ApiKeyCreatedVO> rotate(@PathVariable Long id) {
         return R.ok(apiKeyService.rotate(id));
+    }
+
+    /** 续期：只延长有效期，密钥与 keyId 不变 */
+    @PostMapping("/{id}/renew")
+    public R<ApiKeyVO> renew(@PathVariable Long id, @Valid @RequestBody ApiKeyRenewRequest request) {
+        return R.ok(apiKeyService.renew(id, request.renewDays()));
     }
 
     @DeleteMapping("/{id}")

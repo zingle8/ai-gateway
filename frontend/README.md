@@ -75,7 +75,7 @@ modules/<name>/
 - 用户管理路线迁移：`/system/user` → `/auth/user`，旧地址保留 redirect 兼容收藏夹；
 - 「登录方式 / 单点登录 / 令牌与会话 / 安全策略」四页为**前端设计稿**：交互可用、数据为本地示例，
   接口约定见 `modules/auth/src/api.js` 末尾注释，后端就绪后替换数据源即可，页面结构不动；
-- **已对接后端**：用户管理 / API Key（`/keys`）/ 分组管理 / 部门组织 / 平台功能与菜单
+- **已对接后端**：用户管理 / API Key（`/keys`，含签发·启停·轮换·续期·吊销与统计看板）/ 分组管理 / 部门组织 / 平台功能与菜单
   （`/perm/*`）/ 系统设置（`/configs`，支持 DB / Redis / Nacos 多来源托管与平台/应用/服务归属）/ 开放认证文档页，
   登录页含「账号登录 / 注册账号」双 Tab（`/auth/register`，注册即登录）；
 - 菜单 `icon` 需在 `apps/portal/src/main.js` 注册（本次新增 `Lock / Key / Link / Timer / SetUp / Tools`）。
