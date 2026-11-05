@@ -143,7 +143,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { TrendChart, TimeRangePicker } from '@zimo/ui'
-import { DEFAULT_TIME_RANGE, timeRangeLabel, timeRangeOf } from '@zimo/shared'
+import { DEFAULT_TIME_RANGE, timeRangeLabel, timeRangeOf, useAutoRefresh } from '@zimo/shared'
 import { fetchStatsFilters, fetchStatsSummary, fetchStatsTrend } from '../api'
 import {
   DataAnalysis, TrendCharts, Timer, Warning, Download, Upload, CircleCheck, User, Document, Files
@@ -270,7 +270,8 @@ const reset = () => {
 
 onMounted(async () => {
   await loadFilters()
-  load()
+  // 数据自动刷新：频率来自系统设置 platform.ui.refresh.interval（30 秒内生效）
+  useAutoRefresh(load)
 })
 </script>
 

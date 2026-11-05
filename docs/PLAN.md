@@ -179,5 +179,6 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 | 日期 | 内容 |
 | --- | --- |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
+| 2026-11-05 | 控制台自动刷新频率配置化：新增 `platform.ui.refresh.interval`（默认 5 秒，公开配置），网关总览 / 数据统计 / 服务发现接入 `useAutoRefresh` 轮询，改值 30 秒内生效 |
 | 2026-11-05 | 接入 SDK 修复：注册失败后心跳周期自动补注册（实测启动顺序敏感场景自愈）；网关白名单放行 SDK 上报通道（此前 401 导致实例永久离线）；默认 server-addr 由前端 28080 改为网关 28090 |
 | 2026-11-05 | API Key 增加「续期」操作（`POST /keys/{id}/renew`），审计新增 `RENEW` 动作，看板增加「今日续期」；菜单「接入中心」移到「认证与安全」之后 |

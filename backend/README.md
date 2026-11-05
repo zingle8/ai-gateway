@@ -480,6 +480,9 @@ proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴
 前端侧边栏据此渲染状态点 + 悬浮信息（菜单名｜服务名｜状态），
 开关 `platform.menu.health.enabled`（系统设置页，30 秒内生效）。
 
+控制台数据自动刷新间隔 `platform.ui.refresh.interval`（INTEGER，默认 5，2~300，公开配置）：
+网关总览 / 数据统计 / 服务发现三个页面按该秒数自动轮询，修改 30 秒内生效（前端配置缓存 30 秒）。
+
 ### API Key
 
 - 明文 `gwak-<keyId>-<secret>` 仅签发 / 轮换响应返回一次，服务端只存 SHA-256

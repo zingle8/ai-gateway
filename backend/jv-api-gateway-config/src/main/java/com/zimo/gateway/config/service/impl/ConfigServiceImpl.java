@@ -28,7 +28,8 @@ public class ConfigServiceImpl implements ConfigService {
     private static final List<String> PUBLIC_KEYS = List.of(
             "platform.menu.health.enabled",
             "platform.auth.cache.mode",
-            "platform.open.auth.enabled"
+            "platform.open.auth.enabled",
+            "platform.ui.refresh.interval"
     );
 
     private static final String DEFAULT_PLATFORM = "API网关平台";

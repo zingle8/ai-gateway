@@ -136,7 +136,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { TimeRangePicker, TrendChart } from '@zimo/ui'
-import { DEFAULT_TIME_RANGE, fmtTime, dotClass, timeRangeLabel } from '@zimo/shared'
+import { DEFAULT_TIME_RANGE, fmtTime, dotClass, timeRangeLabel, useAutoRefresh } from '@zimo/shared'
 import { fetchServices, fetchServiceFilters, fetchDiscoveryTrend } from '../api'
 
 const rows = ref([])
@@ -228,7 +228,8 @@ const load = async () => {
 // 首屏加载：先取筛选项字典，再查列表（字典失败不影响列表）
 onMounted(() => {
   loadFilters()
-  load()
+  // 数据自动刷新：频率来自系统设置 platform.ui.refresh.interval（30 秒内生效）
+  useAutoRefresh(load)
 })
 
 const reset = () => {

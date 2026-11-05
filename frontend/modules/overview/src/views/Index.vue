@@ -100,9 +100,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { TrendChart, TimeRangePicker } from '@zimo/ui'
-import { DEFAULT_TIME_RANGE, timeRangeLabel, timeRangeOf } from '@zimo/shared'
+import { DEFAULT_TIME_RANGE, timeRangeLabel, timeRangeOf, useAutoRefresh } from '@zimo/shared'
 import { fetchOverviewSummary, fetchOverviewTrend, fetchOverviewRuntime, fetchOverviewInstances } from '../api'
 import { Odometer, TrendCharts, Timer, Warning, Document, User, Files, Download, Upload } from '@element-plus/icons-vue'
 
@@ -181,7 +181,8 @@ const sampleDesc = computed(() => timeRangeOf(range.value).desc)
 
 const switchRange = () => load()
 
-onMounted(load)
+// 数据自动刷新：频率来自系统设置 platform.ui.refresh.interval（30 秒内生效）
+useAutoRefresh(load)
 </script>
 
 <style scoped>
