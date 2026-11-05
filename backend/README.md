@@ -261,6 +261,47 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time，edge 表�
 | `idx_app_time(app_id, req_time)`（log 表） | 按应用的统计 / 拓扑按应用圈服务（扫描行数约 -75%） |
 | `idx_errtype_time(err_type, req_time)`（log 表） | 错误类型检索（错误检索总伴随时间窗） |
 
+### 请求转发与双端采集（完整链路）
+
+第三方 / 控制台用户 → 网关 → 业务系统的完整链路，采集发生在**两个位置**，
+最终靠同一个 `traceId` 汇合（`EdgeAggregator` 每 60 秒聚合成 `tb_gw_service_edge`，驱动服务拓扑图）：
+
+```
+第三方            proxy(28090)                 业务系统(order-service)
+  │  ①请求            │                            │
+  │ ────────────────▶ │ AuthGlobalFilter 鉴权       │
+  │                   │ TraceGlobalFilter:          │
+  │                   │  · 解析/生成 traceparent(根) │
+  │  ②转发+注入链路头   │  · 计时                     │
+  │                   │ ── traceparent ──────────▶ │ ③GatewayTraceFilter:
+  │                   │                            │   · 继承同一 traceId
+  │                   │  ④响应返回（耗时已知）        │   · CachedBody 复制请求/响应体
+  │ ◀──────────────── │  · server span + client span│   · server span（业务侧）
+  │                   │  · TraceSink.offer          │
+  │                   │    (1s 批量直写 MySQL)       │ ⑤TraceReporter.offer
+  │                   │                            │   内存队列(1024,满即丢)
+  │                   │                            │   3s 批量 POST /trace/**/batch
+```
+
+**接入与转发（proxy 内部四道关卡，均为 WebFlux GlobalFilter）**：
+
+1. `AuthGlobalFilter`（Order 最高 +10）：白名单放行；`X-Api-Key` 通道（SHA-256 + 状态 + 有效期，
+   Redis 缓存 30s）；`Bearer` 通道（JWT 验签 + token_version）；通过后注入 `X-Auth-User-Id / X-Auth-Key-Id`
+2. `DbRouteDefinitionLocator`：每 30 秒重读 `tb_gw_route` 生成路由，控制台改规则 30 秒生效、不重启网关
+3. 按 `/api/<service>/` 前缀匹配路由 → 负载到注册表实例（SDK 心跳维护的 ip:port）
+4. `TraceGlobalFilter`：链路上文解析/生成 → 转发注入 `traceparent` + `X-Gateway-Trace-Id`
+   双头（兼容旧 SDK 与 OTel 生态）→ server span（网关收到）+ client span（网关发出）
+
+**采集方职责划分**：
+
+| | 采集方 | 采集内容 | 落库方式 |
+| --- | --- | --- | --- |
+| 网关侧 | `TraceGlobalFilter` + `TraceSink` | 经网关转发的每个请求：鉴权、路由、耗时、上下游状态码 | 网关自己写库，1 秒批量 |
+| 业务侧 | SDK `GatewayTraceFilter` + `TraceReporter` | 打到业务系统自己的每个请求（含 8KB 内请求/响应体，超出截断） | 内存队列（1024，满即丢不阻塞业务），3 秒批量上报 |
+
+两种"只有一份"的情况：业务系统未接 SDK → 只有网关侧记录（看不到业务内部细节）；
+绕过网关直连 → 只有业务侧记录（拓扑图上没有这条边）。
+
 ### 链路传播（阶段一）
 
 - 协议：W3C `traceparent: 00-<traceId:32hex>-<spanId:16hex>-01`，同时兼容旧 `X-Gateway-Trace-Id`
