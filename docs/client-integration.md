@@ -76,6 +76,50 @@ mvn install:install-file -Dfile=jv-api-gateway-client-starter.jar \
 | `NoClassDefFoundError: ...client/common/dto/TraceLogDTO` | 只给了 `-Dfile` 没给 `-DpomFile`，生成的 pom 没有 dependencies，传递依赖丢失 |
 | 启动报缺少 servlet 相关类 | starter 内 `spring-boot-starter-web` 是 `optional`，业务项目需自带（Web 项目本来就有） |
 
+### 1.2 多团队 / 多项目分发：Maven 私服（推荐）
+
+`install.sh` 装的是「当前这台机器」的本地仓库（`~/.m2`）——每台机器、每个 CI 节点都要装一次。
+业务方多、机器多、或有 CI/CD 时，应把 SDK 发布到公司 Maven 私服（Nexus / Artifactory），
+之后所有项目像引开源库一样引坐标，无需再装任何东西。
+
+**平台侧发布一次**（把 dist/sdk-jar 里的 5 个文件 deploy 上去，顺序不能反）：
+
+```bash
+cd dist/sdk-jar/lib
+
+# 1) parent pom
+mvn deploy:deploy-file -Dfile=api-gateway-1.0.0.pom \
+  -DgroupId=com.zimo.gateway -DartifactId=api-gateway -Dversion=1.0.0 -Dpackaging=pom \
+  -DrepositoryId=zimo-releases -Durl=http://<私服地址>/repository/maven-releases/
+
+# 2) client-common（模型与常量层，starter 的传递依赖）
+mvn deploy:deploy-file -Dfile=jv-api-gateway-client-common.jar \
+  -DpomFile=jv-api-gateway-client-common.pom \
+  -DrepositoryId=zimo-releases -Durl=http://<私服地址>/repository/maven-releases/
+
+# 3) client-starter（Starter 本体）
+mvn deploy:deploy-file -Dfile=jv-api-gateway-client-starter.jar \
+  -DpomFile=jv-api-gateway-client-starter.pom \
+  -DrepositoryId=zimo-releases -Durl=http://<私服地址>/repository/maven-releases/
+```
+
+> `repositoryId` 需在发布机的 `~/.m2/settings.xml` 里配置对应凭据（`<server>` 节点）。
+
+**业务方**只需在 `pom.xml`（或 `settings.xml`）声明私服仓库，然后照常引坐标（与 1.1 方式一完全一致）：
+
+```xml
+<repositories>
+  <repository>
+    <id>zimo-releases</id>
+    <url>http://<私服地址>/repository/maven-releases/</url>
+  </repository>
+</repositories>
+```
+
+- **Gradle 项目**同样可用：`repositories { maven { url 'http://<私服地址>/repository/maven-releases/' } }` 后正常 `implementation 'com.zimo.gateway:jv-api-gateway-client-starter:1.0.0'`；
+- 版本升级：deploy 新版本号后业务方改版本即可，旧版本不受影响；
+- 没有私服且不想每台机器装 → 把 `dist/sdk-jar` 提交到交付包/制品库随项目走，CI 里先跑 `install.sh`。
+
 ## 二、配置
 
 ```yaml

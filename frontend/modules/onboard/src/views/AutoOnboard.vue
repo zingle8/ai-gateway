@@ -62,6 +62,14 @@
                 title="三个文件缺一不可：parent pom 缺失会导致依赖版本解析失败，模块 pom 不带上会丢失传递依赖，只装 jar 会缺 jv-api-gateway-client-common。"
                 style="margin-top: 14px"
               />
+
+              <el-alert
+                type="info"
+                :closable="false"
+                show-icon
+                title="多个团队 / 多台机器接入？install.sh 只装当前机器的本地仓库。推荐把 dist/sdk-jar 发布到公司 Maven 私服（Nexus / Artifactory），业务方声明仓库地址后与方式一完全一致；Gradle 项目同样可用。发布命令见《平台接入指引》1.2 节。"
+                style="margin-top: 10px"
+              />
             </template>
           </el-tab-pane>
 
