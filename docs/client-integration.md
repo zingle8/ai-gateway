@@ -120,6 +120,42 @@ mvn deploy:deploy-file -Dfile=jv-api-gateway-client-starter.jar \
 - 版本升级：deploy 新版本号后业务方改版本即可，旧版本不受影响；
 - 没有私服且不想每台机器装 → 把 `dist/sdk-jar` 提交到交付包/制品库随项目走，CI 里先跑 `install.sh`。
 
+### 1.3 不走私服的分发替代方案
+
+**方案 A：项目内 file:// 仓库（推荐，零服务器、零安装）**——把 SDK 按 Maven 仓库布局放进业务项目 git 仓库，clone 即用，CI 天然可用：
+
+```bash
+# 交付时生成（dist/sdk-jar 目录下执行，三条命令顺序不能反）
+mvn deploy:deploy-file -Dfile=lib/api-gateway-1.0.0.pom \
+  -DgroupId=com.zimo.gateway -DartifactId=api-gateway -Dversion=1.0.0 -Dpackaging=pom \
+  -Durl=file:$PWD/libs-repo
+mvn deploy:deploy-file -Dfile=lib/jv-api-gateway-client-common.jar \
+  -DpomFile=lib/jv-api-gateway-client-common.pom -Durl=file:$PWD/libs-repo
+mvn deploy:deploy-file -Dfile=lib/jv-api-gateway-client-starter.jar \
+  -DpomFile=lib/jv-api-gateway-client-starter.pom -Durl=file:$PWD/libs-repo
+```
+
+```xml
+<!-- 业务方 pom.xml：libs-repo 随 git 提交；单模块用 ${project.basedir}，
+     多模块用 ${maven.multiModuleProjectDirectory}（Maven 3.3+，否则子模块解析不到） -->
+<repositories>
+  <repository>
+    <id>sdk-in-project</id>
+    <url>file://${maven.multiModuleProjectDirectory}/libs-repo</url>
+  </repository>
+</repositories>
+```
+
+Gradle 同样支持：`maven { url uri("${rootDir}/libs-repo") }`。升级版本 = 重跑三条 deploy 后提交，业务方 pull 即得。
+
+**方案 B：免运维云制品库**——GitHub Packages / 阿里云云效制品仓库 / 腾讯云 CODING 制品库均兼容 Maven 协议，deploy 命令与 1.2 私服完全相同（URL 与认证 token 换成云平台提供的），适合没有自建 Nexus 但有云平台的团队。
+
+**方案 C：CI 构建期自动安装**——沿用 install.sh，挂到流水线第一步（或绑定 `mvn initialize` phase）。缺点：每台机器每条流水线都要装一次，仅适合少量项目。
+
+**不推荐 `<systemPath>` 直接引 jar**：system scope 不参与传递依赖（会丢 client-common 与 spring-boot-starter），需 `includeSystemScope` 补救且 Maven 已弃用。
+
+选型：一两个业务项目 → A；项目多/跨部门 → B 或回头上私服。
+
 ## 二、配置
 
 ```yaml
