@@ -1,9 +1,8 @@
 <template>
   <div class="page">
     <p class="demo-tip">
-      <el-tag size="small" type="info" effect="plain">设计稿</el-tag>
       <span class="gw-sm gw-muted">
-        权限点按「平台 → 菜单 → 功能 → 按钮 / 展示 / 接口」四级组织，code 即后端鉴权标识，与前端菜单可见性共用一套。
+        权限点按「平台 → 菜单 → 功能 → 按钮 / 展示 / 接口」四级组织，code 即后端鉴权标识（数据来自 /perm/dictionary，已落库）
       </span>
     </p>
 
@@ -12,13 +11,13 @@
       <section class="gw-card perm-tree-card">
         <div class="gw-card-hd">
           <span>平台与菜单</span>
-          <el-button size="small" @click="syncMenu">同步菜单</el-button>
         </div>
         <div class="gw-card-bd">
           <el-input v-model="keyword" placeholder="搜索菜单" size="small" clearable class="tree-search" />
           <el-tree
             ref="treeRef"
-            :data="platformTree"
+            v-loading="loading"
+            :data="menuTree"
             node-key="id"
             default-expand-all
             highlight-current
@@ -30,7 +29,7 @@
             <template #default="{ data }">
               <span class="tree-node">
                 <span class="tree-label">{{ data.name }}</span>
-                <span v-if="data.type === 'PLATFORM'" class="tree-tag">平台</span>
+                <span v-if="!data.parentId" class="tree-tag">平台</span>
                 <span v-else-if="data.children && data.children.length" class="tree-tag">分组</span>
                 <span v-else class="tree-count gw-sm gw-muted">{{ permCountOf(data.id) }}</span>
               </span>
@@ -39,7 +38,7 @@
         </div>
         <div class="gw-card-ft">
           <span class="gw-sm gw-muted">
-            {{ platformCount }} 个平台 · {{ menuCount }} 个菜单 · {{ PERMISSIONS.length }} 个权限点
+            {{ platformCount }} 个平台 · {{ menuCount }} 个菜单 · {{ items.length }} 个权限点
           </span>
         </div>
       </section>
@@ -62,11 +61,11 @@
             </div>
           </div>
 
-          <el-table :data="permRows" size="small" style="width: 100%" max-height="480">
-            <el-table-column label="菜单" width="150" show-overflow-tooltip>
+          <el-table v-loading="loading" :data="permRows" size="small" style="width: 100%" max-height="480">
+            <el-table-column label="菜单" width="160" show-overflow-tooltip>
               <template #default="{ row }">{{ menuName(row.menuId) }}</template>
             </el-table-column>
-            <el-table-column prop="func" label="功能" width="120" />
+            <el-table-column prop="funcName" label="功能" width="120" />
             <el-table-column prop="name" label="权限点名称" min-width="140" />
             <el-table-column label="code" width="180">
               <template #default="{ row }">
@@ -76,7 +75,7 @@
             <el-table-column label="类型" width="90">
               <template #default="{ row }">
                 <el-tag size="small" :type="PERM_TYPE_TAG[row.type]" effect="plain">
-                  {{ PERM_TYPE_LABEL[row.type] }}
+                  {{ PERM_TYPE_LABEL[row.type] || row.type }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -87,7 +86,11 @@
             </el-table-column>
             <el-table-column label="启用" width="80">
               <template #default="{ row }">
-                <el-switch v-model="row.enabled" size="small" @change="togglePerm(row)" />
+                <el-switch
+                  :model-value="row.enabled === 1"
+                  size="small"
+                  @change="(v) => togglePerm(row, v)"
+                />
               </template>
             </el-table-column>
             <el-table-column label="操作" width="120" fixed="right">
@@ -116,13 +119,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="功能区块">
-          <el-input v-model="form.func" placeholder="如：用户列表 / 分组列表" />
+          <el-input v-model="form.funcName" placeholder="如：用户列表 / 分组列表" />
         </el-form-item>
         <el-form-item label="权限点名称">
           <el-input v-model="form.name" placeholder="如：新增用户" />
         </el-form-item>
         <el-form-item label="权限 code">
-          <el-input v-model="form.code" placeholder="如：auth.user.create（唯一，后端鉴权用）" />
+          <el-input v-model="form.code" placeholder="如：auth.user.create（唯一，后端鉴权用）" :disabled="!!form.id" />
         </el-form-item>
         <el-form-item label="类型">
           <el-radio-group v-model="form.type">
@@ -137,7 +140,7 @@
       </el-form>
       <template #footer>
         <el-button @click="dialog = false">取消</el-button>
-        <el-button type="primary" @click="submit">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="submit">保存</el-button>
       </template>
     </el-dialog>
   </div>
@@ -146,51 +149,59 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PERMISSIONS, PERM_TYPE_LABEL, PERM_TYPE_TAG, PLATFORM_TREE } from '../../data.js'
+import {
+  fetchDictionary, createPermItem, updatePermItem, deletePermItem
+} from '../../api.js'
+import { PERM_TYPE_LABEL, PERM_TYPE_TAG, toTree } from '../../data.js'
 
-/** 给节点补上类型标记：PLATFORM / GROUP（有子节点）/ MENU */
-const platformTree = computed(() => PLATFORM_TREE.map(markNode))
-
-function markNode(node, depth = 0) {
-  const children = (node.children || []).map((c) => markNode(c, depth + 1))
-  return {
-    ...node,
-    type: depth === 0 ? 'PLATFORM' : children.length ? 'GROUP' : 'MENU',
-    children
-  }
-}
-
-const perms = ref(PERMISSIONS.map((p) => ({ ...p })))
-
+const loading = ref(false)
+const saving = ref(false)
+const menus = ref([])
+const items = ref([])
 const keyword = ref('')
 const permKeyword = ref('')
 const treeRef = ref(null)
-// 默认选中第一个平台节点（必须带 children，否则收集不到叶子菜单）
 const selected = ref(null)
-const currentNode = computed(() => selected.value || platformTree.value[0])
 
 watch(keyword, (v) => treeRef.value?.filter(v))
 
 const filterNode = (value, data) => !value || data.name.includes(value)
 
+const load = async () => {
+  loading.value = true
+  try {
+    const dict = await fetchDictionary()
+    menus.value = dict.menus || []
+    items.value = dict.items || []
+    if (!selected.value) selected.value = menus.value[0]
+  } finally {
+    loading.value = false
+  }
+}
+
+const menuTree = computed(() => toTree(menus.value.map((m) => ({ ...m, children: undefined })), ''))
+
 const select = (data) => {
   selected.value = data
 }
 
-/** 选中节点下所有叶子菜单 id */
-const selectedMenuIds = computed(() => collectMenuIds(currentNode.value))
+/** 选中节点（平台 / 菜单分组 / 菜单）下所有叶子菜单 id */
+const selectedMenuIds = computed(() => {
+  if (!selected.value) return menus.value.map((m) => m.id)
+  return collectMenuIds(selected.value)
+})
 
 function collectMenuIds(node) {
   if (node.children && node.children.length) return node.children.flatMap(collectMenuIds)
   return [node.id]
 }
 
-const selectedName = computed(() => currentNode.value.name || '全部')
+const selectedName = computed(() => selected.value?.name || '全部')
 
 const permRows = computed(() => {
   const ids = new Set(selectedMenuIds.value)
   const k = permKeyword.value.trim()
-  return perms.value
+  return items.value
     .filter((p) => ids.has(p.menuId))
     .filter((p) => !k || p.name.includes(k) || p.code.includes(k))
 })
@@ -205,29 +216,21 @@ const summary = computed(() => {
   ]
 })
 
-const platformCount = computed(() => platformTree.value.length)
+const platformCount = computed(() => menus.value.filter((m) => !m.parentId).length)
 
-const menuCount = computed(() => {
-  let n = 0
-  const walk = (nodes) => nodes.forEach((x) => {
-    if (x.type === 'MENU') n += 1
-    walk(x.children || [])
-  })
-  walk(platformTree.value)
-  return n
-})
+const menuCount = computed(() => menus.value.filter((m) => m.parentId).length)
 
-const permCountOf = (menuId) => perms.value.filter((p) => p.menuId === menuId).length
+const permCountOf = (menuId) => items.value.filter((p) => p.menuId === menuId).length
 
 const menuName = (menuId) => {
-  let name = menuId
-  const walk = (nodes, path) => nodes.forEach((n) => {
-    const next = n.type === 'PLATFORM' ? [n.name] : [...path, n.name]
-    if (n.id === menuId) name = next.join(' / ')
-    walk(n.children || [], next)
-  })
-  walk(platformTree.value, [])
-  return name
+  const map = new Map(menus.value.map((m) => [m.id, m]))
+  const names = []
+  let cur = map.get(menuId)
+  while (cur) {
+    names.unshift(cur.name)
+    cur = map.get(cur.parentId)
+  }
+  return names.join(' / ') || menuId
 }
 
 /** 供下拉选择：所有叶子菜单 + 完整路径 */
@@ -235,53 +238,55 @@ const leafMenus = computed(() => {
   const out = []
   const walk = (nodes, path) => nodes.forEach((n) => {
     const next = [...path, n.name]
-    if (n.type === 'MENU') out.push({ id: n.id, path: next.join(' / ') })
+    if (!n.children || !n.children.length) out.push({ id: n.id, path: next.join(' / ') })
     walk(n.children || [], next)
   })
-  walk(platformTree.value, [])
+  walk(menuTree.value, [])
   return out
 })
 
 const dialog = ref(false)
 const form = reactive({
-  id: null, menuId: '', func: '', name: '', code: '', type: 'BUTTON', api: '', enabled: true
+  id: null, menuId: '', funcName: '', name: '', code: '', type: 'BUTTON', api: '', enabled: 1
 })
 
 const openCreate = () => {
   const firstMenu = selectedMenuIds.value[0] || ''
   Object.assign(form, {
-    id: null, menuId: firstMenu, func: '', name: '', code: '', type: 'BUTTON', api: '', enabled: true
+    id: null, menuId: firstMenu, funcName: '', name: '', code: '', type: 'BUTTON', api: '', enabled: 1
   })
   dialog.value = true
 }
 
 const openEdit = (row) => {
-  Object.assign(form, { ...row })
+  Object.assign(form, { ...row, enabled: row.enabled })
   dialog.value = true
 }
 
-const submit = () => {
+const submit = async () => {
   if (!form.name || !form.code) {
     ElMessage.warning('权限点名称与 code 必填')
     return
   }
-  if (perms.value.some((p) => p.code === form.code && p.id !== form.id)) {
-    ElMessage.warning(`code「${form.code}」已存在，权限标识必须唯一`)
-    return
+  saving.value = true
+  try {
+    if (form.id) {
+      await updatePermItem(form.id, form)
+    } else {
+      await createPermItem(form)
+    }
+    dialog.value = false
+    ElMessage.success('已保存')
+    await load()
+  } finally {
+    saving.value = false
   }
-  if (form.id) {
-    Object.assign(perms.value.find((p) => p.id === form.id), {
-      menuId: form.menuId, func: form.func, name: form.name, code: form.code, type: form.type, api: form.api || '—'
-    })
-  } else {
-    perms.value.unshift({ ...form, id: Date.now() })
-  }
-  dialog.value = false
-  ElMessage.success('已保存（设计稿，未落库）')
 }
 
-const togglePerm = (row) => {
-  ElMessage.info(`「${row.code}」已${row.enabled ? '启用' : '停用'}（设计稿，未落库）`)
+const togglePerm = async (row, enabled) => {
+  await updatePermItem(row.id, { ...row, enabled: enabled ? 1 : 0 })
+  row.enabled = enabled ? 1 : 0
+  ElMessage.info(`「${row.code}」已${enabled ? '启用' : '停用'}`)
 }
 
 const removePerm = async (row) => {
@@ -290,13 +295,12 @@ const removePerm = async (row) => {
     '删除权限点',
     { type: 'warning' }
   )
-  perms.value = perms.value.filter((p) => p.id !== row.id)
-  ElMessage.success('已删除（设计稿，未落库）')
+  await deletePermItem(row.id)
+  ElMessage.success('已删除')
+  await load()
 }
 
-const syncMenu = () => {
-  ElMessage.success(`已从路由表同步 ${menuCount.value} 个菜单（设计稿，未落库）`)
-}
+load()
 </script>
 
 <style scoped>

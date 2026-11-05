@@ -8,6 +8,7 @@ import com.zimo.gateway.common.util.JwtUtil;
 import com.zimo.gateway.user.entity.User;
 import com.zimo.gateway.user.mapper.UserMapper;
 import com.zimo.gateway.user.model.LoginVO;
+import com.zimo.gateway.user.model.RegisterRequest;
 import com.zimo.gateway.user.model.UserQuery;
 import com.zimo.gateway.user.model.UserSaveRequest;
 import com.zimo.gateway.user.service.UserService;
@@ -173,6 +174,27 @@ public class UserServiceImpl implements UserService {
         }
         log.info("用户退出登录：userId={}", userId);
         UserContext.clear();
+    }
+
+    @Override
+    public LoginVO register(RegisterRequest request, String ip) {
+        String username = request.username() == null ? "" : request.username().trim();
+        if (!username.matches("^[a-zA-Z0-9_]{3,32}$")) {
+            throw new BizException(ResultCode.BAD_REQUEST.getCode(), "账号需为 3-32 位字母、数字或下划线");
+        }
+        if (request.password() == null || request.password().length() < 8 || request.password().length() > 64) {
+            throw new BizException(ResultCode.BAD_REQUEST.getCode(), "密码长度需为 8-64 位");
+        }
+        UserSaveRequest save = new UserSaveRequest();
+        save.setUsername(username);
+        save.setPassword(request.password());
+        save.setNickname(StringUtils.hasText(request.nickname()) ? request.nickname().trim() : username);
+        // 开放注册默认只读角色，后续由管理员调整 / 分组授权
+        save.setRole("VIEWER");
+        save.setStatus(1);
+        createUser(save);
+        log.info("新用户注册：username={}，ip={}", username, ip);
+        return login(username, request.password(), ip);
     }
 
     @Override

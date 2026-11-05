@@ -7,6 +7,8 @@ import com.zimo.gateway.common.util.IpUtil;
 import com.zimo.gateway.user.entity.User;
 import com.zimo.gateway.user.model.LoginRequest;
 import com.zimo.gateway.user.model.LoginVO;
+import com.zimo.gateway.user.model.RegisterRequest;
+import com.zimo.gateway.user.service.PermService;
 import com.zimo.gateway.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -17,8 +19,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 /**
- * 认证接口：登录 / 退出 / 当前用户
+ * 认证接口：注册 / 登录 / 退出 / 当前用户 / 我的有效权限
  */
 @RestController
 @RequestMapping("/auth")
@@ -26,6 +30,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final UserService userService;
+    private final PermService permService;
+
+    /**
+     * 注册：默认 VIEWER 角色，成功即登录（返回令牌）
+     */
+    @PostMapping("/register")
+    public R<LoginVO> register(@Valid @RequestBody RegisterRequest request, HttpServletRequest httpRequest) {
+        return R.ok(userService.register(request, IpUtil.get(httpRequest)));
+    }
 
     /**
      * 登录
@@ -55,5 +68,13 @@ public class AuthController {
         }
         user.setPassword(null);
         return R.ok(LoginVO.of(user));
+    }
+
+    /**
+     * 当前用户的有效权限点：所属全部分组的权限并集，前端用于菜单 / 按钮可见性
+     */
+    @GetMapping("/my-perms")
+    public R<List<String>> myPerms() {
+        return R.ok(permService.permsOfUser(UserContext.getUserId()));
     }
 }

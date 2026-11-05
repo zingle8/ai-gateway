@@ -7,6 +7,11 @@ export function login(data) {
   return request.post('/auth/login', data)
 }
 
+/** 注册：成功即登录，返回 { token, id, username, nickname, role } */
+export function register(data) {
+  return request.post('/auth/register', data)
+}
+
 export function logout() {
   return request.post('/auth/logout')
 }

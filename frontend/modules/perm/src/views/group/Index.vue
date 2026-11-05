@@ -1,9 +1,8 @@
 <template>
   <div class="page">
     <p class="demo-tip">
-      <el-tag size="small" type="info" effect="plain">设计稿</el-tag>
       <span class="gw-sm gw-muted">
-        用户加入分组即继承该分组的全部权限点，多人多组取并集；后端 /api/perm/groups 接口待接入。
+        用户加入分组即继承该分组的全部权限点，多人多组取并集（数据来自后端 /perm/groups，已落库）
       </span>
     </p>
 
@@ -20,6 +19,7 @@
           </div>
           <div class="gw-card-bd no-pad">
             <el-table
+              v-loading="loading"
               :data="orgRows"
               row-key="id"
               size="small"
@@ -42,18 +42,18 @@
               </el-table-column>
               <el-table-column prop="leader" label="负责人" width="120" />
               <el-table-column label="成员" width="90" align="right">
-                <template #default="{ row }">{{ row.memberIds.length }} 人</template>
+                <template #default="{ row }">{{ row.memberCount }} 人</template>
               </el-table-column>
               <el-table-column label="数据范围" width="150">
                 <template #default="{ row }">
-                  <el-tag size="small" effect="plain">{{ SCOPE_LABEL[row.dataScope] }}</el-tag>
+                  <el-tag size="small" effect="plain">{{ SCOPE_LABEL[row.dataScope] || row.dataScope }}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column label="操作" width="200" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="openMembers(row, 'ORG')">成员</el-button>
-                  <el-button link type="primary" @click="openEdit(row, 'ORG')">编辑</el-button>
-                  <el-button link type="danger" :disabled="row.parentId === 0" @click="removeGroup(row, 'ORG')">删除</el-button>
+                  <el-button link type="primary" @click="openMembers(row)">成员</el-button>
+                  <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+                  <el-button link type="danger" @click="removeGroup(row)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -77,13 +77,13 @@
             </div>
           </div>
           <div class="gw-card-bd no-pad">
-            <el-table :data="permRows" row-key="id" size="small" style="width: 100%">
+            <el-table v-loading="loading" :data="permRows" row-key="id" size="small" style="width: 100%">
               <el-table-column prop="name" label="分组名称" min-width="180">
                 <template #default="{ row }">
                   <span class="group-name">
                     <el-icon><Collection /></el-icon>
                     {{ row.name }}
-                    <el-tag v-if="row.builtin" size="small" type="danger" effect="plain">内置</el-tag>
+                    <el-tag v-if="row.builtin === 1" size="small" type="danger" effect="plain">内置</el-tag>
                   </span>
                 </template>
               </el-table-column>
@@ -93,26 +93,26 @@
                 </template>
               </el-table-column>
               <el-table-column label="成员" width="90" align="right">
-                <template #default="{ row }">{{ row.memberIds.length }} 人</template>
+                <template #default="{ row }">{{ row.memberCount }} 人</template>
               </el-table-column>
               <el-table-column label="权限点" width="150">
                 <template #default="{ row }">
                   <el-button link type="primary" @click="openPerms(row)">
-                    {{ row.builtin ? '全部（内置）' : `${row.permCodes.length} 项` }}
+                    {{ row.builtin === 1 ? '全部（内置）' : `${row.permCount} 项` }}
                   </el-button>
                 </template>
               </el-table-column>
               <el-table-column label="数据范围" width="140">
                 <template #default="{ row }">
-                  <el-tag size="small" effect="plain">{{ SCOPE_LABEL[row.dataScope] }}</el-tag>
+                  <el-tag size="small" effect="plain">{{ SCOPE_LABEL[row.dataScope] || row.dataScope }}</el-tag>
                 </template>
               </el-table-column>
               <el-table-column prop="remark" label="说明" min-width="200" show-overflow-tooltip />
               <el-table-column label="操作" width="200" fixed="right">
                 <template #default="{ row }">
-                  <el-button link type="primary" @click="openMembers(row, 'PERM')">成员</el-button>
-                  <el-button link type="primary" :disabled="row.builtin" @click="openEdit(row, 'PERM')">编辑</el-button>
-                  <el-button link type="danger" :disabled="row.builtin" @click="removeGroup(row, 'PERM')">删除</el-button>
+                  <el-button link type="primary" @click="openMembers(row)">成员</el-button>
+                  <el-button link type="primary" :disabled="row.builtin === 1" @click="openEdit(row)">编辑</el-button>
+                  <el-button link type="danger" :disabled="row.builtin === 1" @click="removeGroup(row)">删除</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -130,19 +130,16 @@
     <el-drawer v-model="memberDrawer" :title="`成员管理 · ${currentGroup?.name || ''}`" size="560px">
       <div class="drawer-tip">
         <span class="gw-sm gw-muted">
-          共 {{ currentGroup?.memberIds.length || 0 }} 人，成员自动获得该分组的全部权限
+          共 {{ members.length }} 人，成员自动获得该分组的全部权限
         </span>
       </div>
-      <el-table :data="groupMembers" size="small" style="width: 100%">
-        <el-table-column prop="account" label="账号" width="120" />
-        <el-table-column prop="name" label="姓名" width="110" />
+      <el-table v-loading="memberLoading" :data="members" size="small" style="width: 100%">
+        <el-table-column prop="username" label="账号" width="140" />
+        <el-table-column prop="nickname" label="姓名" width="120" />
         <el-table-column label="角色" width="90">
           <template #default="{ row }">
-            <el-tag size="small" effect="plain">{{ ROLE_LABEL[row.role] }}</el-tag>
+            <el-tag size="small" effect="plain">{{ ROLE_LABEL[row.role] || row.role }}</el-tag>
           </template>
-        </el-table-column>
-        <el-table-column label="所属部门" min-width="120">
-          <template #default="{ row }">{{ deptName(row.deptId) }}</template>
         </el-table-column>
         <el-table-column label="操作" width="80" fixed="right">
           <template #default="{ row }">
@@ -155,15 +152,15 @@
           <el-option
             v-for="u in candidateUsers"
             :key="u.id"
-            :label="`${u.name}（${u.account}）`"
+            :label="`${u.nickname || u.username}（${u.username}）`"
             :value="u.id"
           />
         </el-select>
-        <el-button size="small" type="primary" :disabled="!addingIds.length" @click="addMembers">添加</el-button>
+        <el-button size="small" type="primary" :disabled="!addingIds.length" @click="addMemberRows">添加</el-button>
       </div>
       <template #footer>
         <el-button @click="memberDrawer = false">关闭</el-button>
-        <el-button type="primary" @click="saveMembers">保存成员</el-button>
+        <el-button type="primary" :loading="saving" @click="saveMembers">保存成员</el-button>
       </template>
     </el-drawer>
 
@@ -174,11 +171,11 @@
       </div>
       <el-tree
         ref="permTreeRef"
+        v-loading="dictLoading"
         :data="permTree"
         show-checkbox
         node-key="id"
         default-expand-all
-        :default-checked-keys="checkedKeys"
         :props="{ label: 'label', children: 'children' }"
         class="perm-tree"
         @check="onPermCheck"
@@ -192,7 +189,7 @@
       </el-tree>
       <template #footer>
         <el-button @click="permDrawer = false">取消</el-button>
-        <el-button type="primary" @click="savePerms">保存权限</el-button>
+        <el-button type="primary" :loading="saving" @click="savePerms">保存权限</el-button>
       </template>
     </el-drawer>
 
@@ -209,7 +206,7 @@
           <el-input v-model="form.name" placeholder="如：网关组 / 网关运维" />
         </el-form-item>
         <el-form-item label="分组编码">
-          <el-input v-model="form.code" placeholder="唯一编码，如 RD_GATEWAY" />
+          <el-input v-model="form.code" placeholder="唯一编码，如 RD_GATEWAY" :disabled="!!form.id" />
         </el-form-item>
         <el-form-item v-if="form.type === 'ORG'" label="上级部门">
           <el-select v-model="form.parentId" style="width: 100%" placeholder="不选则为顶级组织">
@@ -230,50 +227,51 @@
       </el-form>
       <template #footer>
         <el-button @click="formDialog = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
+        <el-button type="primary" :loading="saving" @click="submitForm">保存</el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, nextTick, reactive, ref } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { PaneTabs } from '@zimo/ui'
 import {
-  ORG_TREE, PERM_GROUPS, PERMISSIONS, PLATFORM_TREE, USERS,
-  ROLE_LABEL, SCOPE_LABEL, toTree
-} from '../../data.js'
+  listGroups, createGroup, updateGroup, deleteGroup,
+  fetchGroupMembers, updateGroupMembers, fetchGroupPerms, updateGroupPerms, fetchDictionary, fetchUserOptions
+} from '../../api.js'
+import { ROLE_LABEL, SCOPE_LABEL, toTree } from '../../data.js'
 
 const tab = ref('org')
+const loading = ref(false)
+const saving = ref(false)
+const groups = ref([])
+const users = ref([])
 const orgKeyword = ref('')
 const permKeyword = ref('')
 
-// 部门分组：树形（深拷贝，页面内可增删改）
-const orgGroups = ref(toTree(
-  flattenOrg(ORG_TREE).map((n) => ({ ...n })),
-  0
-))
-
-function flattenOrg(nodes, out = []) {
-  nodes.forEach((n) => {
-    out.push({ ...n, children: [] })
-    if (n.children && n.children.length) flattenOrg(n.children, out)
-  })
-  return out
-}
-
-// 权限分组：扁平
-const permGroups = ref(PERM_GROUPS.map((g) => ({ ...g, memberIds: [...g.memberIds], permCodes: [...g.permCodes] })))
-
 const tabs = computed(() => [
-  { name: 'org', label: '部门分组', badge: countOrg(orgGroups.value) },
-  { name: 'perm', label: '权限分组', badge: permGroups.value.length }
+  { name: 'org', label: '部门分组', badge: groups.value.filter((g) => g.type === 'ORG').length },
+  { name: 'perm', label: '权限分组', badge: groups.value.filter((g) => g.type === 'PERM').length }
 ])
 
-function countOrg(nodes) {
-  return nodes.reduce((sum, n) => sum + 1 + countOrg(n.children || []), 0)
+const load = async () => {
+  loading.value = true
+  try {
+    const [groupList, userPage] = await Promise.all([
+      listGroups(),
+      fetchUserOptions({ page: 1, size: 200, status: 1 }).catch(() => ({ records: [] }))
+    ])
+    groups.value = groupList || []
+    users.value = userPage?.records || []
+  } finally {
+    loading.value = false
+  }
 }
+
+const orgGroups = computed(() => toTree(groups.value.filter((g) => g.type === 'ORG'), 0))
+const permGroups = computed(() => groups.value.filter((g) => g.type === 'PERM'))
 
 /** 部门表格：关键字过滤但保留祖先，避免子节点被过滤后失联 */
 const orgRows = computed(() => {
@@ -282,8 +280,9 @@ const orgRows = computed(() => {
   const walk = (nodes) => nodes
     .map((n) => {
       const children = walk(n.children || [])
-      const hit = n.name.includes(k) || n.code.includes(k)
-      return hit || children.length ? { ...n, children } : null
+      return n.name.includes(k) || n.code.includes(k) || children.length
+        ? { ...n, children }
+        : null
     })
     .filter(Boolean)
   return walk(orgGroups.value)
@@ -299,124 +298,149 @@ const permRows = computed(() => {
 const memberDrawer = ref(false)
 const permDrawer = ref(false)
 const currentGroup = ref(null)
-const currentType = ref('PERM')
+const members = ref([])
+const memberDraftIds = ref([])
 const addingIds = ref([])
-const memberDraft = ref([])
+const memberLoading = ref(false)
 
-const groupMembers = computed(() =>
-  memberDraft.value.map((id) => USERS.find((u) => u.id === id)).filter(Boolean)
-)
+const candidateUsers = computed(() => users.value.filter((u) => !memberDraftIds.value.includes(u.id)))
 
-const candidateUsers = computed(() => USERS.filter((u) => !memberDraft.value.includes(u.id)))
-
-const deptName = (deptId) => {
-  const flat = flattenAll(ORG_TREE)
-  return flat.find((d) => d.id === deptId)?.name || '—'
-}
-
-function flattenAll(nodes, out = []) {
-  nodes.forEach((n) => {
-    out.push(n)
-    if (n.children && n.children.length) flattenAll(n.children, out)
-  })
-  return out
-}
-
-const openMembers = (row, type) => {
+const openMembers = async (row) => {
   currentGroup.value = row
-  currentType.value = type
-  memberDraft.value = [...row.memberIds]
-  addingIds.value = []
   memberDrawer.value = true
-}
-
-const addMembers = () => {
-  memberDraft.value = [...memberDraft.value, ...addingIds.value]
+  memberLoading.value = true
+  try {
+    members.value = await fetchGroupMembers(row.id)
+    memberDraftIds.value = members.value.map((m) => m.id)
+  } finally {
+    memberLoading.value = false
+  }
   addingIds.value = []
 }
 
-const removeMember = (user) => {
-  memberDraft.value = memberDraft.value.filter((id) => id !== user.id)
+const addMemberRows = () => {
+  const picked = users.value.filter((u) => addingIds.value.includes(u.id))
+  memberDraftIds.value = [...memberDraftIds.value, ...addingIds.value]
+  members.value = [...members.value, ...picked.map((u) => ({
+    id: u.id, username: u.username, nickname: u.nickname, role: u.role
+  }))]
+  addingIds.value = []
 }
 
-const saveMembers = () => {
-  if (currentGroup.value) currentGroup.value.memberIds = [...memberDraft.value]
-  memberDrawer.value = false
-  ElMessage.success(`已保存 ${memberDraft.value.length} 位成员（设计稿，未落库）`)
+const removeMember = (member) => {
+  memberDraftIds.value = memberDraftIds.value.filter((id) => id !== member.id)
+  members.value = members.value.filter((m) => m.id !== member.id)
+}
+
+const saveMembers = async () => {
+  saving.value = true
+  try {
+    await updateGroupMembers(currentGroup.value.id, memberDraftIds.value)
+    memberDrawer.value = false
+    ElMessage.success('成员已保存')
+    await load()
+  } finally {
+    saving.value = false
+  }
 }
 
 // 权限树：平台 → 菜单 → 功能 → 权限点
 const permTreeRef = ref(null)
-const checkedKeys = ref([])
 const checkedCount = ref(0)
+const dictLoading = ref(false)
+let dictionary = { menus: [], items: [] }
 
-const permTree = computed(() =>
-  PLATFORM_TREE.map((p) => ({
-    id: `plat-${p.id}`,
-    label: p.name,
-    tag: '平台',
-    tagType: 'info',
-    children: (p.children || []).map(menuNode)
-  }))
-)
-
-function menuNode(menu) {
-  if (menu.children && menu.children.length) {
-    return { id: `menu-${menu.id}`, label: menu.name, children: menu.children.map(menuNode) }
-  }
-  const perms = PERMISSIONS.filter((p) => p.menuId === menu.id)
-  const funcs = [...new Set(perms.map((p) => p.func))]
-  return {
-    id: `menu-${menu.id}`,
-    label: menu.name,
-    tag: '菜单',
-    tagType: 'success',
-    children: funcs.map((f) => ({
-      id: `func-${menu.id}-${f}`,
-      label: `功能：${f}`,
-      children: perms
-        .filter((p) => p.func === f)
-        .map((p) => ({ id: `perm-${p.code}`, label: `${p.name}  ${p.code}`, leaf: true }))
-    }))
-  }
-}
-
-const openPerms = (row) => {
-  currentGroup.value = row
-  checkedKeys.value = row.permCodes.map((c) => `perm-${c}`)
-  checkedCount.value = row.permCodes.length
-  permDrawer.value = true
-  nextTick(() => {
-    permTreeRef.value?.setCheckedKeys(checkedKeys.value)
-    checkedCount.value = leafChecked().length
+const permTree = computed(() => {
+  const menuName = new Map(dictionary.menus.map((m) => [m.id, m.name]))
+  const byMenu = new Map()
+  dictionary.items.forEach((item) => {
+    if (!byMenu.has(item.menuId)) byMenu.set(item.menuId, [])
+    byMenu.get(item.menuId).push(item)
   })
-}
+  // 菜单树（平台 → 菜单）+ 叶子菜单挂功能与权限点
+  const build = (nodes) => nodes.map((m) => {
+    const items = byMenu.get(m.id) || []
+    if (m.children && m.children.length) {
+      return { id: `menu-${m.id}`, label: m.name, tag: '菜单', tagType: 'success', children: build(m.children) }
+    }
+    const funcs = [...new Set(items.map((i) => i.funcName))]
+    return {
+      id: `menu-${m.id}`,
+      label: m.name,
+      tag: '菜单',
+      tagType: 'success',
+      children: funcs.map((f) => ({
+        id: `func-${m.id}-${f}`,
+        label: `功能：${f}`,
+        children: items.filter((i) => i.funcName === f).map((i) => ({
+          id: `perm-${i.code}`,
+          label: `${i.name}  ${i.code}`,
+          leaf: true
+        }))
+      }))
+    }
+  })
+  // 兜底：字典树缺失但 items 里出现的菜单也纳入
+  const treeMenus = new Map(dictionary.menus.map((m) => [m.id, m]))
+  const orphans = [...byMenu.keys()].filter((id) => !treeMenus.has(id))
+  const root = build(dictionary.menus)
+  if (orphans.length) {
+    root.push({
+      id: 'menu-orphan',
+      label: '未挂载菜单',
+      children: orphans.map((menuId) => ({
+        id: `menu-${menuId}`,
+        label: menuName.get(menuId) || menuId,
+        children: (byMenu.get(menuId) || []).map((i) => ({
+          id: `perm-${i.code}`, label: `${i.name}  ${i.code}`, leaf: true
+        }))
+      }))
+    })
+  }
+  return root
+})
 
-const leafChecked = () => (permTreeRef.value?.getCheckedNodes(true) || []).filter((n) => n.id.startsWith('perm-'))
+const leafChecked = () => (permTreeRef.value?.getCheckedNodes(true) || [])
+  .filter((n) => n.id.startsWith('perm-'))
+  .map((n) => n.id.replace('perm-', ''))
 
 const onPermCheck = () => {
   checkedCount.value = leafChecked().length
 }
 
-const savePerms = () => {
-  if (!currentGroup.value) return
-  const codes = leafChecked().map((n) => n.id.replace('perm-', ''))
-  currentGroup.value.permCodes = codes
-  permDrawer.value = false
-  ElMessage.success(`已保存 ${codes.length} 个权限点（设计稿，未落库）`)
+const openPerms = async (row) => {
+  currentGroup.value = row
+  permDrawer.value = true
+  dictLoading.value = true
+  try {
+    if (!dictionary.items.length) {
+      dictionary = await fetchDictionary()
+    }
+    const codes = await fetchGroupPerms(row.id)
+    await nextTick()
+    permTreeRef.value?.setCheckedKeys((codes || []).map((c) => `perm-${c}`))
+    checkedCount.value = codes?.length || 0
+  } finally {
+    dictLoading.value = false
+  }
+}
+
+const savePerms = async () => {
+  saving.value = true
+  try {
+    await updateGroupPerms(currentGroup.value.id, leafChecked())
+    permDrawer.value = false
+    ElMessage.success('权限已保存')
+    await load()
+  } finally {
+    saving.value = false
+  }
 }
 
 // 新建 / 编辑
 const formDialog = ref(false)
 const form = reactive({
-  id: null,
-  type: 'ORG',
-  name: '',
-  code: '',
-  parentId: 0,
-  leader: '',
-  dataScope: 'DEPT',
-  remark: ''
+  id: null, type: 'ORG', name: '', code: '', parentId: 0, leader: '', dataScope: 'DEPT', remark: ''
 })
 
 const orgOptions = computed(() => {
@@ -433,87 +457,54 @@ const orgOptions = computed(() => {
 
 const openCreate = (type) => {
   Object.assign(form, {
-    id: null,
-    type,
-    name: '',
-    code: '',
+    id: null, type, name: '', code: '',
     parentId: type === 'ORG' ? orgGroups.value[0]?.id || 0 : 0,
-    leader: '',
-    dataScope: type === 'ORG' ? 'DEPT' : 'SELF',
-    remark: ''
+    leader: '', dataScope: type === 'ORG' ? 'DEPT' : 'SELF', remark: ''
   })
   formDialog.value = true
 }
 
-const openEdit = (row, type) => {
+const openEdit = (row) => {
   Object.assign(form, {
-    id: row.id,
-    type,
-    name: row.name,
-    code: row.code,
-    parentId: row.parentId || 0,
-    leader: row.leader || '',
-    dataScope: row.dataScope,
-    remark: row.remark || ''
+    id: row.id, type: row.type, name: row.name, code: row.code,
+    parentId: row.parentId || 0, leader: row.leader || '',
+    dataScope: row.dataScope, remark: row.remark || ''
   })
   formDialog.value = true
 }
 
-const submitForm = () => {
+const submitForm = async () => {
   if (!form.name || !form.code) {
     ElMessage.warning('分组名称与编码必填')
     return
   }
-  if (form.type === 'PERM') {
+  saving.value = true
+  try {
     if (form.id) {
-      Object.assign(permGroups.value.find((g) => g.id === form.id), {
-        name: form.name, code: form.code, dataScope: form.dataScope, remark: form.remark
-      })
+      await updateGroup(form.id, form)
     } else {
-      permGroups.value.unshift({
-        id: Date.now(), name: form.name, code: form.code, dataScope: form.dataScope,
-        memberIds: [], permCodes: [], remark: form.remark, builtin: false, status: 1
-      })
+      await createGroup(form)
     }
-  } else if (form.id) {
-    const node = findOrgNode(orgGroups.value, form.id)
-    if (node) Object.assign(node, {
-      name: form.name, code: form.code, dataScope: form.dataScope, remark: form.remark, leader: form.leader
-    })
-  } else {
-    const parent = form.parentId ? findOrgNode(orgGroups.value, form.parentId) : null
-    const node = {
-      id: Date.now(), name: form.name, code: form.code, parentId: form.parentId || 0,
-      leader: form.leader, order: (parent?.children?.length || 0) + 1,
-      dataScope: form.dataScope, remark: form.remark, memberIds: [], children: []
-    }
-    if (parent) parent.children.push(node)
-    else orgGroups.value.push(node)
+    formDialog.value = false
+    ElMessage.success('已保存')
+    await load()
+  } finally {
+    saving.value = false
   }
-  formDialog.value = false
-  ElMessage.success('已保存（设计稿，未落库）')
 }
 
-function findOrgNode(nodes, id) {
-  for (const n of nodes) {
-    if (n.id === id) return n
-    const hit = findOrgNode(n.children || [], id)
-    if (hit) return hit
-  }
-  return null
+const removeGroup = async (row) => {
+  await ElMessageBox.confirm(
+    `确认删除分组「${row.name}」？成员与权限关联会一并解除。`,
+    '删除分组',
+    { type: 'warning' }
+  )
+  await deleteGroup(row.id)
+  ElMessage.success('已删除')
+  await load()
 }
 
-const removeGroup = async (row, type) => {
-  await ElMessageBox.confirm(`确认删除分组「${row.name}」？成员不会被删除，只解除与分组的关联。`, '删除分组', { type: 'warning' })
-  if (type === 'PERM') {
-    permGroups.value = permGroups.value.filter((g) => g.id !== row.id)
-  } else {
-    const parent = findOrgNode(orgGroups.value, row.parentId)
-    if (parent) parent.children = parent.children.filter((c) => c.id !== row.id)
-    else orgGroups.value = orgGroups.value.filter((c) => c.id !== row.id)
-  }
-  ElMessage.success('已删除（设计稿，未落库）')
-}
+onMounted(load)
 </script>
 
 <style scoped>

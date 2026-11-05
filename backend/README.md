@@ -13,7 +13,7 @@ Spring Boot 3.2.12 + 原生 MyBatis + MySQL + Nacos，Maven 多模块，
 | `jv-api-gateway-common` | 平台内部公共模块：统一响应、异常、分页封装（`Page` / `PageResult`）、JWT、IP 工具、密码器配置 | — | `com.zimo.gateway.common` |
 | `jv-api-gateway-client-common` | **对外公共模块**：上报模型、服务实例模型、常量、错误枚举（不依赖 Spring，业务系统可安全引入） | — | `com.zimo.gateway.client.common` |
 | `jv-api-gateway-client-starter` | **网关子模块（Spring Boot Starter）**：自动接入注册、请求与响应采集、异步批量上报 | — | `com.zimo.gateway.client` |
-| `jv-api-gateway-user` | 用户模块：登录 / 退出 / 当前用户、账号增删改查、鉴权拦截器、内置管理员初始化 | 28081 | `com.zimo.gateway.user` |
+| `jv-api-gateway-user` | 用户与权限模块：注册 / 登录 / 退出 / 当前用户、账号增删改查、分组与权限（部门组织 / 权限点字典 / 有效权限并集）、API Key 管理、鉴权拦截器、权限表结构初始化 | 28081 | `com.zimo.gateway.user` |
 | `jv-api-gateway-overview` | 网关总览：指标汇总、QPS 趋势、运行时信息、网关实例 | 28082 | `com.zimo.gateway.overview` |
 | `jv-api-gateway-discovery` | 服务发现：注册服务列表、服务详情（端口 / 实例数 / 注册时间）、心跳巡检、转发路由（`tb_gw_route`）增删改查 | 28083 | `com.zimo.gateway.discovery` |
 | `jv-api-gateway-trace` | 日志追踪：调用日志分页查询、请求/响应报文详情 | 28084 | `com.zimo.gateway.trace` |
@@ -386,13 +386,43 @@ chmod +x scripts/*.sh
 
 ## 认证与鉴权
 
-采用 **JWT（无状态 Bearer Token）**，详见 [docs/auth-design.md](../docs/auth-design.md)。
+详见 [docs/auth-design.md](../docs/auth-design.md)。两层鉴权：
 
-- 登录成功后前端保存 `token`，后续请求统一带 `Authorization: Bearer <token>`
-- 拦截器校验链路：签名 & 过期 → 账号存在且未禁用 → 令牌版本（`tb_sys_user.token_version`）
+### 用户令牌（Bearer JWT，控制台会话）
+
+- 注册 / 登录成功后前端保存 `token`，后续请求统一带 `Authorization: Bearer <token>`
+- 校验链路：签名 & 过期 → 账号存在且未禁用 → 令牌版本（`tb_sys_user.token_version`）
 - 退出登录时 `token_version + 1`，该账号此前签发的所有令牌立即失效
-- 连续输错 5 次锁定账号
-- `/api/auth/logout` 需携带有效令牌；`/api/auth/login` 为唯一白名单接口
+- 连续输错 5 次锁定账号；开放注册默认 `VIEWER` 角色
+
+### 网关统一鉴权（jv-api-gateway-proxy 的 AuthGlobalFilter）
+
+所有经网关（28090）的请求在 `AuthGlobalFilter`（`proxy/auth` 包）裁决：
+
+| 凭证 | 格式 | 校验内容 |
+| --- | --- | --- |
+| `Authorization: Bearer <jwt>` | 登录签发 | 验签 + 过期 → `token_version` 比对 → 账号状态 |
+| `X-Api-Key: gwak-<keyId>-<secret>` | 「API Key」页签发 | keyId 定位 → SHA-256(secret) 比对 → 状态 / 有效期 |
+
+- 通过后注入 `X-Auth-User-Id` / `X-Auth-Key-Id` 供下游识别调用方
+- 未通过一律 `401 {"code":401,"message":"..."}`
+- 白名单（`gateway.proxy.auth.skip-paths`）：`/api/auth/login`、`/api/auth/register`、`/actuator/**`；`enabled: false` 可整体关闭
+- **热路径缓存**：Key 记录与令牌版本各缓存 30 秒（Caffeine），停用 / 轮换 Key、退出登录最迟 30 秒生效
+- 容错策略：共享库不可用时放行并告警（保持网关可用性，与路由加载一致）
+- 注意：proxy 不依赖 `jv-api-gateway-common`（其 starter-web 会让 Gateway 失效），JWT 验签由 `ProxyJwtParser` 自带实现，密钥与 user 服务一致（`gateway.jwt.secret`）
+
+### 分组与权限
+
+- 分组（`tb_perm_group`）：`type=ORG` 部门分组（树形，决定数据范围）/ `type=PERM` 权限分组（绑权限点）
+- 权限点（`tb_perm_item`）：`平台 → 菜单 → 功能 → 按钮/展示/接口` 四级，`code` 为前后端共用鉴权标识
+- 用户有效权限 = 所属全部分组权限点并集；内置分组（builtin=1，如 `ROLE_SUPER`）语义为「全部权限」
+- 表结构与种子由 user 服务启动时执行 `db/perm_apikey.sql` 自动就绪（幂等），无需手工建表
+
+### API Key
+
+- 明文 `gwak-<keyId>-<secret>` 仅签发 / 轮换响应返回一次，服务端只存 SHA-256
+- 支持：签发（可选有效期）、启停、轮换（keyId 不变换新密钥）、吊销（删除）
+- Key 管理接口本身属于控制台接口，仅支持 Bearer JWT；API Key 用于调用**业务路由**
 
 ## 接口清单
 
@@ -400,9 +430,26 @@ chmod +x scripts/*.sh
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
+| POST | `/api/auth/register` | 注册（默认 VIEWER），成功即登录 |
 | POST | `/api/auth/login` | 登录，返回 token 与用户信息 |
 | POST | `/api/auth/logout` | 退出登录 |
 | GET | `/api/auth/info` | 当前登录用户信息 |
+| GET | `/api/auth/my-perms` | 当前用户有效权限点（所属分组并集） |
+| GET | `/api/perm/groups` | 分组全量（含成员数 / 权限点数） |
+| POST | `/api/perm/groups` | 新建分组（ORG / PERM） |
+| PUT | `/api/perm/groups/{id}` | 修改分组 |
+| DELETE | `/api/perm/groups/{id}` | 删除分组（内置组拒绝） |
+| GET/PUT | `/api/perm/groups/{id}/members` | 分组成员查询 / 全量替换 |
+| GET/PUT | `/api/perm/groups/{id}/perms` | 分组权限点查询 / 全量替换 |
+| GET | `/api/perm/dictionary` | 权限字典：平台菜单树 + 权限点全量 |
+| POST | `/api/perm/items` | 新增权限点（code 唯一） |
+| PUT | `/api/perm/items/{id}` | 修改权限点 |
+| DELETE | `/api/perm/items/{id}` | 删除权限点 |
+| GET | `/api/keys` | API Key 列表（不含密钥） |
+| POST | `/api/keys` | 签发 API Key（明文仅此一次） |
+| PUT | `/api/keys/{id}/status` | 启用 / 停用 |
+| POST | `/api/keys/{id}/rotate` | 轮换密钥 |
+| DELETE | `/api/keys/{id}` | 吊销并删除 |
 | GET | `/api/users` | 用户分页列表 |
 | GET | `/api/users/{id}` | 用户详情 |
 | POST | `/api/users` | 新增用户 |

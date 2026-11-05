@@ -46,3 +46,28 @@ export function updateUserStatus(id, status) {
  *   POST /auth/sessions/{id}/revoke 强制下线
  *   GET  /auth/policy               安全策略
  * ========================================================================== */
+
+
+/* ==========================================================================
+ * 已对接：API Key 管理（后端 /keys 接口；明文仅签发 / 轮换响应返回一次）
+ * ========================================================================== */
+
+export function fetchApiKeys() {
+  return request.get('/keys')
+}
+
+export function issueApiKey(data) {
+  return request.post('/keys', data)
+}
+
+export function setApiKeyStatus(id, status) {
+  return request.put(`/keys/${id}/status`, { status })
+}
+
+export function rotateApiKey(id) {
+  return request.post(`/keys/${id}/rotate`)
+}
+
+export function revokeApiKey(id) {
+  return request.delete(`/keys/${id}`)
+}

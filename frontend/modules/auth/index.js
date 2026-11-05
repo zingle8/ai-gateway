@@ -12,6 +12,7 @@ import LoginMethodsView from './src/views/LoginMethods.vue'
 import SsoView from './src/views/Sso.vue'
 import SessionsView from './src/views/Sessions.vue'
 import SecurityPolicyView from './src/views/SecurityPolicy.vue'
+import ApiKeysView from './src/views/ApiKeys.vue'
 
 export const menu = [
   {
@@ -22,7 +23,8 @@ export const menu = [
       { path: '/auth/login-methods', title: '登录方式', icon: 'Key' },
       { path: '/auth/sso', title: '单点登录', icon: 'Link' },
       { path: '/auth/sessions', title: '令牌与会话', icon: 'Timer' },
-      { path: '/auth/policy', title: '安全策略', icon: 'SetUp' }
+      { path: '/auth/policy', title: '安全策略', icon: 'SetUp' },
+      { path: '/auth/api-keys', title: 'API Key', icon: 'Tools' }
     ]
   }
 ]
@@ -59,6 +61,12 @@ export const routes = [
     name: 'AuthPolicy',
     component: SecurityPolicyView,
     meta: { title: '安全策略', subtitle: '登录保护、验证码限频、密码策略与双因子要求' }
+  },
+  {
+    path: 'auth/api-keys',
+    name: 'AuthApiKeys',
+    component: ApiKeysView,
+    meta: { title: 'API Key', subtitle: '开放接口凭证：签发 / 轮换 / 吊销，网关侧 SHA-256 校验' }
   }
 ]
 

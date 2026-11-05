@@ -3,6 +3,7 @@ package com.zimo.gateway.user.service;
 import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.user.entity.User;
 import com.zimo.gateway.user.model.LoginVO;
+import com.zimo.gateway.user.model.RegisterRequest;
 import com.zimo.gateway.user.model.UserQuery;
 import com.zimo.gateway.user.model.UserSaveRequest;
 
@@ -21,6 +22,11 @@ public interface UserService {
      * 登录：校验账号密码，成功返回 JWT
      */
     LoginVO login(String username, String password, String ip);
+
+    /**
+     * 注册：校验账号格式与唯一性，默认 VIEWER 角色，成功即登录（返回 JWT）
+     */
+    LoginVO register(RegisterRequest request, String ip);
 
     /**
      * 退出：清理登录态（JWT 无状态，这里仅记录退出日志 / 清理缓存位）
