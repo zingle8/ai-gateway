@@ -4,7 +4,11 @@
       <div class="gw-card-hd">
         <span>用户管理</span>
         <div class="hd-actions">
-          <el-input v-model="query.keyword" placeholder="账号 / 姓名" clearable style="width: 180px;" @keyup.enter="load" />
+          <el-input v-model="query.keyword" placeholder="账号 / 姓名 / 标识" clearable style="width: 180px;" @keyup.enter="load" />
+          <el-select v-model="query.userType" placeholder="全部类型" clearable style="width: 120px;">
+            <el-option label="控制台账号" value="CONSOLE" />
+            <el-option label="C 端账号" value="CONSUMER" />
+          </el-select>
           <el-select v-model="query.role" placeholder="全部角色" clearable style="width: 130px;">
             <el-option label="管理员" value="ADMIN" />
             <el-option label="运营" value="OPERATOR" />
@@ -24,13 +28,34 @@
           <el-table-column prop="id" label="ID" width="70" />
           <el-table-column prop="username" label="账号" width="130" />
           <el-table-column prop="nickname" label="姓名" width="120" />
+          <el-table-column label="类型" width="110">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.userType === 'CONSUMER' ? 'warning' : 'info'" effect="plain">
+                {{ userTypeLabel(row.userType) }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="role" label="角色" width="100">
             <template #default="{ row }">
               <el-tag size="small" :type="roleTagType(row.role)">{{ roleLabel(row.role) }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="phone" label="手机号" width="130" />
+          <el-table-column label="登录标识" min-width="190">
+            <template #default="{ row }">
+              <span class="ident">
+                <span v-if="row.email" class="ident-tag">邮箱</span>
+                <span v-if="row.phone" class="ident-tag">手机</span>
+                <span v-if="row.username" class="ident-tag">用户名</span>
+                <span v-if="!row.email && !row.phone && !row.username" class="gw-muted gw-sm">—</span>
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="2FA" width="80">
+            <template #default="{ row }">
+              <el-tag v-if="row.mfaEnabled" size="small" type="success">已开启</el-tag>
+              <span v-else class="gw-muted gw-sm">未开启</span>
+            </template>
+          </el-table-column>
           <el-table-column label="状态" width="90">
             <template #default="{ row }">
               <el-tag size="small" :type="row.status === 1 ? 'success' : 'info'">
@@ -119,6 +144,7 @@ const formRef = ref(null)
 
 const query = reactive({
   keyword: '',
+  userType: '',
   role: '',
   status: null,
   current: 1,
@@ -157,6 +183,7 @@ const load = async () => {
 
 const reset = () => {
   query.keyword = ''
+  query.userType = ''
   query.role = ''
   query.status = null
   query.current = 1
@@ -232,6 +259,10 @@ const ROLE_LABEL = { ADMIN: '管理员', OPERATOR: '运营', VIEWER: '只读' }
 const roleLabel = (role) => ROLE_LABEL[role] || role
 const roleTagType = (role) => (role === 'ADMIN' ? 'danger' : role === 'OPERATOR' ? 'warning' : 'info')
 
+// 用户类型：CONSOLE 控制台账号（角色权限体系）/ CONSUMER C 端账号。
+// 后端字段未就绪时按控制台账号兜底显示，避免整列为空。
+const userTypeLabel = (t) => (t === 'CONSUMER' ? 'C 端账号' : '控制台账号')
+
 const rules = {
   username: [{ required: true, message: '请输入账号', trigger: 'blur' }],
   nickname: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
@@ -262,5 +293,22 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* 登录标识：一个账号可同时绑定邮箱 / 手机 / 用户名，用小标签并列展示 */
+.ident {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ident-tag {
+  font-size: 11px;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 3px;
+  border: 1px solid var(--gw-border);
+  color: var(--gw-text-secondary);
+  background: var(--gw-bg-subtle, #FAFAFA);
 }
 </style>

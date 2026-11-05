@@ -8,7 +8,8 @@ import 'element-plus/dist/index.css'
 // <component :is="icon" /> 解析。按需注册，新增菜单图标时在这里补一行。
 import {
   Odometer, DataAnalysis, Grid, Tickets, Setting, User, Avatar,
-  Connection, Promotion, MagicStick, Share, Upload
+  Connection, Promotion, MagicStick, Share, Upload,
+  Lock, Key, Link, Timer, SetUp, Tools
 } from '@element-plus/icons-vue'
 
 import App from './App.vue'
@@ -28,7 +29,13 @@ const icons = {
   Promotion,      // 系统接入：接入 / 发送
   MagicStick,     // 自动接入：一键自动化
   Share,          // 路由配置：转发分支
-  Upload          // 上线发布：发布上线
+  Upload,         // 上线发布：发布上线
+  Lock,           // 认证与安全：安全
+  Key,            // 登录方式：凭证
+  Link,           // 单点登录：关联
+  Timer,          // 令牌与会话：时效
+  SetUp,          // 安全策略：策略
+  Tools           // 系统设置：工具
 }
 
 const app = createApp(App)

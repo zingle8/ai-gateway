@@ -10,12 +10,13 @@ import discovery from '@zimo/module-discovery'
 import trace from '@zimo/module-trace'
 import system from '@zimo/module-system'
 import onboard from '@zimo/module-onboard'
+import auth from '@zimo/module-auth'
 
-export const modules = [overview, stats, discovery, trace, system, onboard]
+export const modules = [overview, stats, discovery, trace, onboard, auth, system]
 
 /**
  * 侧边栏菜单：只保留已落地的能力
- * 网关总览 / 数据统计 / 服务发现 / 日志追踪 / 接入中心 / 系统管理
+ * 网关总览 / 数据统计 / 服务发现 / 日志追踪 / 接入中心 / 认证与安全 / 系统管理
  */
 export const menuRoutes = modules.flatMap((m) => m.menu)
 

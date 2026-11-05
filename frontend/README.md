@@ -29,7 +29,8 @@ frontend/
 │   ├── stats/                # @zimo/module-stats     数据统计（多维过滤）
 │   ├── discovery/            # @zimo/module-discovery 服务治理（服务发现…）
 │   ├── trace/                # @zimo/module-trace     可观测（日志追踪…）
-│   ├── system/               # @zimo/module-system    系统管理（用户管理…）
+│   ├── auth/                 # @zimo/module-auth      认证与安全（用户管理 / 登录方式 / SSO / 令牌会话 / 安全策略）
+│   ├── system/               # @zimo/module-system    系统管理（角色管理 / 系统设置）
 │   └── onboard/              # @zimo/module-onboard   接入中心（系统接入 / 自动接入）
 └── apps/
     └── portal/               # @zimo/portal：主应用（壳工程，唯一入口）
@@ -52,6 +53,20 @@ modules/<name>/
 - `menu` 的 `icon` 写 **Element Plus 图标组件名**（如 `'Odometer'`），由 `apps/portal/src/main.js`
   按需全局注册；新增菜单图标要在那里补一行 import + 注册，否则 `<component :is>` 解析不到、图标不显示。
 
+## 侧边菜单结构
+
+```
+网关总览 / 数据统计 / 服务发现 / 日志追踪 / 服务拓扑     ← 可观测，平铺
+接入中心：系统接入 / 自动接入 / 路由配置 / 上线发布        ← 分组
+认证与安全：用户管理 / 登录方式 / 单点登录 / 令牌与会话 / 安全策略   ← 分组（本次新增）
+系统管理：角色管理 / 系统设置                            ← 分组（用户管理已迁至认证与安全）
+```
+
+- 用户管理路线迁移：`/system/user` → `/auth/user`，旧地址保留 redirect 兼容收藏夹；
+- 「登录方式 / 单点登录 / 令牌与会话 / 安全策略」四页为**前端设计稿**：交互可用、数据为本地示例，
+  接口约定见 `modules/auth/src/api.js` 末尾注释，后端就绪后替换数据源即可，页面结构不动；
+- 菜单 `icon` 需在 `apps/portal/src/main.js` 注册（本次新增 `Lock / Key / Link / Timer / SetUp / Tools`）。
+
 ## 前端模块 ↔ 后端微服务
 
 | 前端模块包 | 路由前缀 | 后端微服务 | 端口 |
@@ -60,7 +75,8 @@ modules/<name>/
 | `@zimo/module-stats` | `/api/stats` | `jv-api-gateway-overview` | 28082 |
 | `@zimo/module-discovery` | `/api/discovery` | `jv-api-gateway-discovery` | 28083 |
 | `@zimo/module-trace` | `/api/trace` | `jv-api-gateway-trace` | 28084 |
-| `@zimo/module-system` + `@zimo/shared/api/auth` | `/api/users`、`/api/auth` | `jv-api-gateway-user` | 28081 |
+| `@zimo/module-auth` + `@zimo/shared/api/auth` | `/api/users`、`/api/auth` | `jv-api-gateway-user`（认证中心） | 28081 |
+| `@zimo/module-system` | —（角色 / 系统设置页待接入） | `jv-api-gateway-user` | 28081 |
 | `@zimo/module-onboard` | `/api/discovery` | `jv-api-gateway-discovery` | 28083 |
 | 全部模块（统一入口） | `/api/**` | `jv-api-gateway-proxy`（按路由转发） | 28090 |
 

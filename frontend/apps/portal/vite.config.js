@@ -29,7 +29,8 @@ export default defineConfig({
       '@zimo/module-discovery': r('../../modules/discovery'),
       '@zimo/module-trace': r('../../modules/trace'),
       '@zimo/module-system': r('../../modules/system'),
-      '@zimo/module-onboard': r('../../modules/onboard')
+      '@zimo/module-onboard': r('../../modules/onboard'),
+      '@zimo/module-auth': r('../../modules/auth')
     }
   },
   server: {
