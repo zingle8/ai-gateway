@@ -9,7 +9,8 @@ import 'element-plus/dist/index.css'
 import {
   Odometer, DataAnalysis, Grid, Tickets, Setting, User, Avatar,
   Connection, Promotion, MagicStick, Share, Upload,
-  Lock, Key, Link, Timer, SetUp, Tools
+  Lock, Key, Link, Timer, SetUp, Tools,
+  Management, Collection, OfficeBuilding, Menu
 } from '@element-plus/icons-vue'
 
 import App from './App.vue'
@@ -35,7 +36,11 @@ const icons = {
   Link,           // 单点登录：关联
   Timer,          // 令牌与会话：时效
   SetUp,          // 安全策略：策略
-  Tools           // 系统设置：工具
+  Tools,          // 系统设置：工具
+  Management,     // 分组与权限：权限管理
+  Collection,     // 分组管理：分组集合
+  OfficeBuilding, // 部门组织：组织架构
+  Menu            // 平台功能与菜单：菜单结构
 }
 
 const app = createApp(App)

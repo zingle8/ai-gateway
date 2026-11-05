@@ -15,6 +15,7 @@
     "@zimo/module-discovery": "^1.0.0",
     "@zimo/module-onboard": "^1.0.0",
     "@zimo/module-overview": "^1.0.0",
+    "@zimo/module-perm": "^1.0.0",
     "@zimo/module-stats": "^1.0.0",
     "@zimo/module-system": "^1.0.0",
     "@zimo/module-trace": "^1.0.0",

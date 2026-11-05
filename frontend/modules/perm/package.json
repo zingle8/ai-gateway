@@ -1,0 +1,14 @@
+{
+  "name": "@zimo/module-perm",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "分组与权限：分组管理 / 部门组织 / 平台功能与菜单",
+  "main": "index.js",
+  "dependencies": {
+    "@zimo/shared": "^1.0.0",
+    "@zimo/ui": "^1.0.0",
+    "element-plus": "^2.8.8",
+    "vue": "^3.5.13"
+  }
+}

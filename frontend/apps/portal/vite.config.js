@@ -30,7 +30,8 @@ export default defineConfig({
       '@zimo/module-trace': r('../../modules/trace'),
       '@zimo/module-system': r('../../modules/system'),
       '@zimo/module-onboard': r('../../modules/onboard'),
-      '@zimo/module-auth': r('../../modules/auth')
+      '@zimo/module-auth': r('../../modules/auth'),
+      '@zimo/module-perm': r('../../modules/perm')
     }
   },
   server: {
