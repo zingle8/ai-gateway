@@ -1,6 +1,6 @@
 <template>
   <div class="pane-tabs">
-    <!-- 页内区块切换：pill 风格，与顶部菜单/路由级 Tab 明确区分开 -->
+    <!-- 页内区块切换：连体分段控件，浅绿底 + 激活白块，与侧边栏激活态同一色系 -->
     <div class="pane-tabs-nav" role="tablist">
       <button
         v-for="t in tabs"
@@ -46,47 +46,56 @@ defineEmits(['update:modelValue'])
 </script>
 
 <style scoped>
+/* 连体分段控件：整体浅绿底，按钮之间无间隙，激活项浮起为白块 */
 .pane-tabs-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 2px;
   margin-bottom: 10px;
+  background: var(--sidebar-hover);
+  border: 1px solid #E3F3EA;
+  border-radius: 8px;
 }
+
+.pane-tabs-nav::-webkit-scrollbar { height: 0; }
 
 .pane-tab {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border: 1px solid var(--gw-border);
+  flex-shrink: 0;
+  padding: 5px 14px;
+  border: 0;
   border-radius: 6px;
-  background: var(--gw-card);
-  color: var(--gw-text-secondary);
+  background: transparent;
+  color: #4B6B58;
   font-size: 12.5px;
   line-height: 18px;
   cursor: pointer;
-  transition: all .15s;
+  transition: background .15s, color .15s, box-shadow .15s;
   font-family: inherit;
 }
 
 .pane-tab:hover {
-  border-color: #d5d7dc;
-  color: var(--gw-text);
+  color: var(--sidebar-active-text);
+  background: var(--sidebar-active);
 }
 
 .pane-tab.active {
-  background: var(--gw-primary);
-  border-color: var(--gw-primary);
-  color: #fff;
+  background: var(--gw-card);
+  color: var(--sidebar-active-text);
   font-weight: 600;
+  box-shadow: 0 1px 2px rgba(22, 163, 74, .12);
 }
 
 .pane-tab-badge {
   min-width: 16px;
   padding: 0 4px;
   border-radius: 8px;
-  background: var(--gw-border-light);
-  color: var(--gw-text-secondary);
+  background: var(--sidebar-active);
+  color: var(--sidebar-active-text);
   font-size: 11px;
   line-height: 16px;
   text-align: center;
@@ -94,7 +103,7 @@ defineEmits(['update:modelValue'])
 }
 
 .pane-tab.active .pane-tab-badge {
-  background: rgba(255, 255, 255, .22);
-  color: #fff;
+  background: var(--sidebar-active);
+  color: var(--sidebar-active-text);
 }
 </style>
