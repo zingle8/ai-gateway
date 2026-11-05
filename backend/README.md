@@ -505,8 +505,15 @@ chmod +x scripts/*.sh
   - 心跳 / 注册失败打 WARN（不再静默 debug）
   - Servlet Filter 采集请求响应 + traceparent 透传；异步批量上报，队列满直接丢弃不阻塞业务
   - 仅支持 Servlet 容器；WebFlux（如 proxy 自身）走独立的 `ProxySelfRegistrar` + `TraceGlobalFilter`
-- 上报通道在网关白名单放行（`/api/discovery/services/*`、`/api/trace/logs|spans/batch`），当前仅限内网；
-  TODO：用 `X-Gateway-Client-Token` 共享密钥收紧
+- **上报共享密钥**：`zimo.gateway.client.client-token`（X-Gateway-Client-Token），
+  注册/心跳/采集上报请求自动携带；网关 `gateway.proxy.auth.client-token` 非空时对上报路径校验，
+  不匹配拒绝——防止内网伪造注册与上报。两端同值，本地默认 dev-gateway-token，生产用
+  `GATEWAY_CLIENT_TOKEN` 环境变量注入
+- **SDK 入口鉴权**（`zimo.gateway.client.auth.enabled=true`，默认关）：调用本服务的请求需持有效凭证
+  （Bearer JWT / X-Api-Key，回调网关 `/open/auth/token/verify` 验签 + 本地缓存 60 秒），
+  防止绕过网关直连业务系统端口；豁免路径、fail-open 可配。SDK 数据上报是出站调用，
+  不受入口鉴权影响——调用方验签失败时日志与 span 照常上报，平台始终可见真实流量
+- Python SDK：仓库 `sdk/python/`（jv_gateway 包，零第三方依赖），API 与协议同 Java，见 sdk/python/README.md
 
 ### 菜单健康探测
 

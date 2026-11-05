@@ -125,7 +125,6 @@
 | 系统接入页 | 静态说明页（定位即文档向导） | 保留说明定位，或升级为真实接入向导（选应用 → 生成依赖坐标与 yml → 校验注册结果） |
 | 角色管理页 | Placeholder（角色实际由分组权限承担） | 明确"角色 = PERM 分组"的语义后合并到分组页，或补角色 CRUD |
 | 开放认证的调用方约束 | 免令牌开放，仅总开关 | 增加调用方白名单 / IP 限制 / 每分钟限流（复用 API Key 作为调用凭证） |
-| SDK 上报接口鉴权 | 注册 / 心跳 / 链路上报在网关白名单放行，仅内网可用 | 用 `X-Gateway-Client-Token` 共享密钥校验（常量已定义，两端未实现） |
 | 网关限流 | 未实现 | `RequestRateLimiter` + Redis，按 Key / IP / 路由维度 |
 
 ### P1 —— 体验与运维
@@ -183,6 +182,7 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 | 日期 | 内容 |
 | --- | --- |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
+| 2026-11-05 | SDK 安全双门落地：① 上报共享密钥 `X-Gateway-Client-Token` 两端实现（SDK 自动携带、网关对上报路径校验，伪造注册/上报 401）；② SDK 入口鉴权 `GatewayAuthFilter`（回调 /open/auth/token/verify 验签 + 缓存，豁免/fail-open 可配，SDK 数据上报不受影响）；③ Python SDK `sdk/python/jv_gateway` 补齐（注册/心跳/上报/中间件/入口鉴权，冒烟脚本全通过并真实落库）；④ 接入文档同步（client-integration.md、AutoOnboard 页、backend README）。修复：ConditionalOnMissingBean 按类型判重把 gatewayAuthFilter 挤掉（改按 bean 名）、豁免路径需剥离 context-path |
 | 2026-11-05 | 页面数据真实性盘点：19 页中 14 页走真实接口（总览/统计/发现/追踪/用户/Key/分组/部门/菜单/接入/路由/设置），5 页为静态演示（登录方式/SSO/令牌会话/安全策略/系统接入）；接真计划与优先级已写入 P0 待办表 |
 | 2026-11-05 | 服务离线状态修复：① `dotClass` 补「离线」映射（此前离线无颜色，与普通文字无异）；② 主动下线 deregister 由「异常」改为「离线」；③ 心跳巡检不再只处理 status=健康（异常/亚健康超时同样转离线）。实测 kill config → 页面 10 秒内红点红字「离线」 |
 | 2026-11-05 | 控制台自动刷新频率配置化：新增 `platform.ui.refresh.interval`（公开配置），网关总览 / 数据统计 / 服务发现接入 `useAutoRefresh` 轮询（服务健康状态随轮询更新），改值 30 秒内生效；默认频率调整为 10 秒 |

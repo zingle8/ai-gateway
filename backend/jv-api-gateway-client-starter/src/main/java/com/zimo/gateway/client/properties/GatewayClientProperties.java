@@ -62,6 +62,15 @@ public class GatewayClientProperties {
     /** 语言类型 */
     private String language = "Java 17";
 
+    /**
+     * 上报共享密钥（X-Gateway-Client-Token）：注册 / 心跳 / 下线 / 采集上报请求携带，
+     * 网关（gateway.proxy.auth.client-token 非空时）校验，防止内网伪造注册与上报。
+     * 默认空 = 不携带（对应网关不校验）。生产环境务必用环境变量注入并与网关一致。
+     */
+    private String clientToken = "";
+
+    private final Auth auth = new Auth();
+
     /** 版本号 */
     private String version = "v1.0.0";
 
@@ -97,6 +106,31 @@ public class GatewayClientProperties {
 
         /** 单次上报超时（ms） */
         private long reportTimeout = 5000L;
+    }
+
+    @Data
+    public static class Auth {
+
+        /** 是否启用入口鉴权：调用本服务的请求需持有效 token / API Key（回调网关开放验签接口验证） */
+        private boolean enabled = false;
+
+        /** 验签端点；默认 {server-addr}/open/auth/token/verify（同时支持用户 JWT 与 API Key） */
+        private String verifyUrl = "";
+
+        /** 豁免路径（Ant 风格）：健康检查、探活等无需凭证 */
+        private List<String> exemptPaths = new ArrayList<>(List.of("/health/**", "/actuator/**", "/error"));
+
+        /** 验签结果缓存秒数：同一 token 在此期间不重复回调网关 */
+        private int cacheSeconds = 60;
+
+        /** 单次验签超时（ms） */
+        private long timeoutMs = 3000L;
+
+        /**
+         * 网关不可达时的策略：false = 拒绝（安全优先，默认）；true = 放行（可用性优先）。
+         * 注意：即使放行，验签失败本身也会作为调用日志上报，网关侧可见。
+         */
+        private boolean failOpen = false;
     }
 
     @Data

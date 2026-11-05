@@ -27,11 +27,23 @@ public class GatewayAuthProperties {
     private String cacheMode = "auto";
 
     /**
+     * SDK 上报共享密钥（X-Gateway-Client-Token）：非空时对上报路径
+     * （clientTokenPaths）校验请求头，不匹配拒绝——防止内网伪造注册与上报；
+     * 为空 = 不校验（向后兼容）。yml 中配 ${GATEWAY_CLIENT_TOKEN:dev-gateway-token}，
+     * 生产环境务必用环境变量覆盖，且与接入方 zimo.gateway.client.client-token 一致。
+     */
+    private String clientToken = "";
+
+    /** 需校验共享密钥的上报路径（在 skipPaths 放行之后做二次校验，与 skipPaths 中的上报通道一一对应） */
+    private List<String> clientTokenPaths = new ArrayList<>(List.of(
+            "/api/discovery/services/register", "/api/discovery/services/heartbeat",
+            "/api/discovery/services/deregister", "/api/trace/logs/batch", "/api/trace/spans/batch"));
+
+    /**
      * 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 探活 / 菜单健康，
      * 以及接入 SDK 的上报通道（注册 / 心跳 / 链路采集——
      * 业务系统接入时没有控制台令牌，与 starter 端 excludePaths、
      * TraceGlobalFilter 的排除清单保持同一组路径）。
-     * TODO(P1)：上报接口目前仅内网可用，后续用 X-Gateway-Client-Token 共享密钥收紧。
      */
     private List<String> skipPaths = new ArrayList<>(List.of(
             "/api/auth/login", "/api/auth/register", "/api/open/**",

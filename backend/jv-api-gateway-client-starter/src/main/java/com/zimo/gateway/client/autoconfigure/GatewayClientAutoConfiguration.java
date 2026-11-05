@@ -93,5 +93,24 @@ public class GatewayClientAutoConfiguration {
             registration.setName("gatewayTraceFilter");
             return registration;
         }
+
+        /**
+         * SDK 入口鉴权（可选，zimo.gateway.client.auth.enabled=true 时启用）：
+         * 排在采集之前，验签不通过的请求不产生调用日志（与网关侧语义一致）。
+         */
+        @Bean
+        // 注意：不能按返回类型判缺失——FilterRegistrationBean<TraceFilter> 与
+        // FilterRegistrationBean<AuthFilter> 泛型擦除后同类型，会把这里挤掉
+        @ConditionalOnMissingBean(name = "gatewayAuthFilter")
+        @ConditionalOnProperty(prefix = GatewayClientProperties.PREFIX + ".auth", name = "enabled", havingValue = "true")
+        public FilterRegistrationBean<com.zimo.gateway.client.auth.GatewayAuthFilter> gatewayAuthFilter(
+                GatewayClientProperties properties) {
+            FilterRegistrationBean<com.zimo.gateway.client.auth.GatewayAuthFilter> registration =
+                    new FilterRegistrationBean<>(new com.zimo.gateway.client.auth.GatewayAuthFilter(properties));
+            registration.addUrlPatterns("/*");
+            registration.setOrder(Ordered.HIGHEST_PRECEDENCE + 50);
+            registration.setName("gatewayAuthFilter");
+            return registration;
+        }
     }
 }

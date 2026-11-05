@@ -46,7 +46,8 @@ public class TraceReporter implements DisposableBean {
     public TraceReporter(GatewayClientProperties properties) {
         this.batchSize = Math.max(1, properties.getTrace().getBatchSize());
         this.restClient = RestClientFactory.create(
-                normalize(properties.getServerAddr()), properties.getTrace().getReportTimeout());
+                normalize(properties.getServerAddr()), properties.getTrace().getReportTimeout(),
+                properties.getClientToken());
         this.executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "zimo-gateway-trace-reporter");
             thread.setDaemon(true);

@@ -83,7 +83,11 @@ zimo:
   gateway:
     client:
       enabled: true                                  # 总开关
-      server-addr: http://127.0.0.1:28080/api        # 平台统一入口地址（见下方说明）
+      server-addr: http://127.0.0.1:28090/api        # 平台统一入口（网关 28090，见下方说明）
+      client-token: ${GATEWAY_CLIENT_TOKEN:dev-gateway-token}
+                                                     # 上报共享密钥（X-Gateway-Client-Token）：
+                                                     # 注册/心跳/采集上报自动携带，网关侧校验，
+                                                     # 防止内网伪造注册与上报；与 proxy 校验端同值
       app-id: app-order                              # 应用编码
       app-name: 订单中心                              # 应用名称
       service-name: order-service                    # 服务名
@@ -104,7 +108,26 @@ zimo:
       registry:
         enabled: true                                # 是否自动注册（自动接入）
         heartbeat-interval: 30000                    # 心跳间隔（ms）
+      auth:                                          # 入口鉴权（可选，默认关）
+        enabled: true                                # 开启后调用本服务的请求需持有效凭证
+        exempt-paths:                                # 豁免路径（健康检查等，Ant 风格）
+          - /health/**
+          - /actuator/**
+          - /error
+        cache-seconds: 60                            # 验签结果缓存秒数
+        timeout-ms: 3000                             # 单次验签超时
+        fail-open: false                             # 网关不可达时 true 放行 / false 拒绝
 ```
+
+> **关于 client-token 与入口鉴权（auth）**
+>
+> - `client-token`：SDK 出站上报请求携带 `X-Gateway-Client-Token` 头，
+>   网关（`gateway.proxy.auth.client-token` 非空时）对上报路径二次校验，
+>   不匹配拒绝——防止内网伪造注册/上报。两端必须同值，生产用环境变量注入。
+> - `auth`：SDK 入口鉴权，验签回调网关开放接口 `POST /open/auth/token/verify`
+>   （Bearer 用户 JWT 与 `X-Api-Key` gwak- 凭证同语义自动识别），有效期内同 token
+>   走本地缓存。**SDK 自身的数据上报是出站调用，不受入口鉴权影响**——即使调用方
+>   验签失败，调用日志与 span 照常上报，网关平台始终能看到这家接入方的真实流量。
 
 > ### 关于 server-addr（重要）
 >
@@ -120,9 +143,8 @@ zimo:
 > 所以 `server-addr` 必须填**统一入口**地址，而不是某个微服务的端口，
 > 否则注册与上报会打到不提供该接口的服务上而返回 404。
 >
-> - **本地开发**：直接填前端 dev server 地址 `http://127.0.0.1:28080/api`，
->   其 `vite.config.js` 已按上述前缀配置了代理转发。
-> - **生产环境**：用 Nginx / Spring Cloud Gateway 做统一入口，参考配置：
+> - **本地 / 生产**：统一填网关地址 `http://<网关IP>:28090/api`，
+>   由 jv-api-gateway-proxy 按 `tb_gw_route` 转发到对应微服务。
 >
 > ```nginx
 > upstream gw_user      { server 127.0.0.1:28081; }
@@ -244,4 +266,36 @@ app.wsgi_app = WSGITraceMiddleware(app.wsgi_app, client)
 ```
 
 Go / Node 等语言可参照同一协议自行实现，关键是 `server-addr` 要指向**平台统一入口**
-（如 `http://127.0.0.1:28080/api`），而不是某个微服务端口。
+（如 `http://127.0.0.1:28090/api`），而不是某个微服务端口。
+
+## 九、Python SDK（jv_gateway）
+
+零第三方依赖（标准库 urllib/threading/queue），Python 3.8+，位于仓库 `sdk/python/`：
+
+```
+sdk/python/
+├── jv_gateway/            # SDK 包
+│   ├── client.py          # GatewayClient：注册/心跳/下线/手动上报；verify_token
+│   ├── reporter.py        # TraceReporter：队列 + 后台线程批量上报（满即丢，3 秒 flush）
+│   ├── wsgi.py            # WSGITraceMiddleware（Flask/Django）+ WSGIAuthMiddleware
+│   ├── asgi.py            # ASGITraceMiddleware（FastAPI/Starlette）+ ASGIAuthMiddleware
+│   ├── auth.py            # GatewayAuth：入口鉴权（回调开放验签接口 + 缓存）
+│   └── _http.py           # urllib 封装：自动携带 X-Gateway-Client-Token
+├── examples/fastapi_demo.py
+├── scripts/smoke_report.py
+└── README.md
+```
+
+引用与用法、入口鉴权、验证方式见 `sdk/python/README.md`；上报协议与 Java SDK 完全一致。
+
+## 十、验证清单
+
+| 验证 | 命令 / 操作 | 预期 |
+| --- | --- | --- |
+| 注册与心跳 | 启动业务应用 → 服务发现页 | 实例「健康」 |
+| 上报通道密钥 | 无/错 `X-Gateway-Client-Token` 调 `/api/discovery/services/register` | 401「上报通道共享密钥无效」 |
+| 入口鉴权拦截 | 直连业务系统端口调用（无凭证 / 伪造身份头） | 401「未提供访问凭证」 |
+| 入口鉴权放行 | 带 `Authorization: Bearer <JWT>` 或 `X-Api-Key` | 正常响应 |
+| 豁免路径 | 调用 exempt-paths 内路径（如健康检查） | 无需凭证 |
+| 数据上报不受限 | 验签失败的调用方持续请求 | 日志与 span 照常落库（控制台可见） |
+| Python 冒烟 | `python3 sdk/python/scripts/smoke_report.py` | ①~⑤ 全成功，日志/span 落库 |

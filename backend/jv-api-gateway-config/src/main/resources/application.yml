@@ -66,6 +66,8 @@ logging:
 zimo:
   gateway:
     client:
+      # 上报共享密钥（X-Gateway-Client-Token）：注册/心跳/采集上报请求携带，与网关 proxy 校验端同值
+      client-token: ${GATEWAY_CLIENT_TOKEN:dev-gateway-token}
       server-addr: http://127.0.0.1:28090/api
       app-id: app-gateway
       app-name: API网关平台
@@ -79,3 +81,13 @@ zimo:
       registry:
         enabled: true
         heartbeat-interval: 30000
+      # 入口鉴权（SDK 第二道门）：防止绕过网关直连本服务端口。
+      # 验签回调 /open/auth/token/verify（Bearer JWT 与 X-Api-Key 同语义），
+      # 公开配置路径必须豁免（控制台刷新与菜单健康免令牌读取）
+      auth:
+        enabled: true
+        exempt-paths:
+          - /configs/public
+          - /health/**
+          - /actuator/**
+          - /error

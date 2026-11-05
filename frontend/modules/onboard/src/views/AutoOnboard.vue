@@ -304,12 +304,26 @@ const javaConfig = `zimo:
       app-name: 订单中心
       service-name: order-service
       port: 8000
+      # 上报共享密钥（X-Gateway-Client-Token）：注册/心跳/采集上报自动携带，
+      # 网关侧校验（gateway.proxy.auth.client-token），防止内网伪造注册与上报
+      client-token: \${GATEWAY_CLIENT_TOKEN:dev-gateway-token}
       trace:
         enabled: true
         sample-rate: 1.0
       registry:
         enabled: true
-        heartbeat-interval: 30000`
+        heartbeat-interval: 30000
+      # 入口鉴权（可选，默认关）：开启后调用本服务的请求需持有效凭证，
+      # SDK 回调网关 /open/auth/token/verify 验签（Bearer JWT 与 X-Api-Key 同语义），
+      # 防止绕过网关直连业务系统端口；SDK 自身数据上报是出站调用，不受影响
+      auth:
+        enabled: true
+        exempt-paths:                            # 豁免路径（健康检查等）
+          - /health/**
+          - /actuator/**
+          - /error
+        cache-seconds: 60                        # 验签结果缓存
+        fail-open: false                         # 网关不可达时拒绝（安全优先）`
 
 const pythonInstall = `# 无需安装，把 sdk/python 加入 PYTHONPATH 即可（零第三方依赖）
 export PYTHONPATH=/path/to/ai-gateway/sdk/python:$PYTHONPATH`
@@ -356,15 +370,22 @@ client = GatewayClient(
     server_addr="http://127.0.0.1:28090/api",
     app_id="app-order", app_name="订单中心",
     service_name="order-service", port=8000,
+    client_token="dev-gateway-token",        # 与网关 gateway.proxy.auth.client-token 同值
 )
 client.start()                                        # 注册 + 心跳 + 上报线程
 
 # Flask / Django：包一层中间件即可自动采集
 app.wsgi_app = WSGITraceMiddleware(app.wsgi_app, client)
 
-# FastAPI：app.add_middleware(ASGITraceMiddleware, client=client)`
+# FastAPI：app.add_middleware(ASGITraceMiddleware, client=client)
 
-const pythonJob = `client = GatewayClient(app_id="app-job", service_name="recon-job", port=0)
+# 入口鉴权（可选，防止绕过网关直连；上报不受影响）
+from jv_gateway.auth import GatewayAuth
+from jv_gateway.asgi import ASGIAuthMiddleware
+app.add_middleware(ASGIAuthMiddleware, auth=GatewayAuth(client))`
+
+const pythonJob = `client = GatewayClient(app_id="app-job", service_name="recon-job", port=0,
+                       client_token="dev-gateway-token")
 client.start()
 
 # 业务执行完手动上报

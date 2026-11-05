@@ -40,6 +40,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
+    /** 与 GatewayClientConstant.HEADER_CLIENT_TOKEN 同值（proxy 不依赖 client-common，保持字符串常量同步） */
+    private static final String HEADER_CLIENT_TOKEN = "X-Gateway-Client-Token";
+
     private final GatewayAuthProperties properties;
     private final AuthVerifier verifier;
 
@@ -57,6 +60,12 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         String path = exchange.getRequest().getPath().value();
         if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())
                 || properties.getSkipPaths().stream().anyMatch(p -> PATH_MATCHER.match(p, path))) {
+            // 上报通道虽在白名单，但配置了共享密钥时必须校验头，防止内网伪造注册与上报
+            if (clientTokenConfigured() && isReportPath(path)
+                    && !tokenMatches(exchange.getRequest().getHeaders())) {
+                log.warn("[鉴权] 上报通道共享密钥校验失败：{}", path);
+                return deny(exchange, "上报通道共享密钥无效");
+            }
             return chain.filter(exchange);
         }
 
@@ -71,6 +80,19 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                     log.info("[鉴权] 拦截 {} {}：{}", exchange.getRequest().getMethod(), path, decision.message());
                     return deny(exchange, decision.message());
                 });
+    }
+
+    private boolean clientTokenConfigured() {
+        String t = properties.getClientToken();
+        return t != null && !t.isBlank();
+    }
+
+    private boolean isReportPath(String path) {
+        return properties.getClientTokenPaths().stream().anyMatch(p -> PATH_MATCHER.match(p, path));
+    }
+
+    private boolean tokenMatches(HttpHeaders headers) {
+        return properties.getClientToken().equals(headers.getFirst(HEADER_CLIENT_TOKEN));
     }
 
     private AuthVerifier.Decision doVerify(ServerWebExchange exchange) {

@@ -30,19 +30,27 @@ public final class RestClientFactory {
     }
 
     public static RestClient create(String baseUrl) {
-        return create(baseUrl, DEFAULT_READ_TIMEOUT_MS);
+        return create(baseUrl, DEFAULT_READ_TIMEOUT_MS, null);
     }
 
     public static RestClient create(String baseUrl, long readTimeoutMs) {
+        return create(baseUrl, readTimeoutMs, null);
+    }
+
+    /** clientToken 非空时，所有经此 client 发出的请求（注册/心跳/上报）自动携带共享密钥头 */
+    public static RestClient create(String baseUrl, long readTimeoutMs, String clientToken) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS))
                 .build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(Duration.ofMillis(Math.max(1L, readTimeoutMs)));
-        return RestClient.builder()
+        RestClient.Builder builder = RestClient.builder()
                 .baseUrl(baseUrl)
-                .requestFactory(factory)
-                .build();
+                .requestFactory(factory);
+        if (clientToken != null && !clientToken.isBlank()) {
+            builder.defaultHeader("X-Gateway-Client-Token", clientToken);
+        }
+        return builder.build();
     }
 }

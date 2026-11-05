@@ -32,6 +32,9 @@ public final class GatewayClientConstant {
     /** 服务下线 */
     public static final String PATH_SERVICE_DEREGISTER = "/discovery/services/deregister";
 
+    /** 开放令牌验签（用户 JWT 与 API Key 同语义自动识别），SDK 入口鉴权回调此接口 */
+    public static final String PATH_TOKEN_VERIFY = "/open/auth/token/verify";
+
     /** 默认配置前缀 */
     public static final String CONFIG_PREFIX = "zimo.gateway.client";
 

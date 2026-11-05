@@ -72,6 +72,10 @@ gateway:
       # 鉴权缓存模式默认值：auto / redis / local
       # 系统设置（platform.auth.cache.mode）可覆盖，30 秒内生效；MySQL 始终为源数据
       cache-mode: auto
+      # SDK 上报通道共享密钥（X-Gateway-Client-Token）：白名单放行的上报路径做二次校验，
+      # 防止内网伪造注册/上报；与各服务 zimo.gateway.client.client-token 必须同值；
+      # 生产环境务必用环境变量 GATEWAY_CLIENT_TOKEN 覆盖，留空 = 不校验（回退仅内网可用）
+      client-token: ${GATEWAY_CLIENT_TOKEN:dev-gateway-token}
       # 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 菜单健康 / 探活，
       # 以及接入 SDK 上报通道（注册 / 心跳 / 链路采集，业务系统无控制台令牌）
       # 注意：此列表会整体覆盖 GatewayAuthProperties 代码默认值，两边需同步维护
