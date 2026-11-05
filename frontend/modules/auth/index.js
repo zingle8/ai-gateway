@@ -4,46 +4,60 @@
  * 对应后端 jv-api-gateway-user（演进中的认证中心）：
  *   用户管理（已对接）/ 登录方式 / 单点登录 SSO / 令牌与会话 / 安全策略（UI 先行，接口待接入）
  *
- * 菜单只保留一个入口，五个功能区（用户管理 / 登录方式 / 单点登录 / 令牌与会话 / 安全策略）
- * 收敛为同一个页面内的 Tab。Tab 仍是独立路由（/auth/*），刷新与分享链接可直达。
+ * 五个子菜单各自独立成页；页面内部内容块较多时，用 @zimo/ui 的 PaneTabs 做页内切换
+ * （如「登录方式」页的 登录因子 / 验证码通道）。
  */
-import AuthIndexView from './src/views/Index.vue'
+import UserIndexView from './src/views/user/Index.vue'
+import LoginMethodsView from './src/views/LoginMethods.vue'
+import SsoView from './src/views/Sso.vue'
+import SessionsView from './src/views/Sessions.vue'
+import SecurityPolicyView from './src/views/SecurityPolicy.vue'
 
 export const menu = [
-  { path: '/auth', title: '认证与安全', icon: 'Lock' }
+  {
+    title: '认证与安全',
+    icon: 'Lock',
+    children: [
+      { path: '/auth/user', title: '用户管理', icon: 'User' },
+      { path: '/auth/login-methods', title: '登录方式', icon: 'Key' },
+      { path: '/auth/sso', title: '单点登录', icon: 'Link' },
+      { path: '/auth/sessions', title: '令牌与会话', icon: 'Timer' },
+      { path: '/auth/policy', title: '安全策略', icon: 'SetUp' }
+    ]
+  }
 ]
 
 export const routes = [
-  // 只记住「认证与安全」时落默认 Tab
+  // 只记住「认证与安全」时落用户管理
   { path: 'auth', redirect: '/auth/user' },
   {
     path: 'auth/user',
     name: 'AuthUser',
-    component: AuthIndexView,
+    component: UserIndexView,
     meta: { title: '用户管理', subtitle: '控制台账号与 C 端账号统一管理（按类型切换）' }
   },
   {
     path: 'auth/login-methods',
     name: 'AuthLoginMethods',
-    component: AuthIndexView,
+    component: LoginMethodsView,
     meta: { title: '登录方式', subtitle: '密码 / 验证码 / 扫码 / SSO 各登录因子的开关与通道配置' }
   },
   {
     path: 'auth/sso',
     name: 'AuthSso',
-    component: AuthIndexView,
+    component: SsoView,
     meta: { title: '单点登录', subtitle: '外部 IdP 接入配置、账号绑定关系与 SSO 登录审计' }
   },
   {
     path: 'auth/sessions',
     name: 'AuthSessions',
-    component: AuthIndexView,
+    component: SessionsView,
     meta: { title: '令牌与会话', subtitle: '在线会话、refresh 家族与令牌吊销记录' }
   },
   {
     path: 'auth/policy',
     name: 'AuthPolicy',
-    component: AuthIndexView,
+    component: SecurityPolicyView,
     meta: { title: '安全策略', subtitle: '登录保护、验证码限频、密码策略与双因子要求' }
   }
 ]

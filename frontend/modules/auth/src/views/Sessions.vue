@@ -5,7 +5,7 @@
       <span class="gw-sm gw-muted">会话数据为示例；后端 /auth/sessions 接口待接入。</span>
     </p>
 
-    <!-- 概览 -->
+    <!-- 概览指标对两个 Tab 都成立，放在 Tab 外 -->
     <div class="gw-stats">
       <div v-for="s in stats" :key="s.label" class="gw-stat">
         <div>
@@ -17,84 +17,90 @@
       </div>
     </div>
 
-    <!-- 在线会话 -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>在线会话</span>
-        <div class="hd-actions">
-          <el-input v-model="keyword" placeholder="账号 / IP" clearable size="small" style="width: 170px" />
-          <el-button size="small" @click="revokeAll">全部强制下线</el-button>
-        </div>
-      </div>
-      <div class="gw-card-bd no-pad">
-        <el-table :data="filteredSessions" size="small" style="width: 100%">
-          <el-table-column prop="account" label="账号" width="130" />
-          <el-table-column label="类型" width="100">
-            <template #default="{ row }">
-              <el-tag size="small" effect="plain" :type="row.userType === 'CONSUMER' ? 'warning' : 'info'">
-                {{ row.userType === 'CONSUMER' ? 'C 端' : '控制台' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="method" label="登录方式" width="130">
-            <template #default="{ row }">
-              <span class="gw-sm">{{ row.method }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="device" label="设备 / 浏览器" min-width="170" show-overflow-tooltip />
-          <el-table-column prop="ip" label="IP" width="130">
-            <template #default="{ row }">
-              <span class="gw-mono gw-sm">{{ row.ip }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="loginAt" label="登录时间" width="160" />
-          <el-table-column label="Access 到期" width="150">
-            <template #default="{ row }">
-              <span class="gw-sm" :class="row.expiringSoon ? 'warn' : 'gw-muted'">{{ row.accessExpire }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="110" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="danger" @click="revoke(row)">强制下线</el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      <div class="gw-card-ft">
-        <span class="gw-sm gw-muted">
-          强制下线 = 令牌版本 +1，该会话的 access 立即失效（无需等自然过期）
-        </span>
-      </div>
-    </section>
+    <!-- 在线会话 / 吊销记录按 Tab 分开 -->
+    <PaneTabs v-model="tab" :tabs="tabs">
+      <template #sessions>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>在线会话</span>
+            <div class="hd-actions">
+              <el-input v-model="keyword" placeholder="账号 / IP" clearable size="small" style="width: 170px" />
+              <el-button size="small" @click="revokeAll">全部强制下线</el-button>
+            </div>
+          </div>
+          <div class="gw-card-bd no-pad">
+            <el-table :data="filteredSessions" size="small" style="width: 100%">
+              <el-table-column prop="account" label="账号" width="130" />
+              <el-table-column label="类型" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="plain" :type="row.userType === 'CONSUMER' ? 'warning' : 'info'">
+                    {{ row.userType === 'CONSUMER' ? 'C 端' : '控制台' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="method" label="登录方式" width="130">
+                <template #default="{ row }">
+                  <span class="gw-sm">{{ row.method }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="device" label="设备 / 浏览器" min-width="170" show-overflow-tooltip />
+              <el-table-column prop="ip" label="IP" width="130">
+                <template #default="{ row }">
+                  <span class="gw-mono gw-sm">{{ row.ip }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="loginAt" label="登录时间" width="160" />
+              <el-table-column label="Access 到期" width="150">
+                <template #default="{ row }">
+                  <span class="gw-sm" :class="row.expiringSoon ? 'warn' : 'gw-muted'">{{ row.accessExpire }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="110" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="danger" @click="revoke(row)">强制下线</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="gw-card-ft">
+            <span class="gw-sm gw-muted">
+              强制下线 = 令牌版本 +1，该会话的 access 立即失效（无需等自然过期）
+            </span>
+          </div>
+        </section>
+      </template>
 
-    <!-- 令牌吊销记录 -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>令牌吊销记录</span>
-        <span class="gw-sm gw-muted">最近 10 条</span>
-      </div>
-      <div class="gw-card-bd no-pad">
-        <el-table :data="revokes" size="small" style="width: 100%" max-height="280">
-          <el-table-column prop="time" label="时间" width="170" />
-          <el-table-column prop="account" label="账号" width="140" />
-          <el-table-column prop="scope" label="吊销范围" width="160">
-            <template #default="{ row }">
-              <el-tag size="small" effect="plain" :type="row.scope === '全部会话' ? 'danger' : 'info'">
-                {{ row.scope }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
-          <el-table-column prop="operator" label="操作人" width="130" />
-        </el-table>
-      </div>
-    </section>
+      <template #revokes>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>令牌吊销记录</span>
+            <span class="gw-sm gw-muted">最近 {{ revokes.length }} 条</span>
+          </div>
+          <div class="gw-card-bd no-pad">
+            <el-table :data="revokes" size="small" style="width: 100%" max-height="420">
+              <el-table-column prop="time" label="时间" width="170" />
+              <el-table-column prop="account" label="账号" width="140" />
+              <el-table-column prop="scope" label="吊销范围" width="160">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="plain" :type="row.scope === '全部会话' ? 'danger' : 'info'">
+                    {{ row.scope }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
+              <el-table-column prop="operator" label="操作人" width="130" />
+            </el-table>
+          </div>
+        </section>
+      </template>
+    </PaneTabs>
   </div>
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { PaneTabs } from '@zimo/ui'
 
 const stats = [
   { label: '在线会话', value: '12', hint: 'access 未过期的活跃会话', icon: 'User', tone: 'info' },
@@ -117,6 +123,13 @@ const revokes = ref([
   { time: '2026-11-04 16:22:10', account: 'zhaoliu', scope: '全部会话', reason: '疑似密码泄露，管理员主动处置', operator: 'admin' },
   { time: '2026-11-03 11:05:44', account: 'wangwu', scope: '单个会话', reason: '用户主动退出（删除 refresh 家族）', operator: 'wangwu' },
   { time: '2026-11-01 09:31:02', account: 'user_1024', scope: '单个会话', reason: '更换手机，旧设备下线', operator: 'system' }
+])
+
+/** 页内 Tab：在线会话 / 吊销记录，badge 跟随实际条数 */
+const tab = ref('sessions')
+const tabs = computed(() => [
+  { name: 'sessions', label: '在线会话', badge: sessions.value.length },
+  { name: 'revokes', label: '令牌吊销记录', badge: revokes.value.length }
 ])
 
 const filteredSessions = computed(() => {

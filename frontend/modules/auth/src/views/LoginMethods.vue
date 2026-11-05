@@ -5,102 +5,110 @@
       <span class="gw-sm gw-muted">配置可交互，暂不落库；后端 /auth/login-methods 接口待接入。</span>
     </p>
 
-    <!-- 登录因子：决定登录页呈现哪些入口 -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>登录因子</span>
-        <span class="gw-sm gw-muted">开启后登录页出现对应入口，至少保留一种</span>
-      </div>
-      <div class="gw-card-bd">
-        <div class="factor-grid">
-          <div v-for="f in factors" :key="f.key" class="factor" :class="{ off: !f.enabled }">
-            <div class="factor-hd">
-              <span class="factor-name">{{ f.name }}</span>
-              <el-switch v-model="f.enabled" size="small" />
-            </div>
-            <p class="factor-desc">{{ f.desc }}</p>
-            <div class="factor-foot">
-              <el-tag size="small" effect="plain" :type="f.tier === '主因子' ? 'info' : 'warning'">
-                {{ f.tier }}
-              </el-tag>
-              <span class="gw-sm gw-muted">{{ f.extra }}</span>
+    <!-- 页内两个内容块按 Tab 切换，避免整页纵向堆叠 -->
+    <PaneTabs v-model="tab" :tabs="TABS">
+      <!-- 登录因子：决定登录页呈现哪些入口 -->
+      <template #factor>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>登录因子</span>
+            <span class="gw-sm gw-muted">开启后登录页出现对应入口，至少保留一种</span>
+          </div>
+          <div class="gw-card-bd">
+            <div class="factor-grid">
+              <div v-for="f in factors" :key="f.key" class="factor" :class="{ off: !f.enabled }">
+                <div class="factor-hd">
+                  <span class="factor-name">{{ f.name }}</span>
+                  <el-switch v-model="f.enabled" size="small" />
+                </div>
+                <p class="factor-desc">{{ f.desc }}</p>
+                <div class="factor-foot">
+                  <el-tag size="small" effect="plain" :type="f.tier === '主因子' ? 'info' : 'warning'">
+                    {{ f.tier }}
+                  </el-tag>
+                  <span class="gw-sm gw-muted">{{ f.extra }}</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </section>
+        </section>
+      </template>
 
-    <!-- 验证码通道 -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>验证码通道</span>
-        <span class="gw-sm gw-muted">邮箱 / 短信验证码的下发通道，发送频率在「安全策略」中限制</span>
-      </div>
-      <div class="gw-card-bd">
-        <div class="channel-grid">
-          <div class="channel">
-            <div class="channel-hd">
-              <span>邮件 SMTP</span>
-              <el-switch v-model="mail.enabled" size="small" />
-            </div>
-            <el-form :model="mail" label-width="88px" size="small" :disabled="!mail.enabled">
-              <el-form-item label="SMTP 主机">
-                <el-input v-model="mail.host" placeholder="smtp.example.com" />
-              </el-form-item>
-              <el-form-item label="端口">
-                <el-input-number v-model="mail.port" :min="1" :max="65535" controls-position="right" style="width: 130px" />
-                <el-select v-model="mail.ssl" style="width: 110px; margin-left: 8px">
-                  <el-option label="SSL" value="SSL" />
-                  <el-option label="STARTTLS" value="STARTTLS" />
-                  <el-option label="无加密" value="NONE" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="发件人">
-                <el-input v-model="mail.from" placeholder="noreply@example.com" />
-              </el-form-item>
-              <el-form-item label="授权码">
-                <el-input v-model="mail.secret" type="password" show-password placeholder="邮箱授权码 / 应用密码" />
-              </el-form-item>
-              <el-form-item label=" ">
-                <el-button size="small" @click="testChannel('邮件')">发送测试邮件</el-button>
-              </el-form-item>
-            </el-form>
+      <!-- 验证码通道 -->
+      <template #channel>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>验证码通道</span>
+            <span class="gw-sm gw-muted">邮箱 / 短信验证码的下发通道，发送频率在「安全策略」中限制</span>
           </div>
+          <div class="gw-card-bd">
+            <div class="channel-grid">
+              <div class="channel">
+                <div class="channel-hd">
+                  <span>邮件 SMTP</span>
+                  <el-switch v-model="mail.enabled" size="small" />
+                </div>
+                <el-form :model="mail" label-width="88px" size="small" :disabled="!mail.enabled">
+                  <el-form-item label="SMTP 主机">
+                    <el-input v-model="mail.host" placeholder="smtp.example.com" />
+                  </el-form-item>
+                  <el-form-item label="端口">
+                    <el-input-number v-model="mail.port" :min="1" :max="65535" controls-position="right" style="width: 130px" />
+                    <el-select v-model="mail.ssl" style="width: 110px; margin-left: 8px">
+                      <el-option label="SSL" value="SSL" />
+                      <el-option label="STARTTLS" value="STARTTLS" />
+                      <el-option label="无加密" value="NONE" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="发件人">
+                    <el-input v-model="mail.from" placeholder="noreply@example.com" />
+                  </el-form-item>
+                  <el-form-item label="授权码">
+                    <el-input v-model="mail.secret" type="password" show-password placeholder="邮箱授权码 / 应用密码" />
+                  </el-form-item>
+                  <el-form-item label=" ">
+                    <el-button size="small" @click="testChannel('邮件')">发送测试邮件</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
 
-          <div class="channel">
-            <div class="channel-hd">
-              <span>短信服务</span>
-              <el-switch v-model="sms.enabled" size="small" />
+              <div class="channel">
+                <div class="channel-hd">
+                  <span>短信服务</span>
+                  <el-switch v-model="sms.enabled" size="small" />
+                </div>
+                <el-form :model="sms" label-width="88px" size="small" :disabled="!sms.enabled">
+                  <el-form-item label="服务商">
+                    <el-select v-model="sms.provider" style="width: 100%">
+                      <el-option label="阿里云短信" value="ALIYUN" />
+                      <el-option label="腾讯云短信" value="TENCENT" />
+                      <el-option label="自定义 HTTP" value="CUSTOM" />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item label="签名">
+                    <el-input v-model="sms.sign" placeholder="短信签名（需报备）" />
+                  </el-form-item>
+                  <el-form-item label="模板号">
+                    <el-input v-model="sms.template" placeholder="SMS_123456789" />
+                  </el-form-item>
+                  <el-form-item label="AccessKey">
+                    <el-input v-model="sms.keyId" placeholder="AccessKeyId" />
+                  </el-form-item>
+                  <el-form-item label=" ">
+                    <el-button size="small" @click="testChannel('短信')">发送测试短信</el-button>
+                  </el-form-item>
+                </el-form>
+              </div>
             </div>
-            <el-form :model="sms" label-width="88px" size="small" :disabled="!sms.enabled">
-              <el-form-item label="服务商">
-                <el-select v-model="sms.provider" style="width: 100%">
-                  <el-option label="阿里云短信" value="ALIYUN" />
-                  <el-option label="腾讯云短信" value="TENCENT" />
-                  <el-option label="自定义 HTTP" value="CUSTOM" />
-                </el-select>
-              </el-form-item>
-              <el-form-item label="签名">
-                <el-input v-model="sms.sign" placeholder="短信签名（需报备）" />
-              </el-form-item>
-              <el-form-item label="模板号">
-                <el-input v-model="sms.template" placeholder="SMS_123456789" />
-              </el-form-item>
-              <el-form-item label="AccessKey">
-                <el-input v-model="sms.keyId" placeholder="AccessKeyId" />
-              </el-form-item>
-              <el-form-item label=" ">
-                <el-button size="small" @click="testChannel('短信')">发送测试短信</el-button>
-              </el-form-item>
-            </el-form>
           </div>
-        </div>
-      </div>
-    </section>
+        </section>
+      </template>
+    </PaneTabs>
 
     <div class="actions">
       <el-button type="primary" @click="save">保存配置</el-button>
       <el-button @click="resetAll">重置</el-button>
+      <span class="gw-sm gw-muted" style="margin-left: 8px">保存会同时提交登录因子与验证码通道</span>
     </div>
   </div>
 </template>
@@ -108,6 +116,14 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { PaneTabs } from '@zimo/ui'
+
+/** 页内 Tab：登录因子 / 验证码通道 */
+const TABS = [
+  { name: 'factor', label: '登录因子' },
+  { name: 'channel', label: '验证码通道' }
+]
+const tab = ref('factor')
 
 /** 登录因子：tier 区分主认证因子与二次验证因子 */
 const factors = reactive([
@@ -231,6 +247,7 @@ const resetAll = () => {
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 8px;
   padding: 12px 0 4px;
 }

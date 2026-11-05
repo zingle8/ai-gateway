@@ -5,88 +5,95 @@
       <span class="gw-sm gw-muted">IdP 配置与审计为示例数据；后端 /auth/sso/providers 接口待接入。</span>
     </p>
 
-    <!-- 身份提供方 -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>身份提供方（IdP）</span>
-        <div class="hd-actions">
-          <el-button size="small" @click="openConfig({})">新增 IdP</el-button>
-        </div>
-      </div>
-      <div class="gw-card-bd no-pad">
-        <el-table :data="providers" size="small" style="width: 100%">
-          <el-table-column prop="name" label="名称" min-width="150">
-            <template #default="{ row }">
-              <div class="prov">
-                <span class="prov-dot" :class="row.enabled ? 'on' : 'off'"></span>
-                <b>{{ row.name }}</b>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="protocol" label="协议" width="120">
-            <template #default="{ row }">
-              <el-tag size="small" effect="plain">{{ row.protocol }}</el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="clientId" label="Client ID" min-width="200" show-overflow-tooltip>
-            <template #default="{ row }">
-              <span class="gw-mono gw-sm">{{ row.clientId }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="bound" label="绑定用户" width="110" align="right">
-            <template #default="{ row }">{{ row.bound }} 人</template>
-          </el-table-column>
-          <el-table-column label="状态" width="100">
-            <template #default="{ row }">
-              <el-tag size="small" :type="row.enabled ? 'success' : 'info'">
-                {{ row.enabled ? '已启用' : '未启用' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="170" fixed="right">
-            <template #default="{ row }">
-              <el-button link type="primary" @click="openConfig(row)">配置</el-button>
-              <el-button link :type="row.enabled ? 'warning' : 'success'" @click="toggle(row)">
-                {{ row.enabled ? '停用' : '启用' }}
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      <div class="gw-card-ft">
-        <span class="gw-sm gw-muted">
-          IdP 未接入时「单点登录」入口不展示；回调地址需在 IdP 侧白名单登记
-        </span>
-      </div>
-    </section>
+    <!-- 配置与审计两类内容按 Tab 分开，各自占满整页 -->
+    <PaneTabs v-model="tab" :tabs="tabs">
+      <!-- 身份提供方 -->
+      <template #provider>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>身份提供方（IdP）</span>
+            <div class="hd-actions">
+              <el-button size="small" @click="openConfig({})">新增 IdP</el-button>
+            </div>
+          </div>
+          <div class="gw-card-bd no-pad">
+            <el-table :data="providers" size="small" style="width: 100%">
+              <el-table-column prop="name" label="名称" min-width="150">
+                <template #default="{ row }">
+                  <div class="prov">
+                    <span class="prov-dot" :class="row.enabled ? 'on' : 'off'"></span>
+                    <b>{{ row.name }}</b>
+                  </div>
+                </template>
+              </el-table-column>
+              <el-table-column prop="protocol" label="协议" width="120">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="plain">{{ row.protocol }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="clientId" label="Client ID" min-width="200" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span class="gw-mono gw-sm">{{ row.clientId }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="bound" label="绑定用户" width="110" align="right">
+                <template #default="{ row }">{{ row.bound }} 人</template>
+              </el-table-column>
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="row.enabled ? 'success' : 'info'">
+                    {{ row.enabled ? '已启用' : '未启用' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="170" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="primary" @click="openConfig(row)">配置</el-button>
+                  <el-button link :type="row.enabled ? 'warning' : 'success'" @click="toggle(row)">
+                    {{ row.enabled ? '停用' : '启用' }}
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="gw-card-ft">
+            <span class="gw-sm gw-muted">
+              IdP 未接入时「单点登录」入口不展示；回调地址需在 IdP 侧白名单登记
+            </span>
+          </div>
+        </section>
+      </template>
 
-    <!-- SSO 登录审计 -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>SSO 登录审计</span>
-        <span class="gw-sm gw-muted">最近 20 条</span>
-      </div>
-      <div class="gw-card-bd no-pad">
-        <el-table :data="audits" size="small" style="width: 100%" max-height="320">
-          <el-table-column prop="time" label="时间" width="170" />
-          <el-table-column prop="account" label="账号" width="140" />
-          <el-table-column prop="provider" label="IdP" width="140" />
-          <el-table-column prop="ip" label="来源 IP" width="140">
-            <template #default="{ row }">
-              <span class="gw-mono gw-sm">{{ row.ip }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="result" label="结果" width="100">
-            <template #default="{ row }">
-              <el-tag size="small" :type="row.result === '成功' ? 'success' : 'danger'" effect="plain">
-                {{ row.result }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column prop="remark" label="说明" min-width="180" show-overflow-tooltip />
-        </el-table>
-      </div>
-    </section>
+      <!-- SSO 登录审计 -->
+      <template #audit>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>SSO 登录审计</span>
+            <span class="gw-sm gw-muted">最近 {{ audits.length }} 条</span>
+          </div>
+          <div class="gw-card-bd no-pad">
+            <el-table :data="audits" size="small" style="width: 100%" max-height="420">
+              <el-table-column prop="time" label="时间" width="170" />
+              <el-table-column prop="account" label="账号" width="140" />
+              <el-table-column prop="provider" label="IdP" width="140" />
+              <el-table-column prop="ip" label="来源 IP" width="140">
+                <template #default="{ row }">
+                  <span class="gw-mono gw-sm">{{ row.ip }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="result" label="结果" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="row.result === '成功' ? 'success' : 'danger'" effect="plain">
+                    {{ row.result }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="remark" label="说明" min-width="180" show-overflow-tooltip />
+            </el-table>
+          </div>
+        </section>
+      </template>
+    </PaneTabs>
 
     <!-- IdP 配置抽屉 -->
     <el-drawer v-model="drawer" :title="form.id ? '编辑 IdP' : '新增 IdP'" size="440px">
@@ -144,6 +151,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { PaneTabs } from '@zimo/ui'
 
 const callbackUrl = computed(() => `${window.location.origin}/api/auth/sso/callback`)
 
@@ -159,6 +167,13 @@ const audits = ref([
   { time: '2026-11-05 09:12:55', account: 'unknown', provider: 'GitHub', ip: '203.0.113.8', result: '失败', remark: 'IdP 未启用，拒绝本次登录' },
   { time: '2026-11-04 18:20:31', account: 'wangwu', provider: '企业微信', ip: '10.12.4.12', result: '成功', remark: '账号已绑定，直接登录' },
   { time: '2026-11-04 17:02:09', account: 'zhaoliu', provider: '公司统一身份（OIDC）', ip: '10.12.4.90', result: '失败', remark: 'email 不一致，绑定校验未通过' }
+])
+
+/** 页内 Tab：IdP 配置 / 登录审计，badge 显示条数 */
+const tab = ref('provider')
+const tabs = computed(() => [
+  { name: 'provider', label: '身份提供方', badge: providers.value.length },
+  { name: 'audit', label: '登录审计', badge: audits.value.length }
 ])
 
 const drawer = ref(false)
