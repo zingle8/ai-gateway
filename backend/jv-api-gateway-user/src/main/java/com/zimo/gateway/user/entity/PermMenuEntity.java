@@ -6,7 +6,7 @@ import lombok.Data;
  * 权限字典的平台 / 菜单节点（表 tb_perm_menu，parent_id='' 为平台层）
  */
 @Data
-public class PermMenu {
+public class PermMenuEntity {
 
     /** 如 p-console、m-auth-user */
     private String id;

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 是否需要开放由系统设置 platform.open.auth.enabled 控制。
  *
  * <p>与平台自身 /auth/* 的区别：这里的接口语义稳定、返回值面向第三方，
- * 且不做控制台会话相关处理（不写在线会话、不退出登录）。
+ * 且不做控制台会话相关处理（在线会话列表等）。
  */
 @RestController
 @RequestMapping("/open/auth")
@@ -42,9 +42,19 @@ public class OpenAuthController {
         return R.ok(openAuthService.login(request, IpUtil.get(httpRequest)));
     }
 
-    /** 校验令牌：供第三方平台在每次请求前判断用户是否仍有效 */
+    /** 退出登录：使该账号此前签发的所有用户令牌失效（API Key 无会话概念，不支持） */
+    @PostMapping("/logout")
+    public R<Void> logout(@Valid @RequestBody OpenVerifyRequest request) {
+        openAuthService.logout(request.token());
+        return R.ok();
+    }
+
+    /**
+     * 校验令牌：同时支持用户 JWT 与 API Key。
+     * 不传 type 时按前缀自动识别（gwak- 开头为 API_KEY）。
+     */
     @PostMapping("/token/verify")
     public R<OpenVerifyVO> verify(@Valid @RequestBody OpenVerifyRequest request) {
-        return R.ok(openAuthService.verify(request.token()));
+        return R.ok(openAuthService.verify(request.token(), request.type()));
     }
 }

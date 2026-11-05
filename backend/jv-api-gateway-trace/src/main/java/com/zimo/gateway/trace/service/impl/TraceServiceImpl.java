@@ -6,8 +6,8 @@ import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.common.util.TimeRange;
-import com.zimo.gateway.trace.entity.GwTraceLog;
-import com.zimo.gateway.trace.entity.GwTraceSpan;
+import com.zimo.gateway.trace.entity.GwTraceLogEntity;
+import com.zimo.gateway.trace.entity.GwTraceSpanEntity;
 import com.zimo.gateway.trace.mapper.GwServiceEdgeMapper;
 import com.zimo.gateway.trace.mapper.GwTraceLogMapper;
 import com.zimo.gateway.trace.mapper.GwTraceSpanMapper;
@@ -41,18 +41,18 @@ public class TraceServiceImpl implements TraceService {
     private final GwServiceEdgeMapper edgeMapper;
 
     @Override
-    public Page<GwTraceLog> pageTraces(TraceQuery query) {
+    public Page<GwTraceLogEntity> pageTraces(TraceQuery query) {
         long total = traceLogMapper.countPage(query);
         long current = Math.max(1, query.getCurrent());
         long size = Math.max(1, query.getSize());
         // 计数与列表共用同一 WHERE 片段，total 为 0 时不再查列表
-        List<GwTraceLog> records = total == 0 ? List.of() : traceLogMapper.selectPage(query);
+        List<GwTraceLogEntity> records = total == 0 ? List.of() : traceLogMapper.selectPage(query);
         return Page.of(records, total, current, size);
     }
 
     @Override
-    public GwTraceLog getDetail(Long id) {
-        GwTraceLog log = traceLogMapper.selectDetailById(id);
+    public GwTraceLogEntity getDetail(Long id) {
+        GwTraceLogEntity log = traceLogMapper.selectDetailById(id);
         if (log == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "日志不存在：" + id);
         }
@@ -65,7 +65,7 @@ public class TraceServiceImpl implements TraceService {
         if (logs == null || logs.isEmpty()) {
             return 0;
         }
-        List<GwTraceLog> entities = new ArrayList<>(logs.size());
+        List<GwTraceLogEntity> entities = new ArrayList<>(logs.size());
         for (TraceLogDTO dto : logs) {
             if (dto == null) {
                 continue;
@@ -84,12 +84,12 @@ public class TraceServiceImpl implements TraceService {
         if (spans == null || spans.isEmpty()) {
             return 0;
         }
-        List<GwTraceSpan> entities = new ArrayList<>(spans.size());
+        List<GwTraceSpanEntity> entities = new ArrayList<>(spans.size());
         for (SpanDTO dto : spans) {
             if (dto == null || isBlank(dto.getTraceId()) || isBlank(dto.getSpanId())) {
                 continue; // 缺主键无法组链，丢弃
             }
-            GwTraceSpan e = new GwTraceSpan();
+            GwTraceSpanEntity e = new GwTraceSpanEntity();
             BeanUtils.copyProperties(dto, e);
             if (e.getStartTime() == null) {
                 e.setStartTime(LocalDateTime.now());
@@ -108,9 +108,9 @@ public class TraceServiceImpl implements TraceService {
         if (isBlank(traceId)) {
             return List.of();
         }
-        List<GwTraceSpan> spans = traceSpanMapper.selectByTraceId(traceId);
+        List<GwTraceSpanEntity> spans = traceSpanMapper.selectByTraceId(traceId);
         List<SpanDTO> result = new ArrayList<>(spans.size());
-        for (GwTraceSpan e : spans) {
+        for (GwTraceSpanEntity e : spans) {
             SpanDTO dto = new SpanDTO();
             BeanUtils.copyProperties(e, dto);
             result.add(dto);
@@ -219,8 +219,8 @@ public class TraceServiceImpl implements TraceService {
         return options;
     }
 
-    private GwTraceLog convert(TraceLogDTO dto) {
-        GwTraceLog entity = new GwTraceLog();
+    private GwTraceLogEntity convert(TraceLogDTO dto) {
+        GwTraceLogEntity entity = new GwTraceLogEntity();
         BeanUtils.copyProperties(dto, entity);
         if (entity.getReqTime() == null) {
             entity.setReqTime(LocalDateTime.now());

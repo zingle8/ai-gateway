@@ -6,7 +6,7 @@ import lombok.Data;
  * 权限点（表 tb_perm_item）：code 为前后端共用的鉴权标识
  */
 @Data
-public class PermItem {
+public class PermItemEntity {
 
     private Long id;
 

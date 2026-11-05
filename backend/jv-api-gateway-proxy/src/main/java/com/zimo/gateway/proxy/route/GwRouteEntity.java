@@ -6,7 +6,7 @@ import lombok.Data;
  * 转发规则，对应 tb_gw_route。
  */
 @Data
-public class GwRoute {
+public class GwRouteEntity {
 
     private Long id;
 

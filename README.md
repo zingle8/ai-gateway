@@ -52,7 +52,7 @@ ai-gateway/
 │   ├── apps/portal/              # 主应用（Vite 28080，/api 代理到 28090 网关）
 │   ├── modules/{user,overview,discovery,trace,stats}/   # 每模块 = 菜单 + 路由 + api.js + views
 │   └── packages/ui/              # 侧边栏 / 布局等公共组件
-├── docs/                     # 专题文档（认证设计、SDK 接入、网关转发）
+├── docs/                     # 专题文档（项目计划、认证设计、SDK 接入、网关转发）
 ├── scripts/                  # 全部运维脚本（见下表）
 └── sdk/python/               # Python SDK（jv_gateway 包）
 ```
@@ -123,6 +123,7 @@ chmod +x scripts/*.sh
 | --- | --- |
 | [backend/README.md](backend/README.md) | 后端权威文档：模块划分、命名规范、MyBatis 持久层约定、数据库/Redis/Nacos、接口清单、认证鉴权设计 |
 | [frontend/README.md](frontend/README.md) | 前端权威文档：monorepo 结构、模块约定（新增页面三件套）、UI 规范、常用命令 |
+| [docs/PLAN.md](docs/PLAN.md) | **项目计划与决策记录**：模块取舍（auth/authz/config 为什么不拆/为什么拆）、已完成能力、未完成清单（P0/P1/P2） |
 | [docs/configuration.md](docs/configuration.md) | **配置信息一览**：数据库/Redis/Nacos 账号密码与端口、JWT 密钥、环境变量清单 |
 | [docs/auth-design.md](docs/auth-design.md) | 认证与鉴权：JWT、登录限流、账号解锁 |
 | [docs/gateway-proxy.md](docs/gateway-proxy.md) | 网关转发与调用日志采集链路 |

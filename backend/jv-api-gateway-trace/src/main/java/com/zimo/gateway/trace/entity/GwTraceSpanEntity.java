@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 /** tb_gw_trace_span（按天分区，见 backend/sql/jv-api-gateway-trace-span-tb_gw_trace_span.sql） */
 @Data
-public class GwTraceSpan {
+public class GwTraceSpanEntity {
 
     private Long id;
     private String traceId;

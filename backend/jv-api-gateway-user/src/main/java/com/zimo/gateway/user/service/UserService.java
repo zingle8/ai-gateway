@@ -1,7 +1,7 @@
 package com.zimo.gateway.user.service;
 
 import com.zimo.gateway.common.result.Page;
-import com.zimo.gateway.user.entity.User;
+import com.zimo.gateway.user.entity.UserEntity;
 import com.zimo.gateway.user.model.LoginVO;
 import com.zimo.gateway.user.model.RegisterRequest;
 import com.zimo.gateway.user.model.UserQuery;
@@ -13,7 +13,7 @@ import com.zimo.gateway.user.model.UserSaveRequest;
 public interface UserService {
 
     /** 按主键查询（逻辑删除的不返回） */
-    User getById(Long id);
+    UserEntity getById(Long id);
 
     /** 未删除用户总数（启动时判断是否需要初始化内置账号） */
     long count();
@@ -36,7 +36,7 @@ public interface UserService {
     /**
      * 用户分页列表
      */
-    Page<User> pageUsers(UserQuery query);
+    Page<UserEntity> pageUsers(UserQuery query);
 
     /**
      * 新增用户

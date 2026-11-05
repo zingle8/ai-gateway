@@ -1,7 +1,9 @@
 package com.zimo.gateway.user.service;
 
+import com.zimo.gateway.user.entity.ApiKeyLogEntity;
 import com.zimo.gateway.user.model.ApiKeyCreatedVO;
 import com.zimo.gateway.user.model.ApiKeySaveRequest;
+import com.zimo.gateway.user.model.ApiKeyStatsVO;
 import com.zimo.gateway.user.model.ApiKeyVO;
 
 import java.util.List;
@@ -22,4 +24,10 @@ public interface ApiKeyService {
     ApiKeyCreatedVO rotate(Long id);
 
     void delete(Long id);
+
+    /** 统计看板（总数 / 今日新增·轮换·吊销·删除·启用 / 7 日内到期） */
+    ApiKeyStatsVO stats();
+
+    /** 最近操作记录 */
+    List<ApiKeyLogEntity> recentLogs(int limit);
 }

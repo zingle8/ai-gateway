@@ -3,7 +3,7 @@ package com.zimo.gateway.trace.controller;
 import com.zimo.gateway.client.common.dto.TraceLogDTO;
 import com.zimo.gateway.common.result.PageResult;
 import com.zimo.gateway.common.result.R;
-import com.zimo.gateway.trace.entity.GwTraceLog;
+import com.zimo.gateway.trace.entity.GwTraceLogEntity;
 import com.zimo.gateway.trace.model.SpanDTO;
 import com.zimo.gateway.trace.model.TraceQuery;
 import com.zimo.gateway.trace.service.TraceService;
@@ -28,7 +28,7 @@ public class TraceController {
      * 调用日志分页列表
      */
     @GetMapping("/logs")
-    public R<PageResult<GwTraceLog>> page(@RequestParam(required = false) String traceId,
+    public R<PageResult<GwTraceLogEntity>> page(@RequestParam(required = false) String traceId,
                                           @RequestParam(required = false) String appId,
                                           @RequestParam(required = false) String service,
                                           @RequestParam(required = false) String api,
@@ -66,7 +66,7 @@ public class TraceController {
      * 日志详情
      */
     @GetMapping("/logs/{id}")
-    public R<GwTraceLog> detail(@PathVariable Long id) {
+    public R<GwTraceLogEntity> detail(@PathVariable Long id) {
         return R.ok(traceService.getDetail(id));
     }
 

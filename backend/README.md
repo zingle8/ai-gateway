@@ -598,3 +598,11 @@ java -jar jv-api-gateway-proxy/target/jv-api-gateway-proxy.jar      # 流量入�
 > 说明：环境 JDK 为 25，而 Spring Boot 3.2.12 自带的 Lombok 1.18.36 在 JDK 21+ 上会抛
 > `TypeTag::UNKNOWN`，因此父 POM 已将 `lombok.version` 覆盖为 `1.18.46`，
 > 并在父 POM 统一配置 `maven-compiler-plugin` 的 `annotationProcessorPaths`，供所有子模块继承。
+
+## 编码规范
+
+- **实体**：`XxxEntity`（`UserEntity` / `ApiKeyEntity` / `GwRouteEntity` / `SysConfigEntity`），与表一一对应，只放字段
+- **数据访问**：`XxxMapper`（MyBatis 注解式，SQL 尽量简单，复杂统计走子查询一次取回）
+- **入参 / 出参**：`XxxRequest` / `XxxVO`，Controller 不直接暴露实体
+- **服务**：`XxxService` 接口 + `XxxServiceImpl` 实现
+- **SQL**：`backend/sql/<模块>-<功能>-<主表>.sql`，幂等（`CREATE TABLE IF NOT EXISTS` / `INSERT IGNORE`）

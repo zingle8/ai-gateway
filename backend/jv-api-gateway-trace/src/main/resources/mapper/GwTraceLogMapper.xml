@@ -34,7 +34,7 @@
     </sql>
 
     <select id="selectPage" parameterType="com.zimo.gateway.trace.model.TraceQuery"
-            resultType="com.zimo.gateway.trace.entity.GwTraceLog">
+            resultType="com.zimo.gateway.trace.entity.GwTraceLogEntity">
         SELECT <include refid="listCols"/> FROM tb_gw_trace_log
         WHERE <include refid="pageWhere"/>
         ORDER BY req_time DESC
@@ -45,7 +45,7 @@
         SELECT COUNT(*) FROM tb_gw_trace_log WHERE <include refid="pageWhere"/>
     </select>
 
-    <select id="selectDetailById" resultType="com.zimo.gateway.trace.entity.GwTraceLog">
+    <select id="selectDetailById" resultType="com.zimo.gateway.trace.entity.GwTraceLogEntity">
         SELECT <include refid="detailCols"/> FROM tb_gw_trace_log WHERE deleted = 0 AND id = #{id}
     </select>
 

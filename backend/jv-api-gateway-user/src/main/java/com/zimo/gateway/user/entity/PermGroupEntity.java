@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * type=ORG 部门分组（树形，parent_id 组织层级）；type=PERM 权限分组（扁平，绑权限点）
  */
 @Data
-public class PermGroup {
+public class PermGroupEntity {
 
     private Long id;
 

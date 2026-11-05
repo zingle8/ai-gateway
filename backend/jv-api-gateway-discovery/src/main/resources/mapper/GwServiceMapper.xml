@@ -22,7 +22,7 @@
     </sql>
 
     <select id="selectPage" parameterType="com.zimo.gateway.discovery.model.ServiceQuery"
-            resultType="com.zimo.gateway.discovery.entity.GwService">
+            resultType="com.zimo.gateway.discovery.entity.GwServiceEntity">
         SELECT <include refid="cols"/> FROM tb_gw_service
         WHERE <include refid="pageWhere"/>
         ORDER BY id DESC
@@ -65,11 +65,11 @@
         GROUP BY b
     </select>
 
-    <select id="selectById" resultType="com.zimo.gateway.discovery.entity.GwService">
+    <select id="selectById" resultType="com.zimo.gateway.discovery.entity.GwServiceEntity">
         SELECT <include refid="cols"/> FROM tb_gw_service WHERE deleted = 0 AND id = #{id}
     </select>
 
-    <select id="selectByServiceName" resultType="com.zimo.gateway.discovery.entity.GwService">
+    <select id="selectByServiceName" resultType="com.zimo.gateway.discovery.entity.GwServiceEntity">
         SELECT <include refid="cols"/> FROM tb_gw_service
         WHERE deleted = 0 AND service_name = #{serviceName} LIMIT 1
     </select>

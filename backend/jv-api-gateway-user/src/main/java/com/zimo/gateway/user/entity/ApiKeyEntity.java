@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * 只存 SHA-256(secret)，明文仅签发 / 轮换时返回一次。
  */
 @Data
-public class ApiKey {
+public class ApiKeyEntity {
 
     private Long id;
 

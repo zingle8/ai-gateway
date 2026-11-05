@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * 注册服务（表 tb_gw_service，字段蛇形命名由 MyBatis 驼峰映射自动对应）
  */
 @Data
-public class GwService {
+public class GwServiceEntity {
 
     private Long id;
 

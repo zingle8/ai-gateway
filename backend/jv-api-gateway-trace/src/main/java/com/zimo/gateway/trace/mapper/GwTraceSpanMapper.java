@@ -1,6 +1,6 @@
 package com.zimo.gateway.trace.mapper;
 
-import com.zimo.gateway.trace.entity.GwTraceSpan;
+import com.zimo.gateway.trace.entity.GwTraceSpanEntity;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -16,10 +16,10 @@ import java.util.Map;
 @Mapper
 public interface GwTraceSpanMapper {
 
-    int batchInsert(@Param("spans") List<GwTraceSpan> spans);
+    int batchInsert(@Param("spans") List<GwTraceSpanEntity> spans);
 
     /** 按链路聚合（瀑布图），start_time 升序 */
-    List<GwTraceSpan> selectByTraceId(@Param("traceId") String traceId);
+    List<GwTraceSpanEntity> selectByTraceId(@Param("traceId") String traceId);
 
     // ------------------------------------------------------------- 分区维护
 

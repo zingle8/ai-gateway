@@ -3,7 +3,7 @@ package com.zimo.gateway.user.controller;
 import com.zimo.gateway.common.result.PageResult;
 import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.common.result.ResultCode;
-import com.zimo.gateway.user.entity.User;
+import com.zimo.gateway.user.entity.UserEntity;
 import com.zimo.gateway.user.model.UserQuery;
 import com.zimo.gateway.user.model.UserSaveRequest;
 import com.zimo.gateway.user.service.UserService;
@@ -25,7 +25,7 @@ public class UserController {
      * 用户分页列表（支持关键字 / 角色 / 状态过滤）
      */
     @GetMapping
-    public R<PageResult<User>> page(@RequestParam(required = false) String keyword,
+    public R<PageResult<UserEntity>> page(@RequestParam(required = false) String keyword,
                                     @RequestParam(required = false) String role,
                                     @RequestParam(required = false) Integer status,
                     @RequestParam(defaultValue = "1") long current,
@@ -43,8 +43,8 @@ public class UserController {
      * 用户详情
      */
     @GetMapping("/{id}")
-    public R<User> detail(@PathVariable Long id) {
-        User user = userService.getById(id);
+    public R<UserEntity> detail(@PathVariable Long id) {
+        UserEntity user = userService.getById(id);
         if (user == null) {
             return R.fail(ResultCode.NOT_FOUND.getCode(), "用户不存在");
         }

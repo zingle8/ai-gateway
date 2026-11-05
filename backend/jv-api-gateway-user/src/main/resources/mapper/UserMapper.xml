@@ -18,11 +18,11 @@
         <if test="status != null">AND status = #{status}</if>
     </sql>
 
-    <select id="selectById" resultType="com.zimo.gateway.user.entity.User">
+    <select id="selectById" resultType="com.zimo.gateway.user.entity.UserEntity">
         SELECT <include refid="cols"/> FROM tb_sys_user WHERE deleted = 0 AND id = #{id}
     </select>
 
-    <select id="selectByUsername" resultType="com.zimo.gateway.user.entity.User">
+    <select id="selectByUsername" resultType="com.zimo.gateway.user.entity.UserEntity">
         SELECT <include refid="cols"/> FROM tb_sys_user WHERE deleted = 0 AND username = #{username} LIMIT 1
     </select>
 
@@ -32,7 +32,7 @@
         <if test="excludeId != null">AND id != #{excludeId}</if>
     </select>
 
-    <select id="selectPage" resultType="com.zimo.gateway.user.entity.User">
+    <select id="selectPage" resultType="com.zimo.gateway.user.entity.UserEntity">
         SELECT <include refid="cols"/> FROM tb_sys_user
         WHERE <include refid="pageWhere"/>
         ORDER BY id DESC

@@ -35,7 +35,7 @@ public class DbRouteDefinitionLocator implements RouteDefinitionLocator {
     @Override
     public Flux<RouteDefinition> getRouteDefinitions() {
         List<RouteDefinition> definitions = new ArrayList<>();
-        for (GwRoute route : routeRepository.listEnabled()) {
+        for (GwRouteEntity route : routeRepository.listEnabled()) {
             try {
                 definitions.add(toDefinition(route));
             } catch (Exception e) {
@@ -52,7 +52,7 @@ public class DbRouteDefinitionLocator implements RouteDefinitionLocator {
         eventPublisher.publishEvent(new RefreshRoutesEvent(this));
     }
 
-    private RouteDefinition toDefinition(GwRoute route) {
+    private RouteDefinition toDefinition(GwRouteEntity route) {
         RouteDefinition definition = new RouteDefinition();
         definition.setId("gw-route-" + route.getId());
         definition.setUri(URI.create(route.getUpstreamUrl().trim()));

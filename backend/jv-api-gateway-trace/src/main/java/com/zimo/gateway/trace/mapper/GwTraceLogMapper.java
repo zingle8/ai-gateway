@@ -1,6 +1,6 @@
 package com.zimo.gateway.trace.mapper;
 
-import com.zimo.gateway.trace.entity.GwTraceLog;
+import com.zimo.gateway.trace.entity.GwTraceLogEntity;
 import com.zimo.gateway.trace.model.FilterOption;
 import com.zimo.gateway.trace.model.TraceQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -15,16 +15,16 @@ import java.util.List;
 public interface GwTraceLogMapper {
 
     /** 列表查询：不取 Header / 报文体大字段，详情接口再取 */
-    List<GwTraceLog> selectPage(TraceQuery query);
+    List<GwTraceLogEntity> selectPage(TraceQuery query);
 
     /** 与 selectPage 同条件计数 */
     long countPage(TraceQuery query);
 
     /** 详情：含全部大字段 */
-    GwTraceLog selectDetailById(@Param("id") Long id);
+    GwTraceLogEntity selectDetailById(@Param("id") Long id);
 
     /** 批量入库，主键自增 */
-    int batchInsert(@Param("logs") List<GwTraceLog> logs);
+    int batchInsert(@Param("logs") List<GwTraceLogEntity> logs);
 
     /**
      * 筛选项字典：库中真实出现过的协议 / 服务名 / 报文格式。

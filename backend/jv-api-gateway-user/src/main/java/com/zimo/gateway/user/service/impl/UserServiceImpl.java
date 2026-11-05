@@ -5,7 +5,7 @@ import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.common.util.JwtUtil;
-import com.zimo.gateway.user.entity.User;
+import com.zimo.gateway.user.entity.UserEntity;
 import com.zimo.gateway.user.mapper.UserMapper;
 import com.zimo.gateway.user.model.LoginVO;
 import com.zimo.gateway.user.model.RegisterRequest;
@@ -117,7 +117,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getById(Long id) {
+    public UserEntity getById(Long id) {
         return id == null ? null : userMapper.selectById(id);
     }
 
@@ -137,7 +137,7 @@ public class UserServiceImpl implements UserService {
                     "连续输错 " + MAX_FAIL + " 次，账号已锁定，" + tip);
         }
 
-        User user = userMapper.selectByUsername(username);
+        UserEntity user = userMapper.selectByUsername(username);
         if (user == null) {
             throw new BizException(ResultCode.UNAUTHORIZED.getCode(), "账号不存在");
         }
@@ -164,9 +164,9 @@ public class UserServiceImpl implements UserService {
     @Override
     public void logout(Long userId) {
         // JWT 无状态：自增版本后，该账号此前签发的所有令牌都会被拦截器判为失效
-        User user = getById(userId);
+        UserEntity user = getById(userId);
         if (user != null) {
-            User update = new User();
+            UserEntity update = new UserEntity();
             update.setId(userId);
             update.setTokenVersion((user.getTokenVersion() == null ? 0 : user.getTokenVersion()) + 1);
             update.setUpdateTime(LocalDateTime.now());
@@ -198,14 +198,14 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Page<User> pageUsers(UserQuery query) {
+    public Page<UserEntity> pageUsers(UserQuery query) {
         String keyword = StringUtils.hasText(query.getKeyword()) ? query.getKeyword().trim() : null;
         String role = StringUtils.hasText(query.getRole()) ? query.getRole() : null;
 
         long total = userMapper.countPage(keyword, role, query.getStatus());
         long current = Math.max(1, query.getCurrent());
         long size = Math.max(1, query.getSize());
-        List<User> records = total == 0 ? List.of()
+        List<UserEntity> records = total == 0 ? List.of()
                 : userMapper.selectPage(keyword, role, query.getStatus(), (current - 1) * size, size);
         records.forEach(u -> u.setPassword(null));
         return Page.of(records, total, current, size);
@@ -215,7 +215,7 @@ public class UserServiceImpl implements UserService {
     public void createUser(UserSaveRequest request) {
         checkUsernameUnique(request.getUsername(), null);
 
-        User user = new User();
+        UserEntity user = new UserEntity();
         user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setNickname(request.getNickname());
@@ -233,7 +233,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUser(Long id, UserSaveRequest request) {
-        User user = userMapper.selectById(id);
+        UserEntity user = userMapper.selectById(id);
         if (user == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "用户不存在");
         }
@@ -254,7 +254,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
-        User user = userMapper.selectById(id);
+        UserEntity user = userMapper.selectById(id);
         if (user == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "用户不存在");
         }
@@ -266,11 +266,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateStatus(Long id, Integer status) {
-        User user = userMapper.selectById(id);
+        UserEntity user = userMapper.selectById(id);
         if (user == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "用户不存在");
         }
-        User update = new User();
+        UserEntity update = new UserEntity();
         update.setId(id);
         update.setStatus(status);
         update.setUpdateTime(LocalDateTime.now());
@@ -279,7 +279,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void unlockLogin(Long id) {
-        User user = userMapper.selectById(id);
+        UserEntity user = userMapper.selectById(id);
         if (user == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "用户不存在");
         }

@@ -1,6 +1,6 @@
 package com.zimo.gateway.discovery.mapper;
 
-import com.zimo.gateway.discovery.entity.GwService;
+import com.zimo.gateway.discovery.entity.GwServiceEntity;
 import com.zimo.gateway.discovery.model.FilterOption;
 import com.zimo.gateway.discovery.model.ServiceQuery;
 import org.apache.ibatis.annotations.Mapper;
@@ -17,12 +17,12 @@ import java.util.Map;
 public interface GwServiceMapper {
 
     /** 分页列表（动态条件） */
-    List<GwService> selectPage(ServiceQuery query);
+    List<GwServiceEntity> selectPage(ServiceQuery query);
 
     /** 与 selectPage 同条件计数 */
     long countPage(ServiceQuery query);
 
-    GwService selectById(@Param("id") Long id);
+    GwServiceEntity selectById(@Param("id") Long id);
 
     /**
      * 近 windowSeconds 秒按服务名聚合真实调用：QPS（近 60 秒计数）、调用次数、平均耗时、入/出流量。
@@ -43,7 +43,7 @@ public interface GwServiceMapper {
                                                  @Param("serviceName") String serviceName);
 
     /** 注册 / 心跳按服务名定位 */
-    GwService selectByServiceName(@Param("serviceName") String serviceName);
+    GwServiceEntity selectByServiceName(@Param("serviceName") String serviceName);
 
     /** 筛选项字典：应用列表（app_id + app_name），供「全部应用」下拉 */
     List<FilterOption> selectDistinctApps();
@@ -55,10 +55,10 @@ public interface GwServiceMapper {
     List<String> selectDistinctLanguages();
 
     /** 新增，主键自增回填到 entity.id */
-    int insert(GwService service);
+    int insert(GwServiceEntity service);
 
     /** 按非空字段更新 */
-    int update(GwService service);
+    int update(GwServiceEntity service);
 
     /** 下线：按服务名把状态置为异常 */
     int markAbnormalByName(@Param("serviceName") String serviceName,

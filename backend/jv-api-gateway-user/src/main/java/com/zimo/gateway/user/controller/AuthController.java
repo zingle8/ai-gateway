@@ -4,7 +4,7 @@ import com.zimo.gateway.common.context.UserContext;
 import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.common.util.IpUtil;
-import com.zimo.gateway.user.entity.User;
+import com.zimo.gateway.user.entity.UserEntity;
 import com.zimo.gateway.user.model.LoginRequest;
 import com.zimo.gateway.user.model.LoginVO;
 import com.zimo.gateway.user.model.RegisterRequest;
@@ -62,7 +62,7 @@ public class AuthController {
      */
     @GetMapping("/info")
     public R<LoginVO> info() {
-        User user = userService.getById(UserContext.getUserId());
+        UserEntity user = userService.getById(UserContext.getUserId());
         if (user == null) {
             return R.fail(ResultCode.UNAUTHORIZED.getCode(), "用户不存在");
         }

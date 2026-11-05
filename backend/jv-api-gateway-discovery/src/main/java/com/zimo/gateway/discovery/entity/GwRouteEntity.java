@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * <p>由控制台「路由配置」维护，jv-api-gateway-proxy 每 30 秒热加载。
  */
 @Data
-public class GwRoute {
+public class GwRouteEntity {
 
     private Long id;
 

@@ -2,7 +2,7 @@ package com.zimo.gateway.discovery.service;
 
 import com.zimo.gateway.client.common.dto.ServiceInstanceDTO;
 import com.zimo.gateway.common.result.Page;
-import com.zimo.gateway.discovery.entity.GwService;
+import com.zimo.gateway.discovery.entity.GwServiceEntity;
 import com.zimo.gateway.discovery.model.ServiceQuery;
 
 import java.util.Map;
@@ -13,12 +13,12 @@ import java.util.Map;
 public interface DiscoveryService {
 
     /** 按主键查询（逻辑删除的不返回） */
-    GwService getById(Long id);
+    GwServiceEntity getById(Long id);
 
     /**
      * 服务分页列表（关键字 / 应用 / 服务名 / 状态 / 语言过滤）
      */
-    Page<GwService> pageServices(ServiceQuery query);
+    Page<GwServiceEntity> pageServices(ServiceQuery query);
 
     /**
      * 调用趋势：区间内请求量与 QPS 两条序列（一次查询同时产出）。
@@ -33,7 +33,7 @@ public interface DiscoveryService {
     /**
      * 服务详情
      */
-    GwService getDetail(Long id);
+    GwServiceEntity getDetail(Long id);
 
     /**
      * 筛选项字典：应用（appId + appName）、服务（appId + serviceName）、语言类型，

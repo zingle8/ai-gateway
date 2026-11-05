@@ -1,6 +1,6 @@
 package com.zimo.gateway.proxy.mapper;
 
-import com.zimo.gateway.proxy.route.GwRoute;
+import com.zimo.gateway.proxy.route.GwRouteEntity;
 import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
@@ -12,5 +12,5 @@ import java.util.List;
 public interface RouteMapper {
 
     /** 已启用且未逻辑删除的路由，按 id 升序，保证转发优先级稳定 */
-    List<GwRoute> listEnabled();
+    List<GwRouteEntity> listEnabled();
 }

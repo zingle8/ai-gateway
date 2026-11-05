@@ -2,7 +2,7 @@ package com.zimo.gateway.user.service.impl;
 
 import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.ResultCode;
-import com.zimo.gateway.user.entity.PermGroup;
+import com.zimo.gateway.user.entity.PermGroupEntity;
 import com.zimo.gateway.user.mapper.PermGroupMapper;
 import com.zimo.gateway.user.mapper.PermItemMapper;
 import com.zimo.gateway.user.mapper.PermMenuMapper;
@@ -58,7 +58,7 @@ public class PermServiceImpl implements PermService {
         if (groupMapper.countByCode(request.code()) > 0) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "分组编码已存在：" + request.code());
         }
-        PermGroup group = new PermGroup();
+        PermGroupEntity group = new PermGroupEntity();
         group.setName(request.name());
         group.setCode(request.code());
         group.setType(request.type() == null ? "PERM" : request.type());
@@ -74,7 +74,7 @@ public class PermServiceImpl implements PermService {
 
     @Override
     public void updateGroup(Long id, GroupSaveRequest request) {
-        PermGroup exists = requireGroup(id);
+        PermGroupEntity exists = requireGroup(id);
         if (exists.getBuiltin() != null && exists.getBuiltin() == 1 && !exists.getCode().equals(request.code())) {
             throw new BizException(ResultCode.FORBIDDEN.getCode(), "内置分组不可修改编码");
         }
@@ -91,7 +91,7 @@ public class PermServiceImpl implements PermService {
     @Override
     @Transactional
     public void deleteGroup(Long id) {
-        PermGroup exists = requireGroup(id);
+        PermGroupEntity exists = requireGroup(id);
         if (exists.getBuiltin() != null && exists.getBuiltin() == 1) {
             throw new BizException(ResultCode.FORBIDDEN.getCode(), "内置分组不可删除");
         }
@@ -103,8 +103,8 @@ public class PermServiceImpl implements PermService {
         groupMapper.deleteById(id);
     }
 
-    private PermGroup requireGroup(Long id) {
-        PermGroup group = id == null ? null : groupMapper.selectById(id);
+    private PermGroupEntity requireGroup(Long id) {
+        PermGroupEntity group = id == null ? null : groupMapper.selectById(id);
         if (group == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "分组不存在");
         }
@@ -145,7 +145,7 @@ public class PermServiceImpl implements PermService {
     @Override
     @Transactional
     public void updateGroupPerms(Long groupId, List<String> codes) {
-        PermGroup group = requireGroup(groupId);
+        PermGroupEntity group = requireGroup(groupId);
         if (group.getBuiltin() != null && group.getBuiltin() == 1) {
             throw new BizException(ResultCode.FORBIDDEN.getCode(), "内置分组默认拥有全部权限，无需分配");
         }
@@ -165,7 +165,7 @@ public class PermServiceImpl implements PermService {
         return new DictionaryVO(menuTree, items);
     }
 
-    private List<DictionaryVO.MenuNode> buildMenuTree(List<com.zimo.gateway.user.entity.PermMenu> menus) {
+    private List<DictionaryVO.MenuNode> buildMenuTree(List<com.zimo.gateway.user.entity.PermMenuEntity> menus) {
         Map<String, DictionaryVO.MenuNode> nodes = new HashMap<>();
         menus.forEach(m -> nodes.put(m.getId(), new DictionaryVO.MenuNode(
                 m.getId(), m.getName(), m.getParentId(), m.getSort(),
@@ -191,14 +191,14 @@ public class PermServiceImpl implements PermService {
         if (itemMapper.countByCode(request.code(), null) > 0) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "权限 code 已存在：" + request.code());
         }
-        com.zimo.gateway.user.entity.PermItem item = new com.zimo.gateway.user.entity.PermItem();
+        com.zimo.gateway.user.entity.PermItemEntity item = new com.zimo.gateway.user.entity.PermItemEntity();
         applyItem(item, request);
         itemMapper.insert(item);
     }
 
     @Override
     public void updatePermItem(Long id, PermItemSaveRequest request) {
-        com.zimo.gateway.user.entity.PermItem item = itemMapper.selectAll().stream()
+        com.zimo.gateway.user.entity.PermItemEntity item = itemMapper.selectAll().stream()
                 .filter(i -> i.getId().equals(id)).findFirst()
                 .orElseThrow(() -> new BizException(ResultCode.NOT_FOUND.getCode(), "权限点不存在"));
         if (itemMapper.countByCode(request.code(), id) > 0) {
@@ -208,7 +208,7 @@ public class PermServiceImpl implements PermService {
         itemMapper.update(item);
     }
 
-    private void applyItem(com.zimo.gateway.user.entity.PermItem item, PermItemSaveRequest request) {
+    private void applyItem(com.zimo.gateway.user.entity.PermItemEntity item, PermItemSaveRequest request) {
         item.setMenuId(request.menuId());
         item.setFuncName(request.funcName());
         item.setCode(request.code());
@@ -228,7 +228,7 @@ public class PermServiceImpl implements PermService {
         if (userId == null) {
             return List.of();
         }
-        List<PermGroup> myGroups = groupMapper.selectGroupsByUser(userId);
+        List<PermGroupEntity> myGroups = groupMapper.selectGroupsByUser(userId);
         if (myGroups.isEmpty()) {
             return List.of();
         }
@@ -236,7 +236,7 @@ public class PermServiceImpl implements PermService {
         if (myGroups.stream().anyMatch(g -> g.getBuiltin() != null && g.getBuiltin() == 1)) {
             return itemMapper.selectAll().stream()
                     .filter(i -> i.getEnabled() != null && i.getEnabled() == 1)
-                    .map(com.zimo.gateway.user.entity.PermItem::getCode)
+                    .map(com.zimo.gateway.user.entity.PermItemEntity::getCode)
                     .toList();
         }
         return groupMapper.selectPermCodesByUser(userId);

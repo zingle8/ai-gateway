@@ -4,7 +4,7 @@ import com.zimo.gateway.client.common.dto.ServiceInstanceDTO;
 import com.zimo.gateway.common.result.PageResult;
 import com.zimo.gateway.common.util.TimeRange;
 import com.zimo.gateway.common.result.R;
-import com.zimo.gateway.discovery.entity.GwService;
+import com.zimo.gateway.discovery.entity.GwServiceEntity;
 import com.zimo.gateway.discovery.model.ServiceQuery;
 import com.zimo.gateway.discovery.service.DiscoveryService;
 import lombok.RequiredArgsConstructor;
@@ -29,7 +29,7 @@ public class DiscoveryController {
      *              决定平均耗时与流量的聚合窗口（默认 24h，与其它页面一致）
      */
     @GetMapping("/services")
-    public R<PageResult<GwService>> page(@RequestParam(required = false) String keyword,
+    public R<PageResult<GwServiceEntity>> page(@RequestParam(required = false) String keyword,
                                          @RequestParam(required = false) String appId,
                                          @RequestParam(required = false) String serviceName,
                                          @RequestParam(required = false) String status,
@@ -73,7 +73,7 @@ public class DiscoveryController {
      * 服务详情
      */
     @GetMapping("/services/{id}")
-    public R<GwService> detail(@PathVariable Long id) {
+    public R<GwServiceEntity> detail(@PathVariable Long id) {
         return R.ok(discoveryService.getDetail(id));
     }
 

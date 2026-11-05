@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
  *      → X-Api-Key     → API Key 通道（SHA-256 + 状态 + 有效期）
  *      → Bearer JWT    → 用户令牌通道（验签 + token_version）
  *      → 都没有        → 401
- * 通过 → 注入 X-Auth-User-Id / X-Auth-Key-Id 供下游服务识别调用方
+ * 通过 → 注入 X-Auth-UserEntity-Id / X-Auth-Key-Id 供下游服务识别调用方
  * </pre>
  *
  * <p>注意：必须排在最前（Order 高于链路采集过滤器），未通过鉴权的请求
@@ -86,11 +86,11 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         return AuthVerifier.Decision.deny("未提供访问凭证");
     }
 
-    /** 身份透传：下游服务可从 X-Auth-User-Id / X-Auth-Key-Id 识别调用方 */
+    /** 身份透传：下游服务可从 X-Auth-UserEntity-Id / X-Auth-Key-Id 识别调用方 */
     private ServerWebExchange injectIdentity(ServerWebExchange exchange, AuthVerifier.Decision decision) {
         var builder = exchange.getRequest().mutate();
         if (decision.userId() != null) {
-            builder.header("X-Auth-User-Id", String.valueOf(decision.userId()));
+            builder.header("X-Auth-UserEntity-Id", String.valueOf(decision.userId()));
         }
         if (decision.apiKeyId() != null) {
             builder.header("X-Auth-Key-Id", decision.apiKeyId());

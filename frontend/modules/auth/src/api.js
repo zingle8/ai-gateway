@@ -71,3 +71,13 @@ export function rotateApiKey(id) {
 export function revokeApiKey(id) {
   return request.delete(`/keys/${id}`)
 }
+
+/** 统计看板：总数 / 今日新增·轮换·吊销·删除·启用 / 7 日内到期 */
+export function fetchApiKeyStats() {
+  return request.get('/keys/stats')
+}
+
+/** 最近操作记录（审计明细，默认 20 条） */
+export function fetchApiKeyLogs(limit = 20) {
+  return request.get('/keys/logs', { params: { limit } })
+}

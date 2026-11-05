@@ -3,7 +3,7 @@ package com.zimo.gateway.discovery.controller;
 import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.common.result.ResultCode;
-import com.zimo.gateway.discovery.entity.GwRoute;
+import com.zimo.gateway.discovery.entity.GwRouteEntity;
 import com.zimo.gateway.discovery.mapper.GwRouteMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
@@ -34,12 +34,12 @@ public class RouteController {
     private final GwRouteMapper routeMapper;
 
     @GetMapping("/routes")
-    public R<List<GwRoute>> list(@RequestParam(required = false) String keyword) {
+    public R<List<GwRouteEntity>> list(@RequestParam(required = false) String keyword) {
         return R.ok(routeMapper.selectList(StringUtils.hasText(keyword) ? keyword.trim() : null));
     }
 
     @PostMapping("/routes")
-    public R<GwRoute> create(@RequestBody GwRoute route) {
+    public R<GwRouteEntity> create(@RequestBody GwRouteEntity route) {
         validate(route, null);
         route.setId(null);
         route.setPathPrefix(route.getPathPrefix().trim());
@@ -64,8 +64,8 @@ public class RouteController {
     }
 
     @PutMapping("/routes/{id}")
-    public R<Void> update(@PathVariable Long id, @RequestBody GwRoute route) {
-        GwRoute exist = routeMapper.selectById(id);
+    public R<Void> update(@PathVariable Long id, @RequestBody GwRouteEntity route) {
+        GwRouteEntity exist = routeMapper.selectById(id);
         if (exist == null) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "路由不存在");
         }
@@ -87,18 +87,18 @@ public class RouteController {
     /** 启用 / 停用，供列表页开关直接调用 */
     @PostMapping("/routes/{id}/toggle")
     public R<Void> toggle(@PathVariable Long id) {
-        GwRoute exist = routeMapper.selectById(id);
+        GwRouteEntity exist = routeMapper.selectById(id);
         if (exist == null) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "路由不存在");
         }
-        GwRoute update = new GwRoute();
+        GwRouteEntity update = new GwRouteEntity();
         update.setId(id);
         update.setStatus(exist.getStatus() != null && exist.getStatus() == 1 ? 0 : 1);
         routeMapper.update(update);
         return R.ok();
     }
 
-    private void validate(GwRoute route, Long selfId) {
+    private void validate(GwRouteEntity route, Long selfId) {
         if (route == null || !StringUtils.hasText(route.getPathPrefix())) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "匹配路径不能为空");
         }

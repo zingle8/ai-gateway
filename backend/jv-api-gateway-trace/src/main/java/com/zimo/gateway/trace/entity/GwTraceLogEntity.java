@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * 网关调用日志（表 tb_gw_trace_log，字段蛇形命名由 MyBatis 驼峰映射自动对应）
  */
 @Data
-public class GwTraceLog {
+public class GwTraceLogEntity {
 
     private Long id;
 

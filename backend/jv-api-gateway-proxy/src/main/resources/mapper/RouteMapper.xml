@@ -4,7 +4,7 @@
 <mapper namespace="com.zimo.gateway.proxy.mapper.RouteMapper">
 
     <!-- 驼峰映射：app_id -> appId 等，由 application.yml 的 map-underscore-to-camel-case 开启 -->
-    <select id="listEnabled" resultType="com.zimo.gateway.proxy.route.GwRoute">
+    <select id="listEnabled" resultType="com.zimo.gateway.proxy.route.GwRouteEntity">
         SELECT id, app_id, app_name, service_name, path_prefix, upstream_url,
                prefix_path, strip_prefix, status
         FROM tb_gw_route

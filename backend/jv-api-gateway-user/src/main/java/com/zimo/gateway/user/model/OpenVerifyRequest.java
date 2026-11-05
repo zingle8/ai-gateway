@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * 第三方平台校验令牌
+ *
+ * @param token 待校验令牌：用户 JWT（eyJ...）或 API Key（gwak-...）
+ * @param type  令牌类型：USER / API_KEY / AUTO（默认，按前缀自动识别）
  */
-public record OpenVerifyRequest(@NotBlank(message = "token 不能为空") String token) {
+public record OpenVerifyRequest(@NotBlank(message = "token 不能为空") String token, String type) {
 }

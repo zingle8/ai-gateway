@@ -31,7 +31,8 @@ public class PermSchemaInitializer implements ApplicationRunner {
 
     private static final List<String> SCRIPTS = List.of(
             "db/jv-api-gateway-user-perm-tb_perm_group.sql",
-            "db/jv-api-gateway-user-apikey-tb_gw_api_key.sql"
+            "db/jv-api-gateway-user-apikey-tb_gw_api_key.sql",
+            "db/jv-api-gateway-user-apikey-log-tb_gw_api_key_log.sql"
     );
 
     private final DataSource dataSource;

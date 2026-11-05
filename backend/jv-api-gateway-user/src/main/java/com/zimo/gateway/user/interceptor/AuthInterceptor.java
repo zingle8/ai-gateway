@@ -4,7 +4,7 @@ import com.zimo.gateway.common.context.UserContext;
 import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.common.util.JwtUtil;
-import com.zimo.gateway.user.entity.User;
+import com.zimo.gateway.user.entity.UserEntity;
 import com.zimo.gateway.user.service.UserService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,7 +45,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         Long userId = claims.get("userId") == null ? null : Long.valueOf(String.valueOf(claims.get("userId")));
-        User user = userId == null ? null : userService.getById(userId);
+        UserEntity user = userId == null ? null : userService.getById(userId);
         if (user == null) {
             throw new BizException(ResultCode.UNAUTHORIZED.getCode(), "账号不存在");
         }

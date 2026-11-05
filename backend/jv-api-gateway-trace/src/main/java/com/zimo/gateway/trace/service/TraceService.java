@@ -2,7 +2,7 @@ package com.zimo.gateway.trace.service;
 
 import com.zimo.gateway.client.common.dto.TraceLogDTO;
 import com.zimo.gateway.common.result.Page;
-import com.zimo.gateway.trace.entity.GwTraceLog;
+import com.zimo.gateway.trace.entity.GwTraceLogEntity;
 import com.zimo.gateway.trace.model.SpanDTO;
 import com.zimo.gateway.trace.model.TraceQuery;
 
@@ -17,12 +17,12 @@ public interface TraceService {
     /**
      * 调用日志分页列表（多维过滤）
      */
-    Page<GwTraceLog> pageTraces(TraceQuery query);
+    Page<GwTraceLogEntity> pageTraces(TraceQuery query);
 
     /**
      * 日志详情（含 Header 与报文体）
      */
-    GwTraceLog getDetail(Long id);
+    GwTraceLogEntity getDetail(Long id);
 
     /**
      * 批量上报（供业务系统接入 SDK 调用）

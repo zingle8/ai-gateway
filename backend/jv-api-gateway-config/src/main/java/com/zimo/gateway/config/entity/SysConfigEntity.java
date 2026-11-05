@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * 平台级配置项
  */
 @Data
-public class SysConfig {
+public class SysConfigEntity {
 
     private Long id;
 

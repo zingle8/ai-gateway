@@ -8,7 +8,7 @@ import java.time.LocalDateTime;
  * 平台用户（表 tb_sys_user，字段蛇形命名由 MyBatis 驼峰映射自动对应）
  */
 @Data
-public class User {
+public class UserEntity {
 
     private Long id;
 

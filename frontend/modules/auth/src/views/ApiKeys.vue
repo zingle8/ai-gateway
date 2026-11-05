@@ -1,5 +1,14 @@
 <template>
   <div class="page">
+    <!-- 统计看板：总量 + 今日动作（数据源 tb_gw_api_key_log 审计表） -->
+    <div class="stat-grid">
+      <div v-for="s in statCards" :key="s.label" class="stat-card">
+        <div class="stat-label">{{ s.label }}</div>
+        <div class="stat-value" :class="s.tone">{{ s.value }}</div>
+        <div class="stat-hint">{{ s.hint }}</div>
+      </div>
+    </div>
+
     <section class="gw-card">
       <div class="gw-card-hd">
         <span>API Key</span>
@@ -101,12 +110,26 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  fetchApiKeys, issueApiKey, setApiKeyStatus, rotateApiKey, revokeApiKey
+  fetchApiKeys, fetchApiKeyStats, issueApiKey, setApiKeyStatus, rotateApiKey, revokeApiKey
 } from '../api.js'
 
 const loading = ref(false)
 const saving = ref(false)
 const rows = ref([])
+const stats = ref(null)
+
+/** 统计卡片：总量 + 今日动作（来源 tb_gw_api_key_log 审计表，删除/吊销也能统计到） */
+const statCards = computed(() => {
+  const s = stats.value || {}
+  return [
+    { label: 'Key 总数', value: s.total ?? 0, hint: `启用 ${s.enabled ?? 0} · 停用 ${s.disabled ?? 0}`, tone: '' },
+    { label: '今日新增', value: s.todayCreated ?? 0, hint: '签发 CREATE', tone: 'is-green' },
+    { label: '今日轮换', value: s.todayRotated ?? 0, hint: '更换密钥 ROTATE', tone: 'is-blue' },
+    { label: '今日吊销', value: s.todayRevoked ?? 0, hint: '停用 DISABLE', tone: 'is-orange' },
+    { label: '今日删除', value: s.todayDeleted ?? 0, hint: '删除 DELETE', tone: 'is-red' },
+    { label: '7 日内到期', value: s.expiringIn7Days ?? 0, hint: '建议提前轮换', tone: 'is-orange' }
+  ]
+})
 const keyword = ref('')
 const issueDialog = ref(false)
 const secretDialog = ref(false)
@@ -125,7 +148,12 @@ const expiring = (row) => row.expireAt && new Date(row.expireAt.replace(' ', 'T'
 const load = async () => {
   loading.value = true
   try {
-    rows.value = await fetchApiKeys()
+    const [list, stat] = await Promise.all([
+      fetchApiKeys(),
+      fetchApiKeyStats().catch(() => null)
+    ])
+    rows.value = list
+    stats.value = stat
   } finally {
     loading.value = false
   }
@@ -189,6 +217,48 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* 统计看板 */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.stat-card {
+  padding: 12px 14px;
+  background: var(--gw-card);
+  border: 1px solid var(--gw-border);
+  border-radius: 8px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--gw-text-tertiary);
+}
+
+.stat-value {
+  margin: 6px 0 2px;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value.is-green { color: #16A34A; }
+.stat-value.is-blue { color: #2563EB; }
+.stat-value.is-orange { color: #D97706; }
+.stat-value.is-red { color: #DC2626; }
+
+.stat-hint {
+  font-size: 11px;
+  color: var(--gw-text-tertiary);
+}
+
+@media (max-width: 1280px) {
+  .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
 .hd-actions {
   display: flex;
   align-items: center;

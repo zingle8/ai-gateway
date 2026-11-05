@@ -1,6 +1,6 @@
 package com.zimo.gateway.user.mapper;
 
-import com.zimo.gateway.user.entity.PermGroup;
+import com.zimo.gateway.user.entity.PermGroupEntity;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
@@ -19,10 +19,10 @@ import java.util.Map;
 public interface PermGroupMapper {
 
     @Select("SELECT * FROM tb_perm_group WHERE deleted = 0 ORDER BY type, parent_id, id")
-    List<PermGroup> selectAll();
+    List<PermGroupEntity> selectAll();
 
     @Select("SELECT * FROM tb_perm_group WHERE id = #{id} AND deleted = 0")
-    PermGroup selectById(@Param("id") Long id);
+    PermGroupEntity selectById(@Param("id") Long id);
 
     @Select("SELECT COUNT(*) FROM tb_perm_group WHERE code = #{code} AND deleted = 0")
     long countByCode(@Param("code") String code);
@@ -30,11 +30,11 @@ public interface PermGroupMapper {
     @Insert("INSERT INTO tb_perm_group (name, code, type, parent_id, data_scope, leader, remark, builtin, status) "
             + "VALUES (#{name}, #{code}, #{type}, #{parentId}, #{dataScope}, #{leader}, #{remark}, #{builtin}, #{status})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
-    int insert(PermGroup group);
+    int insert(PermGroupEntity group);
 
     @Update("UPDATE tb_perm_group SET name = #{name}, data_scope = #{dataScope}, leader = #{leader}, "
             + "remark = #{remark}, status = #{status} WHERE id = #{id} AND deleted = 0")
-    int update(PermGroup group);
+    int update(PermGroupEntity group);
 
     /** 逻辑删除；子分组由 service 层一并处理 */
     @Update("UPDATE tb_perm_group SET deleted = 1 WHERE id = #{id}")
@@ -74,7 +74,7 @@ public interface PermGroupMapper {
     @Select("SELECT g.* FROM tb_perm_group g "
             + "JOIN tb_perm_group_member gm ON gm.group_id = g.id "
             + "WHERE gm.user_id = #{userId} AND g.deleted = 0 AND g.status = 1")
-    List<PermGroup> selectGroupsByUser(@Param("userId") Long userId);
+    List<PermGroupEntity> selectGroupsByUser(@Param("userId") Long userId);
 
     /** 用户有效权限：所属（非内置）分组的权限点并集 */
     @Select("SELECT DISTINCT gp.perm_code FROM tb_perm_group_perm gp "

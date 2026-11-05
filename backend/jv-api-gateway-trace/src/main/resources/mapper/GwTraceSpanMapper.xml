@@ -16,7 +16,7 @@
     </insert>
 
     <!-- 瀑布图按链路取全量 span；idx_trace 命中分区后 idx_start 天然有序 -->
-    <select id="selectByTraceId" resultType="com.zimo.gateway.trace.entity.GwTraceSpan">
+    <select id="selectByTraceId" resultType="com.zimo.gateway.trace.entity.GwTraceSpanEntity">
         SELECT id, trace_id, span_id, parent_span_id, kind, app_id, app_name, service_name,
                api, peer_service, status_code, err_type, cost, start_time, create_time
         FROM tb_gw_trace_span

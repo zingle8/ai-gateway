@@ -19,7 +19,7 @@ public class RouteRepository {
 
     private final RouteMapper routeMapper;
 
-    public List<GwRoute> listEnabled() {
+    public List<GwRouteEntity> listEnabled() {
         try {
             return routeMapper.listEnabled();
         } catch (Exception e) {

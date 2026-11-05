@@ -6,7 +6,7 @@ import com.zimo.gateway.common.result.Page;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.common.util.TimeRange;
 import com.zimo.gateway.common.util.TrendBuckets;
-import com.zimo.gateway.discovery.entity.GwService;
+import com.zimo.gateway.discovery.entity.GwServiceEntity;
 import com.zimo.gateway.discovery.mapper.GwServiceMapper;
 import com.zimo.gateway.discovery.model.ServiceQuery;
 import com.zimo.gateway.discovery.service.DiscoveryService;
@@ -33,16 +33,16 @@ public class DiscoveryServiceImpl implements DiscoveryService {
     private final GwServiceMapper serviceMapper;
 
     @Override
-    public GwService getById(Long id) {
+    public GwServiceEntity getById(Long id) {
         return id == null ? null : serviceMapper.selectById(id);
     }
 
     @Override
-    public Page<GwService> pageServices(ServiceQuery query) {
+    public Page<GwServiceEntity> pageServices(ServiceQuery query) {
         long total = serviceMapper.countPage(query);
         long current = Math.max(1, query.getCurrent());
         long size = Math.max(1, query.getSize());
-        List<GwService> records = total == 0 ? List.of() : serviceMapper.selectPage(query);
+        List<GwServiceEntity> records = total == 0 ? List.of() : serviceMapper.selectPage(query);
         int window = query.getWindowSeconds() > 0 ? query.getWindowSeconds() : DEFAULT_WINDOW_SECONDS;
         fillRuntimeStats(records, window);
 
@@ -69,7 +69,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
      *
      * @param windowSeconds 平均耗时 / 流量的聚合窗口（秒），由统一时间区间换算
      */
-    private void fillRuntimeStats(List<GwService> services, int windowSeconds) {
+    private void fillRuntimeStats(List<GwServiceEntity> services, int windowSeconds) {
         if (services == null || services.isEmpty()) {
             return;
         }
@@ -93,7 +93,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
             }
         }
 
-        for (GwService service : services) {
+        for (GwServiceEntity service : services) {
             double[] stat = stats.get(service.getServiceName());
             if (stat != null) {
                 service.setQps((int) stat[0]);
@@ -137,8 +137,8 @@ public class DiscoveryServiceImpl implements DiscoveryService {
     }
 
     @Override
-    public GwService getDetail(Long id) {
-        GwService service = serviceMapper.selectById(id);
+    public GwServiceEntity getDetail(Long id) {
+        GwServiceEntity service = serviceMapper.selectById(id);
         if (service == null) {
             throw new BizException(ResultCode.NOT_FOUND.getCode(), "服务不存在：" + id);
         }
@@ -150,10 +150,10 @@ public class DiscoveryServiceImpl implements DiscoveryService {
         if (instance == null || !StringUtils.hasText(instance.getServiceName())) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "服务名不能为空");
         }
-        GwService service = serviceMapper.selectByServiceName(instance.getServiceName());
+        GwServiceEntity service = serviceMapper.selectByServiceName(instance.getServiceName());
         LocalDateTime now = LocalDateTime.now();
         if (service == null) {
-            service = new GwService();
+            service = new GwServiceEntity();
             service.setAppId(instance.getAppId());
             service.setAppName(instance.getAppName());
             service.setServiceName(instance.getServiceName());
