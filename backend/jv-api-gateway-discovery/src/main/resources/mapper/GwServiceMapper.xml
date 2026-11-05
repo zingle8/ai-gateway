@@ -120,17 +120,19 @@
         WHERE id = #{id} AND deleted = 0
     </update>
 
+    <!-- 主动下线：按服务名把状态置为离线（心跳恢复时会覆盖回健康，见 DiscoveryServiceImpl） -->
     <update id="markAbnormalByName">
         UPDATE tb_gw_service
-        SET status = '异常', update_time = #{now}
+        SET status = '离线', update_time = #{now}
         WHERE deleted = 0 AND service_name = #{serviceName}
     </update>
 
-    <!-- 心跳巡检：超时未上报的置为离线（NULL 的行也要覆盖） -->
+    <!-- 心跳巡检：超时未上报的置为离线（NULL 的行也要覆盖）。
+         不限来源状态：健康 / 亚健康 / 异常都可能失联，已离线的行跳过 -->
     <update id="markOffline">
         UPDATE tb_gw_service
         SET status = #{status}, update_time = #{now}
-        WHERE deleted = 0 AND status = '健康'
+        WHERE deleted = 0 AND status != #{status}
           AND (last_heartbeat_time IS NULL OR last_heartbeat_time &lt; #{deadline})
     </update>
 </mapper>

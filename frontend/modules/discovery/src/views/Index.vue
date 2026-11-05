@@ -91,7 +91,9 @@
           <el-table-column prop="version" label="版本号" width="100" />
           <el-table-column label="健康状态" width="110">
             <template #default="{ row }">
-              <span class="status-dot" :class="dotClass(row.status)"></span> {{ row.status }}
+              <span class="status-cell" :class="dotClass(row.status)">
+                <span class="status-dot" :class="dotClass(row.status)"></span>{{ row.status }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column label="入站 / 出网流量" width="170">
@@ -297,6 +299,11 @@ const detailFields = computed(() => {
 .status-dot.success { background: var(--gw-success); }
 .status-dot.warning { background: var(--gw-warning); }
 .status-dot.danger { background: var(--gw-danger); }
+
+/* 状态文字与圆点同色：离线 / 异常红色加粗，健康绿色 */
+.status-cell.success { color: var(--gw-success); }
+.status-cell.warning { color: var(--gw-warning); }
+.status-cell.danger { color: var(--gw-danger); font-weight: 600; }
 
 .drawer-sec { margin-bottom: 18px; }
 

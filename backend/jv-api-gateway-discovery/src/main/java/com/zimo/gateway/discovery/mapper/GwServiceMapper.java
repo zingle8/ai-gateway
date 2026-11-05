@@ -60,7 +60,7 @@ public interface GwServiceMapper {
     /** 按非空字段更新 */
     int update(GwServiceEntity service);
 
-    /** 下线：按服务名把状态置为异常 */
+    /** 主动下线：按服务名把状态置为离线（心跳恢复时覆盖回健康） */
     int markAbnormalByName(@Param("serviceName") String serviceName,
                            @Param("now") LocalDateTime now);
 

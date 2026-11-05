@@ -28,7 +28,7 @@ export function statusTagType(code) {
 export function dotClass(status) {
   if (status === '健康') return 'success'
   if (status === '亚健康') return 'warning'
-  if (status === '异常') return 'danger'
+  if (status === '异常' || status === '离线') return 'danger'
   return ''
 }
 
