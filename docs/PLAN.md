@@ -184,6 +184,7 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 | --- | --- |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
 | 2026-11-05 | SDK 安全双门落地：① 上报共享密钥 `X-Gateway-Client-Token` 两端实现（SDK 自动携带、网关对上报路径校验，伪造注册/上报 401）；② SDK 入口鉴权 `GatewayAuthFilter`（回调 /open/auth/token/verify 验签 + 缓存，豁免/fail-open 可配，SDK 数据上报不受影响）；③ Python SDK `sdk/python/jv_gateway` 补齐（注册/心跳/上报/中间件/入口鉴权，冒烟脚本全通过并真实落库）；④ 接入文档同步（client-integration.md、AutoOnboard 页、backend README）。修复：ConditionalOnMissingBean 按类型判重把 gatewayAuthFilter 挤掉（改按 bean 名）、豁免路径需剥离 context-path |
+| 2026-11-05 | 新增 docs/modules-deployment.md：服务拆解与按需启动方案（后端模块依赖矩阵与裁剪方法、前端构建期菜单裁剪、三档套餐组装示例、多 Pod 注意点、交付检查清单），支撑"客户按模块购买、交付时组装启动"的售卖模式 |
 | 2026-11-05 | Node.js SDK 落地（sdk/nodejs，jv-gateway，零第三方依赖）：GatewayClient/TraceReporter/GatewayAuth/traceExpress/traceWrap + Express 示例 + 冒烟脚本，协议与 Java/Python 完全一致；接入文档（client-integration.md 第十章、backend README）与接入页新增 Node.js tab；系统配置新增豁免权全局控制位 platform.auth.exemption.control（CLIENT/PLATFORM 单选，安全策略组）；一键启动脚本 start.sh 默认先 mvn clean package 全子模块清理打包再运行（--skip-build 可跳过）；日志体系统一切分：logs/app/ 下按 日期--小时--ai-gateway--模块名--日志类型(运行/采集上报)--等级(INFO/WARN/ERROR/CONSOLE).txt 每小时滚动（logback-spring.xml，保留 7 天，ERROR 14 天） |
 | 2026-11-05 | 页面数据真实性盘点：19 页中 14 页走真实接口（总览/统计/发现/追踪/用户/Key/分组/部门/菜单/接入/路由/设置），5 页为静态演示（登录方式/SSO/令牌会话/安全策略/系统接入）；接真计划与优先级已写入 P0 待办表 |
 | 2026-11-05 | 服务离线状态修复：① `dotClass` 补「离线」映射（此前离线无颜色，与普通文字无异）；② 主动下线 deregister 由「异常」改为「离线」；③ 心跳巡检不再只处理 status=健康（异常/亚健康超时同样转离线）。实测 kill config → 页面 10 秒内红点红字「离线」 |
