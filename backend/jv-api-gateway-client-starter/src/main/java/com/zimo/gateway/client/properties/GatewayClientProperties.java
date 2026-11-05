@@ -15,7 +15,7 @@ import java.util.List;
  *   gateway:
  *     client:
  *       enabled: true
- *       server-addr: http://127.0.0.1:28080/api
+ *       server-addr: http://127.0.0.1:28090/api
  *       app-id: app-order
  *       app-name: 订单中心
  *       service-name: order-service
@@ -31,7 +31,7 @@ public class GatewayClientProperties {
     private boolean enabled = true;
 
     /**
-     * 网关平台「统一入口」地址，例如 http://127.0.0.1:28080/api
+     * 网关平台「统一入口」地址，例如 http://127.0.0.1:28090/api
      *
      * SDK 会在其后拼接 /trace/logs/batch、/discovery/services/register 等不同前缀，
      * 故该地址须能按前缀转发到对应微服务（本地可用前端 dev server，生产用 Nginx / SCG）

@@ -32,6 +32,9 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
     private final RestClient restClient;
     private final ScheduledExecutorService executor;
 
+    /** 注册是否成功；失败时心跳周期会自动补注册（服务端按 serviceName upsert，幂等） */
+    private volatile boolean registered = false;
+
     public ServiceRegistrar(GatewayClientProperties properties, Environment environment) {
         this.properties = properties;
         this.environment = environment;
@@ -63,10 +66,14 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
                     .body(instance)
                     .retrieve()
                     .toBodilessEntity();
-            log.info("已注册到网关平台：{} ({}) {}:{}",
+            registered = true;
+            log.info("已注册到网关平台：{} ({}) {}: {}",
                     instance.getAppId(), instance.getServiceName(), instance.getIp(), instance.getPort());
         } catch (Exception e) {
-            log.warn("注册到网关平台失败（不影响业务启动）：{}", e.getMessage());
+            // 标记未注册：下个心跳周期由 heartbeatQuietly 自动补注册，
+            // 避免启动顺序早于网关（如本平台各服务）时一次失败就永久"离线"
+            registered = false;
+            log.warn("注册到网关平台失败（不影响业务启动，下个心跳周期自动重试）：{}", e.getMessage());
         }
     }
 
@@ -80,8 +87,10 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
                     .body(instance)
                     .retrieve()
                     .toBodilessEntity();
+            registered = true;
         } catch (Exception e) {
-            log.debug("网关平台心跳失败：{}", e.getMessage());
+            registered = false;
+            log.warn("网关平台心跳失败，下个周期将尝试重新注册：{}", e.getMessage());
         }
     }
 
@@ -111,6 +120,13 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
 
     private void heartbeatQuietly() {
         try {
+            // 未注册成功（含启动时失败、心跳失联）时先补注册，注册成功才发心跳
+            if (!registered) {
+                register();
+                if (!registered) {
+                    return;
+                }
+            }
             heartbeat();
         } catch (Exception e) {
             log.debug("心跳异常：{}", e.getMessage());

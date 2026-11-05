@@ -72,7 +72,9 @@ gateway:
       # 鉴权缓存模式默认值：auto / redis / local
       # 系统设置（platform.auth.cache.mode）可覆盖，30 秒内生效；MySQL 始终为源数据
       cache-mode: auto
-      # 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 菜单健康 / 探活
+      # 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 菜单健康 / 探活，
+      # 以及接入 SDK 上报通道（注册 / 心跳 / 链路采集，业务系统无控制台令牌）
+      # 注意：此列表会整体覆盖 GatewayAuthProperties 代码默认值，两边需同步维护
       skip-paths:
         - /api/auth/login
         - /api/auth/register
@@ -80,6 +82,11 @@ gateway:
         - /api/configs/public
         - /health/**
         - /actuator/**
+        - /api/discovery/services/register
+        - /api/discovery/services/heartbeat
+        - /api/discovery/services/deregister
+        - /api/trace/logs/batch
+        - /api/trace/spans/batch
 
 logging:
   level:

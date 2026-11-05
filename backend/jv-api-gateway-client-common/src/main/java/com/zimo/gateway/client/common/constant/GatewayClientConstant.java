@@ -41,11 +41,9 @@ public final class GatewayClientConstant {
      * 注意：这里是「平台统一入口」地址，不是某个具体微服务的地址——
      * SDK 会在其后拼接不同前缀（{@link #PATH_TRACE_BATCH} 走 jv-api-gateway-trace、
      * {@link #PATH_SERVICE_REGISTER} 走 jv-api-gateway-discovery），
-     * 因此需要由统一入口按前缀转发到对应微服务：
-     *   本地：直接使用前端 dev server（已配置 /api 前缀代理）
-     *   生产：使用 Nginx / Spring Cloud Gateway 转发
+     * 由 jv-api-gateway-proxy（28090）按 tb_gw_route 转发到对应微服务。
      */
-    public static final String DEFAULT_SERVER_ADDR = "http://127.0.0.1:28080/api";
+    public static final String DEFAULT_SERVER_ADDR = "http://127.0.0.1:28090/api";
 
     /** 单条报文体最大采集长度（超出截断） */
     public static final int DEFAULT_MAX_BODY_SIZE = 8192;

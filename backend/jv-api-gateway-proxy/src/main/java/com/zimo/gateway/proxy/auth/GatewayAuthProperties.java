@@ -26,8 +26,17 @@ public class GatewayAuthProperties {
      */
     private String cacheMode = "auto";
 
-    /** 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 探活 / 菜单健康 */
+    /**
+     * 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 探活 / 菜单健康，
+     * 以及接入 SDK 的上报通道（注册 / 心跳 / 链路采集——
+     * 业务系统接入时没有控制台令牌，与 starter 端 excludePaths、
+     * TraceGlobalFilter 的排除清单保持同一组路径）。
+     * TODO(P1)：上报接口目前仅内网可用，后续用 X-Gateway-Client-Token 共享密钥收紧。
+     */
     private List<String> skipPaths = new ArrayList<>(List.of(
             "/api/auth/login", "/api/auth/register", "/api/open/**",
-            "/api/configs/public", "/health/**", "/actuator/**"));
+            "/api/configs/public", "/health/**", "/actuator/**",
+            "/api/discovery/services/register", "/api/discovery/services/heartbeat",
+            "/api/discovery/services/deregister",
+            "/api/trace/logs/batch", "/api/trace/spans/batch"));
 }

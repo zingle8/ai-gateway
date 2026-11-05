@@ -299,7 +299,7 @@ const javaDependency = `<dependency>
 const javaConfig = `zimo:
   gateway:
     client:
-      server-addr: http://127.0.0.1:28080/api   # 平台统一入口，不是微服务端口
+      server-addr: http://127.0.0.1:28090/api   # 平台统一入口，不是微服务端口
       app-id: app-order
       app-name: 订单中心
       service-name: order-service
@@ -353,7 +353,7 @@ const pythonWeb = `from jv_gateway import GatewayClient
 from jv_gateway.wsgi import WSGITraceMiddleware      # FastAPI 改用 jv_gateway.asgi
 
 client = GatewayClient(
-    server_addr="http://127.0.0.1:28080/api",
+    server_addr="http://127.0.0.1:28090/api",
     app_id="app-order", app_name="订单中心",
     service_name="order-service", port=8000,
 )
@@ -423,7 +423,7 @@ Content-Type: application/json
 /* ---------------------------------------------------------------- 表格数据 */
 
 const configRows = [
-  { java: 'server-addr', py: 'server_addr', def: 'http://127.0.0.1:28080/api', desc: '平台统一入口，SDK 自动拼接 /discovery、/trace 前缀' },
+  { java: 'server-addr', py: 'server_addr', def: 'http://127.0.0.1:28090/api', desc: '平台统一入口，SDK 自动拼接 /discovery、/trace 前缀' },
   { java: 'app-id', py: 'app_id', def: 'app-demo', desc: '应用编码，控制台按此筛选' },
   { java: 'app-name', py: 'app_name', def: '示例应用', desc: '应用名称，展示用' },
   { java: 'service-name', py: 'service_name', def: 'demo-service', desc: '服务名，注册的唯一键（同名重复注册即更新）' },
@@ -469,7 +469,7 @@ const errRows = [
 const faqs = [
   {
     q: '控制台「服务发现」里看不到我的服务？',
-    a: '先确认 server-addr 指向的是平台统一入口（如 http://127.0.0.1:28080/api），而不是某个微服务的端口。SDK 会在其后拼接 /discovery/** 和 /trace/**，分别打到不同微服务，填成单服务端口会导致一半请求 404。其次检查 registry.enabled 是否为 true、服务名是否重复覆盖了别的实例。'
+    a: '先确认 server-addr 指向的是平台统一入口（如 http://127.0.0.1:28090/api），而不是某个微服务的端口。SDK 会在其后拼接 /discovery/** 和 /trace/**，分别打到不同微服务，填成单服务端口会导致一半请求 404。其次检查 registry.enabled 是否为 true、服务名是否重复覆盖了别的实例。'
   },
   {
     q: '「日志追踪」里没有数据？',

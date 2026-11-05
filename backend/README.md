@@ -456,6 +456,17 @@ chmod +x scripts/*.sh
 - **模式可切换**：`platform.auth.cache.mode` = `auto`（默认）/ `redis` / `local`，系统设置页改动后 30 秒内生效
 - **失效语义**：缓存 TTL 30 秒 —— 停用 / 轮换 Key、退出登录（token_version 自增）最迟 30 秒生效
 
+### 接入 SDK（jv-api-gateway-client-common / client-starter）
+
+- `client-common`：契约层，零依赖（请求头 / 上报路径常量、ServiceInstanceDTO / TraceLogDTO / SpanRecordDTO、ErrType）
+- `client-starter`：Spring Boot Starter，引入即接入（`zimo.gateway.client.*` 可配置，可整体关闭）：
+  - 启动注册 + 30s 心跳 + 停机下线；**注册失败不放弃**——心跳周期检测到未注册会自动补注册（幂等），启动顺序早于网关也能自愈
+  - 心跳 / 注册失败打 WARN（不再静默 debug）
+  - Servlet Filter 采集请求响应 + traceparent 透传；异步批量上报，队列满直接丢弃不阻塞业务
+  - 仅支持 Servlet 容器；WebFlux（如 proxy 自身）走独立的 `ProxySelfRegistrar` + `TraceGlobalFilter`
+- 上报通道在网关白名单放行（`/api/discovery/services/*`、`/api/trace/logs|spans/batch`），当前仅限内网；
+  TODO：用 `X-Gateway-Client-Token` 共享密钥收紧
+
 ### 菜单健康探测
 
 proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴权返回快照）：
