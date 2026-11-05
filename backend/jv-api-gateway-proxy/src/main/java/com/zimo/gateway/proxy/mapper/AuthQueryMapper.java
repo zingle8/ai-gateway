@@ -23,4 +23,8 @@ public interface AuthQueryMapper {
 
     @Update("UPDATE tb_gw_api_key SET last_used_at = #{now} WHERE key_id = #{keyId}")
     int touchLastUsed(@Param("keyId") String keyId, @Param("now") LocalDateTime now);
+
+    /** 平台配置（tb_sys_config，由 jv-api-gateway-config 维护）：缓存模式实时读取 */
+    @Select("SELECT config_value FROM tb_sys_config WHERE config_key = #{key}")
+    String selectConfigValue(@Param("key") String key);
 }

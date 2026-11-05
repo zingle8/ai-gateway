@@ -44,6 +44,19 @@
 
   <build>
     <finalName>jv-api-gateway-user</finalName>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources</directory>
+      </resource>
+      <!-- SQL 统一放 backend/sql，按模块前缀打包进 jar 的 db/ 目录 -->
+      <resource>
+        <directory>${project.basedir}/../sql</directory>
+        <includes>
+          <include>jv-api-gateway-user-*.sql</include>
+        </includes>
+        <targetPath>db</targetPath>
+      </resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>

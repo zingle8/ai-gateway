@@ -1,9 +1,8 @@
 -- =============================================================================
--- 分组与权限 + API Key：表结构与种子数据（幂等，可重复执行）
+-- jv-api-gateway-user | 分组与权限 | tb_perm_group / tb_perm_group_member /
+--                            tb_perm_group_perm / tb_perm_menu / tb_perm_item
 --
--- 由 jv-api-gateway-user 的 PermSchemaInitializer 在启动时自动执行：
---   表全部 CREATE TABLE IF NOT EXISTS，种子全部 INSERT IGNORE（命中唯一键即跳过），
---   路由用 WHERE NOT EXISTS 防重。
+-- 由 PermSchemaInitializer 启动时自动执行（幂等）。
 -- =============================================================================
 
 -- 分组：ORG 部门分组（树形，parent_id）/ PERM 权限分组（扁平，绑权限点）
@@ -62,22 +61,6 @@ CREATE TABLE IF NOT EXISTS tb_perm_item (
   KEY idx_menu (menu_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权限点';
 
--- 网关 API Key：只存 SHA-256(secret)，明文仅签发/轮换时返回一次
-CREATE TABLE IF NOT EXISTS tb_gw_api_key (
-  id            BIGINT AUTO_INCREMENT PRIMARY KEY,
-  key_id        VARCHAR(32)  NOT NULL,
-  secret_hash   CHAR(64)     NOT NULL,
-  name          VARCHAR(64)  NOT NULL,
-  owner_user_id BIGINT       NULL,
-  status        TINYINT      NOT NULL DEFAULT 1,
-  expire_at     DATETIME     NULL,
-  last_used_at  DATETIME     NULL,
-  last_used_ip  VARCHAR(64)  NULL,
-  create_time   DATETIME DEFAULT CURRENT_TIMESTAMP,
-  update_time   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY uk_key_id (key_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='网关 API Key';
-
 -- ============================== 种子：平台 / 菜单 ==============================
 INSERT IGNORE INTO tb_perm_menu (id, name, parent_id, sort) VALUES
   ('p-console',          '网关控制台',   '',              0),
@@ -90,6 +73,7 @@ INSERT IGNORE INTO tb_perm_menu (id, name, parent_id, sort) VALUES
   ('m-onboard-auto',     '自动接入',     'm-onboard',     2),
   ('m-onboard-route',    '路由配置',     'm-onboard',     3),
   ('m-onboard-release',  '上线发布',     'm-onboard',     4),
+  ('m-onboard-open',     '开放认证',     'm-onboard',     5),
   ('m-auth',             '认证与安全',   'p-console',     6),
   ('m-auth-user',        '用户管理',     'm-auth',        1),
   ('m-auth-login',       '登录方式',     'm-auth',        2),
@@ -127,6 +111,7 @@ INSERT IGNORE INTO tb_perm_item (menu_id, func_name, code, name, type, api, enab
   ('m-onboard-route',  '路由表',   'onboard.route.edit',        '新增/编辑路由',      'BUTTON',  'POST|PUT /api/onboard/routes',      1),
   ('m-onboard-release','发布单',   'onboard.release.view',      '查看发布单',         'DISPLAY', 'GET /api/onboard/releases',         1),
   ('m-onboard-release','发布单',   'onboard.release.publish',   '执行发布',           'BUTTON',  'POST /api/onboard/releases/publish',1),
+  ('m-onboard-open',   '开放认证', 'open.auth.verify',          '验证用户令牌',       'API',     'POST /api/open/auth/token/verify',  1),
   ('m-auth-user',      '用户列表', 'auth.user.view',            '查看用户列表',       'DISPLAY', 'GET /api/users',                    1),
   ('m-auth-user',      '用户列表', 'auth.user.create',          '新增用户',           'BUTTON',  'POST /api/users',                   1),
   ('m-auth-user',      '用户列表', 'auth.user.edit',            '编辑用户',           'BUTTON',  'PUT /api/users/{id}',               1),
@@ -149,7 +134,8 @@ INSERT IGNORE INTO tb_perm_item (menu_id, func_name, code, name, type, api, enab
   ('m-perm-menu',      '权限点',   'perm.menu.view',            '查看权限点',         'DISPLAY', 'GET /api/perm/dictionary',          1),
   ('m-perm-menu',      '权限点',   'perm.menu.edit',            '维护权限点',         'BUTTON',  'POST|PUT|DELETE /api/perm/items',   1),
   ('m-system-role',    '角色列表', 'system.role.view',          '查看角色',           'DISPLAY', 'GET /api/roles',                    1),
-  ('m-system-setting', '基础设置', 'system.setting.view',       '查看系统设置',       'DISPLAY', 'GET /api/settings',                 1),
+  ('m-system-setting', '基础设置', 'system.setting.view',       '查看系统设置',       'DISPLAY', 'GET /api/configs',                  1),
+  ('m-system-setting', '基础设置', 'system.setting.edit',       '修改系统设置',       'BUTTON',  'PUT /api/configs/{key}',            1),
   ('m-open-key',       'Key 列表', 'open.key.view',             '查看 API Key',       'DISPLAY', 'GET /api/keys',                     1),
   ('m-open-key',       'Key 列表', 'open.key.issue',            '签发 API Key',       'BUTTON',  'POST /api/keys',                    1),
   ('m-open-key',       'Key 列表', 'open.key.revoke',           '吊销 API Key',       'BUTTON',  'DELETE /api/keys/{id}',             1),
@@ -189,12 +175,3 @@ SELECT 102, id FROM tb_sys_user WHERE username IN ('dev', 'ops') AND deleted = 0
 
 INSERT IGNORE INTO tb_perm_group_member (group_id, user_id)
 SELECT 103, id FROM tb_sys_user WHERE username = 'viewer' AND deleted = 0;
-
--- ============================== 种子：网关路由 ==============================
-INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/perm/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：分组与权限'
-WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/perm/**');
-
-INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/keys/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：API Key 管理'
-WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/keys/**');

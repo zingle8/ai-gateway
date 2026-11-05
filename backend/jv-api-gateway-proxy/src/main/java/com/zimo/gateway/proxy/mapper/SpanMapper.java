@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
-/** 调用链路 span 批量写入（tb_gw_trace_span，按天分区，见 sql/trace_span.sql） */
+/** 调用链路 span 批量写入（tb_gw_trace_span，按天分区，见 backend/sql/jv-api-gateway-trace-span-tb_gw_trace_span.sql） */
 @Mapper
 public interface SpanMapper {
 

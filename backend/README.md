@@ -14,6 +14,7 @@ Spring Boot 3.2.12 + 原生 MyBatis + MySQL + Nacos，Maven 多模块，
 | `jv-api-gateway-client-common` | **对外公共模块**：上报模型、服务实例模型、常量、错误枚举（不依赖 Spring，业务系统可安全引入） | — | `com.zimo.gateway.client.common` |
 | `jv-api-gateway-client-starter` | **网关子模块（Spring Boot Starter）**：自动接入注册、请求与响应采集、异步批量上报 | — | `com.zimo.gateway.client` |
 | `jv-api-gateway-user` | 用户与权限模块：注册 / 登录 / 退出 / 当前用户、账号增删改查、分组与权限（部门组织 / 权限点字典 / 有效权限并集）、API Key 管理、鉴权拦截器、权限表结构初始化 | 28081 | `com.zimo.gateway.user` |
+| `jv-api-gateway-config` | 系统配置模块：平台级配置统一存储与实时下发（菜单健康标识 / 鉴权缓存模式 / 开放认证开关），启动自动建表+种子 | 28085 | `com.zimo.gateway.config` |
 | `jv-api-gateway-overview` | 网关总览：指标汇总、QPS 趋势、运行时信息、网关实例 | 28082 | `com.zimo.gateway.overview` |
 | `jv-api-gateway-discovery` | 服务发现：注册服务列表、服务详情（端口 / 实例数 / 注册时间）、心跳巡检、转发路由（`tb_gw_route`）增删改查 | 28083 | `com.zimo.gateway.discovery` |
 | `jv-api-gateway-trace` | 日志追踪：调用日志分页查询、请求/响应报文详情 | 28084 | `com.zimo.gateway.trace` |
@@ -195,7 +196,7 @@ docker exec -it redis redis-cli -a 'Redis@123456' ping   # 返回 PONG
 ## 数据库
 
 - 库名：`api_gateway`
-- 建表与示例数据：`sql/api_gateway.sql`
+- 建表与示例数据：`sql/jv-api-gateway-discovery-registry-tb_gw_service.sql`（服务/接口）、`sql/jv-api-gateway-user-auth-tb_sys_user.sql`（账号）
 
 主要表：
 
@@ -206,8 +207,8 @@ docker exec -it redis redis-cli -a 'Redis@123456' ping   # 返回 PONG
 - `tb_gw_trace_log`：网关调用日志（含 `req_params`、`req_header`、`req_body`、`res_header`、`res_body`、`err_type` 等）
   - `req_params`：URL 上的原始 query string；表单（`x-www-form-urlencoded`）参数原文在 `req_body`
   - `req_bytes` / `res_bytes`：真实流经字节数（不再用截断后字符数）
-- `tb_gw_trace_span`：调用链路 span（`trace_span.sql`），一跳两个 span：`SERVER`（服务端处理）+ `CLIENT`（发起调用）
-- `tb_gw_service_edge`：服务调用拓扑预聚合（`service_edge.sql`），按小时窗口存调用对
+- `tb_gw_trace_span`：调用链路 span（`jv-api-gateway-trace-span-tb_gw_trace_span.sql`），一跳两个 span：`SERVER`（服务端处理）+ `CLIENT`（发起调用）
+- `tb_gw_service_edge`：服务调用拓扑预聚合（`jv-api-gateway-trace-topology-tb_gw_service_edge.sql`），按小时窗口存调用对
 
 #### 服务拓扑聚合（阶段二）
 
@@ -233,7 +234,7 @@ GROUP BY service_name, peer_service
 ### 日志/链路表分区（每天一个分区）
 
 `tb_gw_trace_log`、`tb_gw_trace_span`、`tb_gw_service_edge` 三表均按天分区，
-建表见 `sql/trace_span.sql`（阶段一）与 `sql/trace_partition_optimize.sql`（阶段二：edge 表纳入 + log 表索引复合化）：
+建表见 `sql/jv-api-gateway-trace-span-tb_gw_trace_span.sql`（阶段一）与 `sql/jv-api-gateway-trace-span-tb_gw_trace_span-partition.sql`（阶段二：edge 表纳入 + log 表索引复合化）：
 
 ```sql
 PRIMARY KEY (id, req_time)                 -- 分区键必须并入主键（edge 表 PK(id, window_start)）
@@ -271,11 +272,11 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time，edge 表�
 
 ```bash
 # 基础表 + 示例数据
-mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' < sql/api_gateway.sql
+mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' < sql/jv-api-gateway-user-auth-tb_sys_user.sql
 # 链路 span 表 + 日志表按天分区改造（新环境必跑）
-mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/trace_span.sql
+mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/jv-api-gateway-trace-span-tb_gw_trace_span.sql
 # 服务拓扑预聚合表（阶段二，依赖上一步的 tb_gw_trace_span）
-mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/service_edge.sql
+mysql -h127.0.0.1 -P3306 -uroot -p'Root@123456' api_gateway < sql/jv-api-gateway-trace-topology-tb_gw_service_edge.sql
 ```
 
 ## Redis
@@ -378,11 +379,27 @@ chmod +x scripts/*.sh
 
 上述账号由 `AdminAccountInitializer` 在**用户表为空时**一次性写入（表里已有数据则跳过，不会覆盖）。
 
-> 注意：`sql/api_gateway.sql` 的种子数据本身已包含 `admin`，因此用 `scripts/init-db.sh`
+> 注意：账号种子由 user 服务启动时写入（`AdminAccountInitializer`），因此用 `scripts/init-db.sh`
 > 初始化后用户表非空，**演示账号不会自动创建**——需要演示账号时可在「用户管理」页手工添加，
 > 或清空 `tb_sys_user` 后重启 user 服务让其自动写入。
 
 可在 `application.yml` 的 `gateway.default-admin` 中修改。
+
+## SQL 目录规范
+
+所有建表与种子脚本统一放在 `backend/sql/`，命名：`<模块名>-<功能名>-<主表名>.sql`，
+各模块 pom 按自身前缀打进 jar 的 `db/` 目录，启动时由 `*SchemaInitializer` 自动执行（全部幂等）。
+详见 [sql/README.md](sql/README.md)。
+
+| 文件 | 内容 |
+| --- | --- |
+| `jv-api-gateway-user-auth-tb_sys_user.sql` | 平台账号表 |
+| `jv-api-gateway-user-perm-tb_perm_group.sql` | 分组 / 成员 / 权限点字典 + 种子 |
+| `jv-api-gateway-user-apikey-tb_gw_api_key.sql` | API Key |
+| `jv-api-gateway-proxy-route-tb_gw_route.sql` | 网关转发路由 + 平台自身路由种子 |
+| `jv-api-gateway-config-config-tb_sys_config.sql` | 平台配置 + 默认开关 |
+| `jv-api-gateway-discovery-registry-tb_gw_service.sql` | 服务注册与接口清单 |
+| `jv-api-gateway-trace-log-tb_gw_trace_log.sql` / `...-span-...` / `...-topology-...` | 调用日志 / span / 拓扑 |
 
 ## 认证与鉴权
 
@@ -417,6 +434,40 @@ chmod +x scripts/*.sh
 - 权限点（`tb_perm_item`）：`平台 → 菜单 → 功能 → 按钮/展示/接口` 四级，`code` 为前后端共用鉴权标识
 - 用户有效权限 = 所属全部分组权限点并集；内置分组（builtin=1，如 `ROLE_SUPER`）语义为「全部权限」
 - 表结构与种子由 user 服务启动时执行 `db/perm_apikey.sql` 自动就绪（幂等），无需手工建表
+
+### 开放认证（供其他平台对接）
+
+`jv-api-gateway-user` 的 `/open/auth/*` 对外开放，网关白名单放行（免平台令牌），
+总开关 `platform.open.auth.enabled`（系统设置页，10 秒内生效）：
+
+| 接口 | 说明 |
+| --- | --- |
+| `POST /api/open/auth/register` | 注册（默认 VIEWER），成功直接返回令牌 |
+| `POST /api/open/auth/login` | 账号密码登录，返回 token / userId / username / nickname / role |
+| `POST /api/open/auth/token/verify` | 校验令牌（签名、过期、退出登录、账号禁用），返回 valid + permCodes |
+
+返回的 token 与平台控制台令牌等价（同密钥、同有效期），可直接作为
+`Authorization: Bearer` 调用网关其余受保护接口。文档页：前端「接入中心 → 开放认证」。
+
+### 鉴权缓存：Redis 优先、MySQL 兜底
+
+- **MySQL 始终是源数据**：`tb_gw_api_key`、`tb_sys_user.token_version` 是唯一事实来源
+- **缓存副本**：Redis（`gw:auth:key:*` / `gw:auth:user:*`，TTL 30s）优先；Redis 不可用时自动回落本地 Caffeine（同样 30s）
+- **模式可切换**：`platform.auth.cache.mode` = `auto`（默认）/ `redis` / `local`，系统设置页改动后 30 秒内生效
+- **失效语义**：缓存 TTL 30 秒 —— 停用 / 轮换 Key、退出登录（token_version 自增）最迟 30 秒生效
+
+### 菜单健康探测
+
+proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴权返回快照）：
+
+| 状态 | 含义 |
+| --- | --- |
+| `UP` 绿 | 可达且非 5xx（4xx 也算活着，如 401） |
+| `DOWN` 灰 | 连接拒绝 / 超时 / 无响应（服务没起来或检查不到） |
+| `ERROR` 红 | 可达但返回 5xx（进程在、运行有问题） |
+
+前端侧边栏据此渲染状态点 + 悬浮信息（菜单名｜服务名｜状态），
+开关 `platform.menu.health.enabled`（系统设置页，30 秒内生效）。
 
 ### API Key
 

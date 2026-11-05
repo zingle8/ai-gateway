@@ -14,7 +14,8 @@ const r = (p) => fileURLToPath(new URL(p, import.meta.url))
  * 二是路由集中在 tb_gw_route 管理，后端换端口不用动前端。
  */
 const SERVICES = {
-  '/api': 'http://127.0.0.1:28090' // jv-api-gateway-proxy（按 tb_gw_route 转发）
+  '/api': 'http://127.0.0.1:28090', // jv-api-gateway-proxy（按 tb_gw_route 转发）
+  '/health': 'http://127.0.0.1:28090' // 网关自身的菜单健康快照（不走 /api 转发）
 }
 
 export default defineConfig({
@@ -44,6 +45,24 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    chunkSizeWarningLimit: 1200
+    chunkSizeWarningLimit: 1200,
+    /**
+     * 按一级菜单分包：每个业务模块独立 chunk，改一个模块不会让其他模块的
+     * 缓存失效，发布时互不干扰（微前端前的务实边界：物理目录 + 产物分包）。
+     */
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            const hit = id.match(/modules\/([a-z-]+)\//)
+            if (hit) return 'module-' + hit[1]
+            return undefined
+          }
+          if (id.includes('element-plus')) return 'vendor-element'
+          if (id.includes('vue-router') || id.includes('/@vue/') || id.includes('/vue/')) return 'vendor-vue'
+          return 'vendor'
+        }
+      }
+    }
   }
 })

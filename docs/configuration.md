@@ -26,7 +26,7 @@
 | 数据库 | `api_gateway` | 唯一业务库，5 个微服务共用 |
 | JDBC URL | `jdbc:mysql://127.0.0.1:3306/api_gateway?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true` | proxy 额外加 `rewriteBatchedStatements=true`（调用日志批量写入） |
 | 初始化 | `./scripts/init-db.sh` | 建库 + 建表 + 种子数据；`--drop` 删库重建 |
-| 表 | `tb_sys_user` / `tb_gw_service` / `tb_gw_route` / `tb_gw_api` / `tb_gw_trace_log` | 见 `backend/sql/api_gateway.sql` |
+| 表 | `tb_sys_user` / `tb_gw_service` / `tb_gw_route` / `tb_gw_api` / `tb_gw_trace_log` | 见 `backend/sql/` 下对应模块脚本 |
 
 MySQL 密码目前硬编码在 `application.yml`，改法：直接改各服务 yml 的
 `spring.datasource.username/password`，或迁移到环境变量（推荐）。

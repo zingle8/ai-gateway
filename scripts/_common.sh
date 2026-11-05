@@ -19,6 +19,7 @@ BACKEND_SERVICES=(
   "jv-api-gateway-overview|28082"
   "jv-api-gateway-discovery|28083"
   "jv-api-gateway-trace|28084"
+  "jv-api-gateway-config|28085"
   "jv-api-gateway-proxy|28090"
 )
 

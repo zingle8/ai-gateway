@@ -4,7 +4,7 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
-/** tb_gw_trace_span（按天分区，见 sql/trace_span.sql） */
+/** tb_gw_trace_span（按天分区，见 backend/sql/jv-api-gateway-trace-span-tb_gw_trace_span.sql） */
 @Data
 public class GwTraceSpan {
 

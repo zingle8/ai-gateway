@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>com.zimo.gateway</groupId>
+    <artifactId>api-gateway</artifactId>
+    <version>1.0.0</version>
+  </parent>
+
+  <artifactId>jv-api-gateway-config</artifactId>
+  <name>jv-api-gateway-config</name>
+  <description>系统配置模块：平台级配置的统一存储与实时下发（菜单健康标识 / 鉴权缓存模式 / 开放认证开关）</description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-api-gateway-common</artifactId>
+    </dependency>
+    <!-- 接入自身平台的 SDK：注册实例 + 心跳 -->
+    <dependency>
+      <groupId>com.zimo.gateway</groupId>
+      <artifactId>jv-api-gateway-client-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>jv-api-gateway-config</finalName>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources</directory>
+      </resource>
+      <!-- SQL 统一放 backend/sql，按模块前缀打包进 jar 的 db/ 目录 -->
+      <resource>
+        <directory>${project.basedir}/../sql</directory>
+        <includes>
+          <include>jv-api-gateway-config-*.sql</include>
+        </includes>
+        <targetPath>db</targetPath>
+      </resource>
+    </resources>
+    <plugins>
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+</project>

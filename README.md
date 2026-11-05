@@ -47,7 +47,7 @@ ai-gateway/
 │   ├── jv-api-gateway-proxy/         # 28090 网关转发 + 调用日志旁路采集（WebFlux）
 │   ├── jv-api-gateway-client-common/ # SDK 公共模型（纯 POJO，可复用）
 │   ├── jv-api-gateway-client-starter/# SDK Spring Boot Starter（自动注册 + 采集上报）
-│   └── sql/api_gateway.sql       # 建库建表 + 演示数据（自包含、可重复执行）
+│   └── sql/                      # 全部建表与种子脚本（模块-功能-主表 命名，见 sql/README.md）
 ├── frontend/                 # npm workspaces：portal 主应用 + @zimo/module-* 业务模块
 │   ├── apps/portal/              # 主应用（Vite 28080，/api 代理到 28090 网关）
 │   ├── modules/{user,overview,discovery,trace,stats}/   # 每模块 = 菜单 + 路由 + api.js + views

@@ -22,12 +22,40 @@ export const modules = [overview, stats, discovery, trace, onboard, auth, perm, 
 export const menuRoutes = modules.flatMap((m) => m.menu)
 
 /**
- * 布局组件：Shell 是普通 SFC 组件（通过 props 接收 menus / brand），
- * 不能当工厂函数调用，这里用 h() 包装一层，把菜单与标题传进去。
+ * 菜单 → 后端服务映射：侧边栏状态点与悬浮信息用。
+ * 每个一级菜单对应一个后端微服务；接入中心 / 认证 / 分组权限的控制台接口
+ * 都落在 jv-api-gateway-user，系统设置落在 jv-api-gateway-config。
+ */
+export const MENU_SERVICES = {
+  '/overview': 'jv-api-gateway-overview',
+  '/stats': 'jv-api-gateway-overview',
+  '/discovery': 'jv-api-gateway-discovery',
+  '/trace': 'jv-api-gateway-trace',
+  '/system-onboard': 'jv-api-gateway-user',
+  '/auto-onboard': 'jv-api-gateway-user',
+  '/route-config': 'jv-api-gateway-user',
+  '/go-live': 'jv-api-gateway-user',
+  '/open-auth': 'jv-api-gateway-user',
+  '/auth/user': 'jv-api-gateway-user',
+  '/auth/login-methods': 'jv-api-gateway-user',
+  '/auth/sso': 'jv-api-gateway-user',
+  '/auth/sessions': 'jv-api-gateway-user',
+  '/auth/policy': 'jv-api-gateway-user',
+  '/auth/api-keys': 'jv-api-gateway-user',
+  '/perm/group': 'jv-api-gateway-user',
+  '/perm/org': 'jv-api-gateway-user',
+  '/perm/menu': 'jv-api-gateway-user',
+  '/system/role': 'jv-api-gateway-user',
+  '/system/settings': 'jv-api-gateway-config'
+}
+
+/**
+ * 布局组件：Shell 是普通 SFC 组件（通过 props 接收 menus / brand / services），
+ * 不能当工厂函数调用，这里用 h() 包装一层，把菜单、标题与服务映射传进去。
  */
 const Layout = {
   name: 'AppLayout',
-  render: () => h(Shell, { menus: menuRoutes, brand: 'API网关平台' })
+  render: () => h(Shell, { menus: menuRoutes, brand: 'API网关平台', services: MENU_SERVICES })
 }
 
 export const routes = [

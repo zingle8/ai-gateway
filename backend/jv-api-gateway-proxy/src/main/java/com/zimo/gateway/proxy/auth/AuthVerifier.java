@@ -1,7 +1,5 @@
 package com.zimo.gateway.proxy.auth;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.zimo.gateway.proxy.mapper.AuthQueryMapper;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.Map;
@@ -17,11 +14,12 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 双通道鉴权裁决：
- *  1. Authorization: Bearer &lt;jwt&gt;  —— 验签 + 过期 → 比对 tb_sys_user.token_version（30s 缓存）
- *  2. X-Api-Key: gwak-&lt;keyId&gt;-&lt;secret&gt; —— 定位 Key → SHA-256 比对 → 状态 / 过期检查（30s 缓存）
+ *  1. Authorization: Bearer &lt;jwt&gt;  —— 验签 + 过期 → 比对 tb_sys_user.token_version
+ *  2. X-Api-Key: gwak-&lt;keyId&gt;-&lt;secret&gt; —— 定位 Key → SHA-256 比对 → 状态 / 过期检查
  *
- * <p>缓存意味着：停用 / 轮换 Key、退出登录（token_version 自增）最迟 30 秒生效。
- * 这是有意为之的取舍——网关热路径不允许每个请求回源查库。
+ * <p>缓存策略见 {@link AuthCacheStore}：Redis 优先、MySQL 兜底（MySQL 始终保存源数据），
+ * 模式由系统设置 platform.auth.cache.mode 控制，30 秒内生效。
+ * 缓存意味着：停用 / 轮换 Key、退出登录（token_version 自增）最迟 30 秒生效。
  *
  * <p>异常容错：共享库不可用时放行并告警（保持网关可用性，与路由加载的容错策略一致）；
  * 正常校验不通过一律 401。
@@ -34,29 +32,19 @@ public class AuthVerifier {
 
     private final ProxyJwtParser jwtParser;
     private final AuthQueryMapper authQueryMapper;
-
-    /** keyId → Key 记录（secret_hash / status / expire_at），30 秒 */
-    private final Cache<String, Map<String, Object>> keyCache =
-            Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).maximumSize(2_000).build();
-
-    /** userId → (token_version / status)，30 秒 */
-    private final Cache<Long, Map<String, Object>> userCache =
-            Caffeine.newBuilder().expireAfterWrite(Duration.ofSeconds(30)).maximumSize(5_000).build();
+    private final AuthCacheStore cacheStore;
 
     /** keyId → 上次记录 last_used_at 的时间，60 秒内不重复写库 */
     private final Map<String, Long> lastTouch = new ConcurrentHashMap<>();
 
-    public AuthVerifier(ProxyJwtParser jwtParser, AuthQueryMapper authQueryMapper) {
+    public AuthVerifier(ProxyJwtParser jwtParser, AuthQueryMapper authQueryMapper, AuthCacheStore cacheStore) {
         this.jwtParser = jwtParser;
         this.authQueryMapper = authQueryMapper;
+        this.cacheStore = cacheStore;
     }
 
     /** 判定结果；userId / keyId 用于通过后向下游透传身份 */
     public record Decision(boolean allow, String message, Long userId, String apiKeyId) {
-
-        public static Decision ok() {
-            return new Decision(true, null, null, null);
-        }
 
         public static Decision deny(String message) {
             return new Decision(false, message, null, null);
@@ -75,7 +63,7 @@ public class AuthVerifier {
         Long userId = Long.valueOf(String.valueOf(raw));
         int tokenVersion = Integer.parseInt(String.valueOf(claims.getOrDefault("tv", 0)));
 
-        Map<String, Object> state = loadUserState(userId);
+        Map<String, Object> state = cacheStore.userState(userId);
         if (state == null) {
             return Decision.deny("账号不存在");
         }
@@ -101,14 +89,7 @@ public class AuthVerifier {
         String keyId = rest.substring(0, split);
         String secret = rest.substring(split + 1);
 
-        Map<String, Object> key = keyCache.get(keyId, k -> {
-            try {
-                return authQueryMapper.selectApiKey(k);
-            } catch (Exception e) {
-                log.warn("[鉴权] 回源查询 API Key 失败：{}", e.getMessage());
-                return null;
-            }
-        });
+        Map<String, Object> key = cacheStore.keyMeta(keyId);
         if (key == null) {
             return Decision.deny("无效的 API Key");
         }
@@ -124,17 +105,6 @@ public class AuthVerifier {
         }
         touchLastUsed(keyId);
         return new Decision(true, null, null, keyId);
-    }
-
-    private Map<String, Object> loadUserState(Long userId) {
-        return userCache.get(userId, id -> {
-            try {
-                return authQueryMapper.selectUserState(id);
-            } catch (Exception e) {
-                log.warn("[鉴权] 回源查询用户状态失败：{}", e.getMessage());
-                return null;
-            }
-        });
     }
 
     /** 最近使用时间回写：60 秒内不重复写库，失败不影响放行 */

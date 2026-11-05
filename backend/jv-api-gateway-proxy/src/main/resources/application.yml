@@ -19,10 +19,19 @@ spring:
       maximum-pool-size: 8
       minimum-idle: 2
 
-mybatis:
-  mapper-locations: classpath*:mapper/*.xml
-  configuration:
-    map-underscore-to-camel-case: true
+  # Redis：鉴权元数据缓存（Redis 优先，不可用时自动回落本地 Caffeine）
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:Redis@123456}
+      timeout: 1s
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: 1s
 
   cloud:
     gateway:
@@ -44,6 +53,11 @@ mybatis:
       pool:
         size: 4
 
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+
 # 采集参数
 gateway:
   jwt:
@@ -55,10 +69,16 @@ gateway:
     auth:
       # 网关统一鉴权开关（联调需要临时放开时可设为 false）
       enabled: true
-      # 免鉴权路径（Ant 风格）
+      # 鉴权缓存模式默认值：auto / redis / local
+      # 系统设置（platform.auth.cache.mode）可覆盖，30 秒内生效；MySQL 始终为源数据
+      cache-mode: auto
+      # 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 菜单健康 / 探活
       skip-paths:
         - /api/auth/login
         - /api/auth/register
+        - /api/open/**
+        - /api/configs/public
+        - /health/**
         - /actuator/**
 
 logging:

@@ -63,6 +63,16 @@
       <artifactId>caffeine</artifactId>
     </dependency>
 
+    <!-- Redis：鉴权元数据缓存（Redis 优先，不可用时自动回落本地 Caffeine） -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
@@ -78,6 +88,20 @@
   <build>
     <!-- 与其余模块保持一致：产出 target/jv-api-gateway-proxy.jar，供 scripts 启停脚本使用 -->
     <finalName>jv-api-gateway-proxy</finalName>
+    <resources>
+      <resource>
+        <directory>${project.basedir}/src/main/resources</directory>
+      </resource>
+      <!-- SQL 统一放 backend/sql，按模块前缀打包进 jar 的 db/ 目录 -->
+      <resource>
+        <directory>${project.basedir}/../sql</directory>
+        <includes>
+          <include>jv-api-gateway-proxy-*.sql</include>
+        </includes>
+        <targetPath>db</targetPath>
+      </resource>
+    </resources>
+    <!-- 与其余模块保持一致：产出 target/jv-api-gateway-proxy.jar，供 scripts 启停脚本使用 -->
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>

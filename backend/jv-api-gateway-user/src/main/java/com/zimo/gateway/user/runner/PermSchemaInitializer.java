@@ -14,13 +14,14 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.util.List;
 
 /**
- * 分组权限 / API Key 表结构初始化：
- * 启动时执行 classpath:db/perm_apikey.sql（全部为幂等语句，可重复执行）。
+ * 分组权限 / API Key 表结构初始化。
  *
- * <p>排在 AdminAccountInitializer 之后：种子里的「admin 加入超级管理员分组」
- * 依赖内置账号已存在。
+ * <p>SQL 统一维护在 backend/sql（见 sql/README.md），打包时按模块前缀复制到
+ * classpath:db/ 下。排在 AdminAccountInitializer 之后：种子里的
+ * 「admin 加入超级管理员分组」依赖内置账号已存在。
  */
 @Slf4j
 @Component
@@ -28,17 +29,23 @@ import java.sql.Connection;
 @Order(Ordered.LOWEST_PRECEDENCE + 1)
 public class PermSchemaInitializer implements ApplicationRunner {
 
+    private static final List<String> SCRIPTS = List.of(
+            "db/jv-api-gateway-user-perm-tb_perm_group.sql",
+            "db/jv-api-gateway-user-apikey-tb_gw_api_key.sql"
+    );
+
     private final DataSource dataSource;
 
     @Override
     public void run(ApplicationArguments args) {
         try (Connection connection = dataSource.getConnection()) {
-            EncodedResource script = new EncodedResource(
-                    new ClassPathResource("db/perm_apikey.sql"), StandardCharsets.UTF_8);
-            ScriptUtils.executeSqlScript(connection, script);
+            for (String script : SCRIPTS) {
+                ScriptUtils.executeSqlScript(connection, new EncodedResource(
+                        new ClassPathResource(script), StandardCharsets.UTF_8));
+            }
             log.info("[初始化] 分组权限 / API Key 表结构与种子数据就绪");
         } catch (Exception e) {
-            log.warn("[初始化] perm_apikey.sql 执行失败（不影响既有功能，请手工执行该脚本）：{}", e.getMessage());
+            log.warn("[初始化] 分组权限脚本执行失败（不影响既有功能，请手工执行 backend/sql 下脚本）：{}", e.getMessage());
         }
     }
 }

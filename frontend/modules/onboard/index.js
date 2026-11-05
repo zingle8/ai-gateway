@@ -4,6 +4,7 @@
 import AutoOnboardView from './src/views/AutoOnboard.vue'
 import SystemOnboardView from './src/views/SystemOnboard.vue'
 import RouteConfigView from './src/views/RouteConfig.vue'
+import OpenAuthView from './src/views/OpenAuth.vue'
 import { Placeholder } from '@zimo/ui'
 
 export const menu = [
@@ -14,7 +15,8 @@ export const menu = [
       { path: '/system-onboard', title: '系统接入', icon: 'Promotion' },
       { path: '/auto-onboard', title: '自动接入', icon: 'MagicStick' },
       { path: '/route-config', title: '路由配置', icon: 'Share' },
-      { path: '/go-live', title: '上线发布', icon: 'Upload' }
+      { path: '/go-live', title: '上线发布', icon: 'Upload' },
+      { path: '/open-auth', title: '开放认证', icon: 'Document' }
     ]
   }
 ]
@@ -43,6 +45,12 @@ export const routes = [
     name: 'GoLive',
     component: Placeholder,
     meta: { title: '上线发布', subtitle: '接入配置灰度与正式发布' }
+  },
+  {
+    path: 'open-auth',
+    name: 'OpenAuth',
+    component: OpenAuthView,
+    meta: { title: '开放认证', subtitle: '其他平台复用网关账号体系的注册 / 登录 / 令牌校验接口与示例' }
   }
 ]
 

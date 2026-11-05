@@ -24,6 +24,7 @@
     <module>jv-api-gateway-client-common</module>
     <module>jv-api-gateway-client-starter</module>
     <module>jv-api-gateway-user</module>
+    <module>jv-api-gateway-config</module>
     <module>jv-api-gateway-overview</module>
     <module>jv-api-gateway-discovery</module>
     <module>jv-api-gateway-trace</module>

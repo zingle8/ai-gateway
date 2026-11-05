@@ -34,6 +34,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/login",
                         "/auth/register",
+                        // 开放认证：给第三方平台对接，自身不带平台令牌（总开关由系统设置控制）
+                        "/open/auth/**",
                         "/error",
                         "/actuator/**"
                 );

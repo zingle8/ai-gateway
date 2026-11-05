@@ -1,6 +1,6 @@
 -- ============================================================
 -- 阶段二：服务调用拓扑（预聚合表 + 慢链路查询）
--- 依赖：trace_span.sql（tb_gw_trace_span 必须先建）
+-- 依赖：jv-api-gateway-trace-span-tb_gw_trace_span.sql（tb_gw_trace_span 必须先建）
 --
 -- 设计：
 --   EdgeAggregator（jv-api-gateway-trace）每分钟对「最近 3 个整点小时窗口」

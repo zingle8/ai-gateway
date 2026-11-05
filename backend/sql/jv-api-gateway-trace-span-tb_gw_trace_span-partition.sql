@@ -8,7 +8,7 @@
 --      升级为 (前导列, req_time) 复合索引；
 --   3. tb_gw_api 为接口登记配置表（百行级、无时间衰减），不做分区。
 --
--- 分区规范与 trace_span.sql 阶段一保持一致：
+-- 分区规范与 jv-api-gateway-trace-span-tb_gw_trace_span.sql 阶段一保持一致：
 --   - 按天 RANGE(TO_DAYS(...))，分区名 pYYYYMMDD，分区键在主键内；
 --   - 日常滚动由 jv-api-gateway-trace 的 PartitionMaintainer 负责，
 --     本脚本只负责结构改造 + 预建「历史兜底 + 近 4 天」分区。
