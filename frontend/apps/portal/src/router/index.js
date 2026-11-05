@@ -13,11 +13,11 @@ import onboard from '@zimo/module-onboard'
 import auth from '@zimo/module-auth'
 import perm from '@zimo/module-perm'
 
-export const modules = [overview, stats, discovery, trace, onboard, auth, perm, system]
+export const modules = [overview, stats, discovery, trace, auth, onboard, perm, system]
 
 /**
  * 侧边栏菜单：只保留已落地的能力
- * 网关总览 / 数据统计 / 服务发现 / 日志追踪 / 接入中心 / 认证与安全 / 分组与权限 / 系统管理
+ * 网关总览 / 数据统计 / 服务发现 / 日志追踪 / 认证与安全 / 接入中心 / 分组与权限 / 系统管理
  */
 export const menuRoutes = modules.flatMap((m) => m.menu)
 
