@@ -11,7 +11,8 @@ BACKEND_DIR="$ROOT_DIR/backend"
 FRONTEND_DIR="$ROOT_DIR/frontend"
 PORTAL_DIR="$FRONTEND_DIR/apps/portal"
 LOG_DIR="$ROOT_DIR/logs"
-mkdir -p "$LOG_DIR"
+APP_LOG_DIR="$LOG_DIR/app"
+mkdir -p "$LOG_DIR" "$APP_LOG_DIR"
 
 # 后端微服务：模块目录名 = finalName，数组顺序即启动顺序
 BACKEND_SERVICES=(
@@ -97,7 +98,15 @@ wait_for_port() {
 }
 
 pid_file() { printf '%s/%s.pid' "$LOG_DIR" "$1"; }
-log_file() { printf '%s/%s.log' "$LOG_DIR" "$1"; }
+
+# 平台日志统一切分目录 logs/app/，文件名 = 日期--小时--ai-gateway--模块名--日志类型--日志等级.txt
+# 应用运行日志由各模块 logback-spring.xml 按小时滚动切分（运行/采集上报 × INFO/WARN/ERROR）；
+# 本函数仅用于 nohup 的 CONSOLE 兜底输出（logback 文件损坏或启动早期失败时排查用）
+log_file() {
+  local ts
+  ts="$(date +%Y-%m-%d'--'%H)"
+  printf '%s/app/%s--ai-gateway--%s--运行--CONSOLE.txt' "$LOG_DIR" "$ts" "$1"
+}
 
 read_pid() {
   local f pid

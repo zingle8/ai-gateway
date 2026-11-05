@@ -62,3 +62,10 @@ SELECT 'platform.ui.refresh.interval', '10', 'INTEGER', 'DB', NULL,
        'API网关平台', 'jv-api-gateway', '*',
        '控制台数据自动刷新间隔（秒）：网关总览 / 数据统计 / 服务发现的轮询频率（含服务健康状态：健康/异常/离线），2~300，30 秒内生效'
 WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.ui.refresh.interval');
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.auth.exemption.control', 'CLIENT', 'STRING', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       '鉴权豁免权全局控制：CLIENT=由 client/sdk 端自行配置豁免（zimo.gateway.client.auth.exempt-paths，现状）；PLATFORM=由平台端统一控制（应用/服务/接口级精细豁免管理，规划中的菜单功能）。精细豁免功能上线前该配置仅作为控制位记录'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.auth.exemption.control');

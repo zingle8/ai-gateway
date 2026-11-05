@@ -79,6 +79,17 @@
               <el-radio-button label="local">local</el-radio-button>
             </el-radio-group>
 
+            <!-- 枚举型（鉴权豁免权控制）→ 单选 -->
+            <el-radio-group
+              v-else-if="item.key === 'platform.auth.exemption.control'"
+              :model-value="item.value"
+              :disabled="saving === item.key"
+              @change="(v) => save(item, v)"
+            >
+              <el-radio-button label="CLIENT">CLIENT（client/sdk 端控制）</el-radio-button>
+              <el-radio-button label="PLATFORM">PLATFORM（平台端控制）</el-radio-button>
+            </el-radio-group>
+
             <!-- 其他 → 输入框 + 保存 -->
             <div v-else class="text-edit">
               <el-input v-model="item.value" size="small" style="width: 200px" />

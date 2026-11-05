@@ -2,18 +2,19 @@
 # AI 网关平台 —— 一键启动
 #
 # 用法:
-#   ./start.sh              # 启动全部（后端 4 个微服务 + 前端）
-#   ./start.sh backend      # 只启动后端
-#   ./start.sh frontend     # 只启动前端
-#   ./start.sh all --build  # 强制重新构建后端后再启动
+#   ./start.sh                 # 启动全部（默认先 mvn clean package 全量清理打包后端）
+#   ./start.sh backend         # 只启动后端
+#   ./start.sh frontend        # 只启动前端
+#   ./start.sh all --skip-build# 跳过构建直接启动（jar 已存在时）
 #
 # 说明:
 #   - 必需中间件（MySQL）不可达时，自动尝试 init-env.sh 拉起 docker 容器
-#   - 后端 jar 不存在时会自动构建；加 --build 可强制重新构建
+#   - 后端启动前默认执行全子模块依赖清理与打包（mvn clean package -DskipTests），
+#     加 --skip-build 可跳过；jar 不存在时无论如何都会构建
 #   - 端口被占用且无本脚本 PID 记录时跳过该服务，不会强杀其他进程
 #   - JVM 参数可通过环境变量覆盖：JAVA_OPTS="-Xms512m -Xmx1g" ./start.sh
 #
-# 日志目录: logs/
+# 日志目录: logs/（平台日志按 日期--时间--平台名--模块名--日志类型--日志等级.txt 切分于 logs/app/）
 
 set -uo pipefail
 
@@ -22,9 +23,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/_common.sh"
 
 TARGET="${1:-all}"
-FORCE_BUILD=false
+SKIP_BUILD=false
 for arg in "$@"; do
-  [[ "$arg" == "--build" ]] && FORCE_BUILD=true
+  [[ "$arg" == "--skip-build" ]] && SKIP_BUILD=true
 done
 
 # ---------------------------------------------------------------- 环境检查
@@ -84,9 +85,12 @@ start_backend() {
   check_command java || return 1
   check_dependencies || return 1
 
-  if [[ "$FORCE_BUILD" == "true" ]]; then
-    log_info "强制重新构建后端..."
-    (cd "$BACKEND_DIR" && mvn -B -DskipTests package) >"$LOG_DIR/build-backend.log" 2>&1 || {
+  # 全子模块依赖清理与打包（mvn clean package 会重编全部模块，保证产物与源码一致）
+  if [[ "$SKIP_BUILD" == "true" ]]; then
+    log_warn "已指定 --skip-build，跳过全量清理打包"
+  else
+    log_info "全子模块依赖清理与打包（mvn clean package -DskipTests）..."
+    (cd "$BACKEND_DIR" && mvn -B clean package -DskipTests) >"$LOG_DIR/build-backend.log" 2>&1 || {
       log_err "后端构建失败，详见 $LOG_DIR/build-backend.log"
       tail -n 40 "$LOG_DIR/build-backend.log"
       return 1

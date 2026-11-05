@@ -83,6 +83,24 @@
             />
           </el-tab-pane>
 
+          <el-tab-pane label="Node.js" name="nodejs">
+            <div class="doc-step">1. 引入 SDK（零第三方依赖，Node.js 16+，位于仓库 sdk/nodejs/）</div>
+            <pre class="code-block">{{ nodeInstall }}</pre>
+
+            <div class="doc-step">2. Web 框架接入（Express / 原生 http）</div>
+            <pre class="code-block">{{ nodeWeb }}</pre>
+
+            <div class="doc-step">3. 无 Web 框架（脚本 / 定时任务）</div>
+            <pre class="code-block">{{ nodeJob }}</pre>
+
+            <el-alert
+              type="success"
+              :closable="false"
+              show-icon
+              title="采集方式与 Java/Python 一致：Express 用中间件、原生 http 用包装函数，字段、错误类型、上报协议完全相同。"
+            />
+          </el-tab-pane>
+
           <el-tab-pane label="其他语言（自实现）" name="other">
             <el-alert
               type="info"
@@ -392,6 +410,38 @@ client.start()
 client.report(method="POST", path="/job/reconcile", status_code=200, cost_ms=52)
 
 client.stop()      # 刷出剩余日志并下线`
+
+const nodeInstall = `// 零第三方依赖（Node.js 16+），把仓库 sdk/nodejs/ 拷入业务项目后：
+const { GatewayClient, traceExpress, GatewayAuth } = require('./jv-gateway/index.js')`
+
+const nodeWeb = `const client = new GatewayClient({
+  serverAddr: 'http://127.0.0.1:28090/api',
+  appId: 'app-order', appName: '订单中心',
+  serviceName: 'order-service', port: 8000,
+  clientToken: 'dev-gateway-token',        // 与网关 gateway.proxy.auth.client-token 同值
+})
+client.start()                             // 注册 + 心跳 + 上报线程
+
+// Express：自动采集（放路由之前）
+app.use(traceExpress(client))
+
+// 原生 http：const server = traceWrap(client, http.createServer(handler))
+
+// 入口鉴权（可选，防止绕过网关直连；上报不受影响）
+app.use(new GatewayAuth(client).express())
+
+process.on('SIGTERM', () => client.stop()) // 刷出剩余日志并下线`
+
+const nodeJob = `const client = new GatewayClient({
+  appId: 'app-job', serviceName: 'recon-job', port: 0,
+  clientToken: 'dev-gateway-token',
+})
+client.start()
+
+// 业务执行完手动上报
+client.report({ method: 'POST', path: '/job/reconcile', statusCode: 200, costMs: 52 })
+
+await client.stop()   // 刷出剩余日志并下线`
 
 const registerSnippet = `POST {server-addr}/discovery/services/register
 Content-Type: application/json

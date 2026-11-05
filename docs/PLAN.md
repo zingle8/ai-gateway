@@ -126,6 +126,7 @@
 | 角色管理页 | Placeholder（角色实际由分组权限承担） | 明确"角色 = PERM 分组"的语义后合并到分组页，或补角色 CRUD |
 | 开放认证的调用方约束 | 免令牌开放，仅总开关 | 增加调用方白名单 / IP 限制 / 每分钟限流（复用 API Key 作为调用凭证） |
 | 网关限流 | 未实现 | `RequestRateLimiter` + Redis，按 Key / IP / 路由维度 |
+| 鉴权豁免精细管理（平台端） | 全局控制位已就位（系统配置 `platform.auth.exemption.control`：CLIENT/PLATFORM），SDK 侧只有整体开关与豁免路径列表 | 新增「鉴权管理」菜单：按 应用 / 服务 / 接口 维度单独配置校验豁免（加白理由、有效期、审计人），平台端落库并下发（client 配置中心拉取或网关下发）；控制位切 PLATFORM 时以平台配置为准，切 CLIENT 时以各业务系统 yml 为准 |
 
 ### P1 —— 体验与运维
 
@@ -183,6 +184,7 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 | --- | --- |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
 | 2026-11-05 | SDK 安全双门落地：① 上报共享密钥 `X-Gateway-Client-Token` 两端实现（SDK 自动携带、网关对上报路径校验，伪造注册/上报 401）；② SDK 入口鉴权 `GatewayAuthFilter`（回调 /open/auth/token/verify 验签 + 缓存，豁免/fail-open 可配，SDK 数据上报不受影响）；③ Python SDK `sdk/python/jv_gateway` 补齐（注册/心跳/上报/中间件/入口鉴权，冒烟脚本全通过并真实落库）；④ 接入文档同步（client-integration.md、AutoOnboard 页、backend README）。修复：ConditionalOnMissingBean 按类型判重把 gatewayAuthFilter 挤掉（改按 bean 名）、豁免路径需剥离 context-path |
+| 2026-11-05 | Node.js SDK 落地（sdk/nodejs，jv-gateway，零第三方依赖）：GatewayClient/TraceReporter/GatewayAuth/traceExpress/traceWrap + Express 示例 + 冒烟脚本，协议与 Java/Python 完全一致；接入文档（client-integration.md 第十章、backend README）与接入页新增 Node.js tab；系统配置新增豁免权全局控制位 platform.auth.exemption.control（CLIENT/PLATFORM 单选，安全策略组）；一键启动脚本 start.sh 默认先 mvn clean package 全子模块清理打包再运行（--skip-build 可跳过）；日志体系统一切分：logs/app/ 下按 日期--小时--ai-gateway--模块名--日志类型(运行/采集上报)--等级(INFO/WARN/ERROR/CONSOLE).txt 每小时滚动（logback-spring.xml，保留 7 天，ERROR 14 天） |
 | 2026-11-05 | 页面数据真实性盘点：19 页中 14 页走真实接口（总览/统计/发现/追踪/用户/Key/分组/部门/菜单/接入/路由/设置），5 页为静态演示（登录方式/SSO/令牌会话/安全策略/系统接入）；接真计划与优先级已写入 P0 待办表 |
 | 2026-11-05 | 服务离线状态修复：① `dotClass` 补「离线」映射（此前离线无颜色，与普通文字无异）；② 主动下线 deregister 由「异常」改为「离线」；③ 心跳巡检不再只处理 status=健康（异常/亚健康超时同样转离线）。实测 kill config → 页面 10 秒内红点红字「离线」 |
 | 2026-11-05 | 控制台自动刷新频率配置化：新增 `platform.ui.refresh.interval`（公开配置），网关总览 / 数据统计 / 服务发现接入 `useAutoRefresh` 轮询（服务健康状态随轮询更新），改值 30 秒内生效；默认频率调整为 10 秒 |

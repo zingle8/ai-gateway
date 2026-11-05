@@ -514,6 +514,9 @@ chmod +x scripts/*.sh
   防止绕过网关直连业务系统端口；豁免路径、fail-open 可配。SDK 数据上报是出站调用，
   不受入口鉴权影响——调用方验签失败时日志与 span 照常上报，平台始终可见真实流量
 - Python SDK：仓库 `sdk/python/`（jv_gateway 包，零第三方依赖），API 与协议同 Java，见 sdk/python/README.md
+- Node.js SDK：仓库 `sdk/nodejs/`（jv-gateway，零第三方依赖，Express/原生 http 中间件 + 入口鉴权），见 sdk/nodejs/README.md
+- 豁免权全局控制位：系统配置 `platform.auth.exemption.control`（CLIENT=client/sdk 端自配豁免，现状；
+  PLATFORM=平台端统一控制，配套的应用/服务/接口级精细豁免管理见 PLAN 待办）
 
 ### 菜单健康探测
 

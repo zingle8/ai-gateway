@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 平台日志统一切分（logs/app/）：文件名各段用双连字符分隔，顺序为 日期、小时、平台名、模块名、日志类型、日志等级
+     按小时滚动、保留 7 天；运行日志 = 全量，采集上报 = SDK 出站（注册/心跳/日志与span上报） -->
+<configuration>
+  <property name="LOG_HOME" value="logs/app"/>
+  <property name="MODULE" value="jv-api-gateway-config"/>
+  <property name="PAT" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"/>
+
+  <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder><pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern></encoder>
+  </appender>
+
+  <!-- ======== 运行日志（root 输出）按等级分文件 ======== -->
+  <appender name="RUN_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--运行--INFO.txt</fileNamePattern>
+      <maxHistory>168</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>INFO</level><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder><pattern>${PAT}</pattern></encoder>
+  </appender>
+  <appender name="RUN_WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--运行--WARN.txt</fileNamePattern>
+      <maxHistory>168</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>WARN</level><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder><pattern>${PAT}</pattern></encoder>
+  </appender>
+  <appender name="RUN_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--运行--ERROR.txt</fileNamePattern>
+      <maxHistory>336</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>ERROR</level><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder><pattern>${PAT}</pattern></encoder>
+  </appender>
+
+  <!-- ======== 采集&amp;上报日志（SDK 出站链路）按等级分文件 ======== -->
+  <appender name="SDK_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--采集上报--INFO.txt</fileNamePattern>
+      <maxHistory>168</maxHistory>
+      <totalSizeCap>2GB</totalSizeCap>
+    </rollingPolicy>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>INFO</level><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder><pattern>${PAT}</pattern></encoder>
+  </appender>
+  <appender name="SDK_WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--采集上报--WARN.txt</fileNamePattern>
+      <maxHistory>168</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>WARN</level><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder><pattern>${PAT}</pattern></encoder>
+  </appender>
+  <appender name="SDK_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--采集上报--ERROR.txt</fileNamePattern>
+      <maxHistory>336</maxHistory>
+      <totalSizeCap>1GB</totalSizeCap>
+    </rollingPolicy>
+    <filter class="ch.qos.logback.classic.filter.LevelFilter">
+      <level>ERROR</level><onMatch>ACCEPT</onMatch><onMismatch>DENY</onMismatch>
+    </filter>
+    <encoder><pattern>${PAT}</pattern></encoder>
+  </appender>
+
+  <!-- 采集&amp;上报 logger：不向 root 传播（additivity=false），避免运行日志重复记录 -->
+  <logger name="com.zimo.gateway.client" level="INFO" additivity="false">
+    <appender-ref ref="SDK_INFO"/><appender-ref ref="SDK_WARN"/><appender-ref ref="SDK_ERROR"/>
+  </logger>
+
+  <root level="INFO">
+    <appender-ref ref="CONSOLE"/>
+    <appender-ref ref="RUN_INFO"/><appender-ref ref="RUN_WARN"/><appender-ref ref="RUN_ERROR"/>
+  </root>
+</configuration>

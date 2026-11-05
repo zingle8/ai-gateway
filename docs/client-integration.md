@@ -288,7 +288,44 @@ sdk/python/
 
 引用与用法、入口鉴权、验证方式见 `sdk/python/README.md`；上报协议与 Java SDK 完全一致。
 
-## 十、验证清单
+## 十、Node.js SDK（jv-gateway）
+
+零第三方依赖（node:http / node:crypto），Node.js 16+，位于仓库 `sdk/nodejs/`：
+
+```
+sdk/nodejs/
+├── index.js                 # 包入口
+├── src/
+│   ├── client.js            # GatewayClient：注册/心跳/下线/手动上报；verifyToken
+│   ├── reporter.js          # TraceReporter：队列 + 定时批量上报（满即丢，3 秒 flush）
+│   ├── auth.js              # GatewayAuth：入口鉴权（回调开放验签接口 + 缓存）
+│   ├── middleware.js        # traceExpress / traceWrap（原生 http）自动采集
+│   └── _http.js             # node:http 封装：自动携带 X-Gateway-Client-Token
+├── examples/express_demo.js
+├── scripts/smoke_report.js
+└── README.md
+```
+
+```js
+const { GatewayClient, traceExpress, GatewayAuth } = require('./jv-gateway/index.js')
+
+const client = new GatewayClient({
+  serverAddr: 'http://127.0.0.1:28090/api',
+  appId: 'app-order', appName: '订单中心',
+  serviceName: 'order-service', port: 8000,
+  clientToken: 'dev-gateway-token',      // 与网关 gateway.proxy.auth.client-token 同值
+})
+client.start()                            // 注册 + 心跳 + 上报线程
+app.use(traceExpress(client))             // Express 自动采集（放路由之前）
+app.use(new GatewayAuth(client).express())// 入口鉴权（可选，防止绕网关直连）
+process.on('SIGTERM', () => client.stop())// 刷出剩余日志并主动下线
+```
+
+脚本 / 定时任务：`client.report({ method, path, statusCode, costMs, ... })`；
+原生 http：`traceWrap(client, http.createServer(handler))`。
+协议、字段、共享密钥、入口鉴权语义与 Java / Python SDK 完全一致。
+
+## 十一、验证清单
 
 | 验证 | 命令 / 操作 | 预期 |
 | --- | --- | --- |
@@ -299,3 +336,4 @@ sdk/python/
 | 豁免路径 | 调用 exempt-paths 内路径（如健康检查） | 无需凭证 |
 | 数据上报不受限 | 验签失败的调用方持续请求 | 日志与 span 照常落库（控制台可见） |
 | Python 冒烟 | `python3 sdk/python/scripts/smoke_report.py` | ①~⑤ 全成功，日志/span 落库 |
+| Node.js 冒烟 | `node sdk/nodejs/scripts/smoke_report.js` | ①~⑤ 全成功，日志/span 落库 |
