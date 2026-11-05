@@ -184,6 +184,7 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 | --- | --- |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
 | 2026-11-05 | SDK 安全双门落地：① 上报共享密钥 `X-Gateway-Client-Token` 两端实现（SDK 自动携带、网关对上报路径校验，伪造注册/上报 401）；② SDK 入口鉴权 `GatewayAuthFilter`（回调 /open/auth/token/verify 验签 + 缓存，豁免/fail-open 可配，SDK 数据上报不受影响）；③ Python SDK `sdk/python/jv_gateway` 补齐（注册/心跳/上报/中间件/入口鉴权，冒烟脚本全通过并真实落库）；④ 接入文档同步（client-integration.md、AutoOnboard 页、backend README）。修复：ConditionalOnMissingBean 按类型判重把 gatewayAuthFilter 挤掉（改按 bean 名）、豁免路径需剥离 context-path |
+| 2026-11-05 | 新增 scripts/init-nexus.sh（Nexus 3 一键部署，Docker 端口 28095、数据卷 dist/nexus-data、幂等可重复执行）+ docs/maven-nexus-deployment.md（初始化/发布/业务方接入/版本升级与运维/方案对比表），1.2 节加一键部署链接——补齐私服分发路线的部署环节 |
 | 2026-11-05 | 接入文档补「1.3 不走私服的分发替代方案」：A 项目内 file:// 仓库（deploy-file 到 file:// 生成布局，git 分发、CI 零配置）、B 云制品库（GitHub Packages/云效/CODING，Maven 协议兼容）、C CI 构建期自动安装；明确不推荐 systemPath 及原因 |
 | 2026-11-05 | 接入文档补「1.2 多团队/多项目分发：Maven 私服」（deploy 三命令 + 业务方 repositories/Gradle 配置 + 无私服 CI 兜底），接入页方式二补私服提示 alert——install.sh 只装当前机器，跨团队接入走私服 |
 | 2026-11-05 | 新增 docs/modules-deployment.md：服务拆解与按需启动方案（后端模块依赖矩阵与裁剪方法、前端构建期菜单裁剪、三档套餐组装示例、多 Pod 注意点、交付检查清单），支撑"客户按模块购买、交付时组装启动"的售卖模式 |

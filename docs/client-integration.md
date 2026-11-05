@@ -78,6 +78,9 @@ mvn install:install-file -Dfile=jv-api-gateway-client-starter.jar \
 
 ### 1.2 多团队 / 多项目分发：Maven 私服（推荐）
 
+> 没有现成私服？一键部署：`bash scripts/init-nexus.sh`（Docker，端口 28095），
+> 完整步骤见 [Maven 私服部署指南](maven-nexus-deployment.md)。
+
 `install.sh` 装的是「当前这台机器」的本地仓库（`~/.m2`）——每台机器、每个 CI 节点都要装一次。
 业务方多、机器多、或有 CI/CD 时，应把 SDK 发布到公司 Maven 私服（Nexus / Artifactory），
 之后所有项目像引开源库一样引坐标，无需再装任何东西。
