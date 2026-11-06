@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zimo.gateway.discovery.mapper.GwServiceMapper">
 
-    <sql id="cols">id, app_id, app_name, service_name, ip, port, language, version,
+    <sql id="cols">id, app_id, app_name, service_id, service_name, ip, port, language, version,
         qps, avg_rt, status, in_flow, out_flow, instances, register_time,
         last_heartbeat_time, create_time, update_time, deleted</sql>
 
@@ -13,10 +13,11 @@
         <if test="keyword != null and keyword != ''">
             AND (app_id LIKE CONCAT('%', #{keyword}, '%')
             OR app_name LIKE CONCAT('%', #{keyword}, '%')
+            OR service_id LIKE CONCAT('%', #{keyword}, '%')
             OR service_name LIKE CONCAT('%', #{keyword}, '%'))
         </if>
         <if test="appId != null and appId != ''">AND app_id = #{appId}</if>
-        <if test="serviceName != null and serviceName != ''">AND service_name = #{serviceName}</if>
+        <if test="serviceId != null and serviceId != ''">AND service_id = #{serviceId}</if>
         <if test="status != null and status != ''">AND status = #{status}</if>
         <if test="language != null and language != ''">AND language LIKE CONCAT('%', #{language}, '%')</if>
     </sql>
@@ -46,7 +47,7 @@
         GROUP BY service_name
     </select>
 
-    <!-- 已登记接口数：tb_gw_api 按服务名汇总（路由 / 接口管理里登记的） -->
+    <!-- 已登记接口数：tb_gw_api 按服务ID汇总（路由 / 接口管理里登记的） -->
     <select id="selectApiCounts" resultType="map">
         SELECT service_name, COUNT(*) AS api_count
         FROM tb_gw_api
@@ -61,7 +62,7 @@
         WHERE deleted = 0
           AND req_time &gt;= #{since}
         <if test="appId != null and appId != ''">AND app_id = #{appId}</if>
-        <if test="serviceName != null and serviceName != ''">AND service_name = #{serviceName}</if>
+        <if test="serviceId != null and serviceId != ''">AND service_id = #{serviceId}</if>
         GROUP BY b
     </select>
 
@@ -69,9 +70,9 @@
         SELECT <include refid="cols"/> FROM tb_gw_service WHERE deleted = 0 AND id = #{id}
     </select>
 
-    <select id="selectByServiceName" resultType="com.zimo.gateway.discovery.entity.GwServiceEntity">
+    <select id="selectByServiceId" resultType="com.zimo.gateway.discovery.entity.GwServiceEntity">
         SELECT <include refid="cols"/> FROM tb_gw_service
-        WHERE deleted = 0 AND service_name = #{serviceName} LIMIT 1
+        WHERE deleted = 0 AND service_id = #{serviceId} LIMIT 1
     </select>
 
     <!-- 筛选项字典：「全部应用」下拉，取库中真实出现过的应用 -->
@@ -81,11 +82,13 @@
         ORDER BY app_id
     </select>
 
-    <!-- 筛选项字典：「全部服务」下拉，带 app_id 供前端按应用级联过滤 -->
+    <!-- 筛选项字典：「全部服务」下拉，带 app_id 供前端按应用级联过滤；
+         serviceId 是唯一标识（筛选/上报用），serviceName 是中文显示名 -->
     <select id="selectDistinctServices" resultType="com.zimo.gateway.discovery.model.FilterOption">
-        SELECT DISTINCT app_id, service_name FROM tb_gw_service
-        WHERE deleted = 0 AND service_name IS NOT NULL AND service_name != ''
-        ORDER BY service_name
+        SELECT DISTINCT app_id, service_id, service_name
+        FROM tb_gw_service
+        WHERE deleted = 0 AND service_id IS NOT NULL AND service_id != ''
+        ORDER BY service_id
     </select>
 
     <select id="selectDistinctLanguages" resultType="string">
@@ -95,10 +98,10 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_gw_service (app_id, app_name, service_name, ip, port, language, version,
+        INSERT INTO tb_gw_service (app_id, app_name, service_id, service_name, ip, port, language, version,
                                    qps, avg_rt, status, in_flow, out_flow, instances, register_time,
                                    last_heartbeat_time, create_time, update_time, deleted)
-        VALUES (#{appId}, #{appName}, #{serviceName}, #{ip}, #{port}, #{language}, #{version},
+        VALUES (#{appId}, #{appName}, #{serviceId}, #{serviceName}, #{ip}, #{port}, #{language}, #{version},
                 #{qps}, #{avgRt}, #{status}, #{inFlow}, #{outFlow}, #{instances}, #{registerTime},
                 #{lastHeartbeatTime}, #{createTime}, #{updateTime}, #{deleted})
     </insert>
@@ -109,6 +112,7 @@
         <set>
             <if test="appId != null">app_id = #{appId},</if>
             <if test="appName != null">app_name = #{appName},</if>
+            <if test="serviceName != null">service_name = #{serviceName},</if>
             <if test="ip != null">ip = #{ip},</if>
             <if test="port != null">port = #{port},</if>
             <if test="language != null">language = #{language},</if>
@@ -120,11 +124,11 @@
         WHERE id = #{id} AND deleted = 0
     </update>
 
-    <!-- 主动下线：按服务名把状态置为离线（心跳恢复时会覆盖回健康，见 DiscoveryServiceImpl） -->
-    <update id="markAbnormalByName">
+    <!-- 主动下线：按服务ID把状态置为离线（心跳恢复时会覆盖回健康，见 DiscoveryServiceImpl） -->
+    <update id="markAbnormalByServiceId">
         UPDATE tb_gw_service
         SET status = '离线', update_time = #{now}
-        WHERE deleted = 0 AND service_name = #{serviceName}
+        WHERE deleted = 0 AND service_id = #{serviceId}
     </update>
 
     <!-- 心跳巡检：超时未上报的置为离线（NULL 的行也要覆盖）。

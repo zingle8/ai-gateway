@@ -71,7 +71,8 @@ zimo:
       server-addr: http://127.0.0.1:28090/api
       app-id: app-gateway
       app-name: API网关平台
-      service-name: jv-api-gateway-config
+      service-id: jv-api-gateway-config
+      service-name: 配置中心
       port: 28085
       ip: 127.0.0.1
       language: Java 17

@@ -7,7 +7,7 @@
     export PYTHONPATH=/path/to/ai-gateway/sdk/python:$PYTHONPATH
     python3 sdk/python/scripts/smoke_report.py
 
-预期：脚本各步成功；控制台「服务发现」短暂出现 py-smoke-service（下线后消失）；
+预期：脚本各步成功；控制台「服务发现」短暂出现 test-py-smoke（下线后消失）；
 「日志追踪」能看到 /job/smoke 这条调用日志。
 """
 
@@ -20,8 +20,8 @@ from jv_gateway import GatewayClient, verify_token
 def main():
     client = GatewayClient(
         server_addr="http://127.0.0.1:28090/api",
-        app_id="app-smoke", app_name="Python冒烟",
-        service_name="py-smoke-service", port=0,          # 0 = 无 HTTP 端口
+        app_id="app-regtech", app_name="NCS RegTech 监管科技",  # 按被测项目填所属应用
+        service_id="test-py-smoke", service_name="Python冒烟服务", port=0,          # 0 = 无 HTTP 端口
         client_token="dev-gateway-token",                 # 与网关 gateway.proxy.auth.client-token 同值
     )
     print("① 注册：", "成功" if client.register() else "失败")

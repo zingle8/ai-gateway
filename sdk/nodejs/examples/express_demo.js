@@ -14,7 +14,7 @@ const { GatewayClient, traceExpress, GatewayAuth } = require('..');
 const client = new GatewayClient({
   serverAddr: 'http://127.0.0.1:28090/api',
   appId: 'app-order', appName: '订单中心',
-  serviceName: 'order-service', port: 8000,
+  serviceId: 'order-service', serviceName: '订单服务', port: 8000,
   clientToken: 'dev-gateway-token',            // 与网关 gateway.proxy.auth.client-token 同值
 });
 client.start();

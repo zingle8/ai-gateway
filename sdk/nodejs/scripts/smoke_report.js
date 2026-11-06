@@ -8,7 +8,7 @@
  *
  *   node sdk/nodejs/scripts/smoke_report.js
  *
- * 预期：五步全成功；控制台「服务发现」短暂出现 node-smoke-service（下线后消失）；
+ * 预期：五步全成功；控制台「服务发现」短暂出现 test-node-smoke（下线后消失）；
  * 「日志追踪」能看到 /job/smoke 这条调用日志。
  */
 
@@ -17,8 +17,8 @@ const { GatewayClient, verifyToken } = require('..');
 async function main() {
   const client = new GatewayClient({
     serverAddr: 'http://127.0.0.1:28090/api',
-    appId: 'app-smoke', appName: 'Node冒烟',
-    serviceName: 'node-smoke-service', port: 0,          // 0 = 无 HTTP 端口
+    appId: 'app-regtech', appName: 'NCS RegTech 监管科技', // 按被测项目填所属应用
+    serviceId: 'test-node-smoke', serviceName: 'Node冒烟服务', port: 0,          // 0 = 无 HTTP 端口
     clientToken: 'dev-gateway-token',                    // 与网关 gateway.proxy.auth.client-token 同值
   });
 

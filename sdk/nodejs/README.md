@@ -38,7 +38,7 @@ const { GatewayClient } = require('jv-gateway')
 const client = new GatewayClient({
   serverAddr: 'http://127.0.0.1:28090/api',
   appId: 'app-order', appName: '订单中心',
-  serviceName: 'order-service', port: 8000,
+  serviceId: 'order-service', serviceName: '订单服务', port: 8000,
   clientToken: 'dev-gateway-token',   // 与网关 gateway.proxy.auth.client-token 同值
 })
 client.start()      // 注册 + 心跳 + 上报线程
@@ -70,5 +70,5 @@ auth.wrap(http.createServer(handler))               // 原生 http
 node sdk/nodejs/scripts/smoke_report.js
 ```
 
-预期：脚本五步全成功；控制台「服务发现」短暂出现 `node-smoke-service`（下线后消失）；
+预期：脚本五步全成功；控制台「服务发现」短暂出现 `test-node-smoke`（下线后消失）；
 「日志追踪」能看到 `/job/smoke` 这条调用日志。

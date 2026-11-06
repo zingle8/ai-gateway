@@ -173,7 +173,8 @@ zimo:
                                                      # 防止内网伪造注册与上报；与 proxy 校验端同值
       app-id: app-order                              # 应用编码
       app-name: 订单中心                              # 应用名称
-      service-name: order-service                    # 服务名
+      service-id: order-service                      # 服务ID（英文唯一标识，注册幂等键）
+      service-name: 订单服务                          # 服务名（中文显示名），不填则显示服务ID
       port: 9001                                     # 不填则取 server.port
       ip: 10.20.3.11                                 # 不填则自动探测（多网卡机器建议显式指定）
       language: Java 17
@@ -264,7 +265,7 @@ zimo:
 
 | 分组 | 字段 |
 | --- | --- |
-| 归属 | `appId`、`appName`、`serviceName` |
+| 归属 | `appId`、`appName`、`serviceId`（服务ID，英文唯一标识，上报即此值）、`serviceName`（服务名，中文显示名，仅注册时使用） |
 | 请求 | `api`（method + uri）、`protocol`、`reqFormat`、`reqHeader`、`reqBody`、`reqBytes` |
 | 响应 | `statusCode`、`resFormat`、`resHeader`、`resBody`、`resBytes` |
 | 地址 | `reqIp`、`reqPort`、`resIp`、`resPort` |
@@ -343,7 +344,7 @@ from jv_gateway.wsgi import WSGITraceMiddleware   # Flask/Django 用这个
 # from jv_gateway.asgi import ASGITraceMiddleware  # FastAPI/Starlette 用这个
 
 client = GatewayClient(app_id="app-order", app_name="订单中心",
-                       service_name="order-service", port=8000)
+                       service_id="order-service", service_name="订单服务", port=8000)
 client.start()
 app.wsgi_app = WSGITraceMiddleware(app.wsgi_app, client)
 ```
@@ -395,7 +396,7 @@ const { GatewayClient, traceExpress, GatewayAuth } = require('./jv-gateway/index
 const client = new GatewayClient({
   serverAddr: 'http://127.0.0.1:28090/api',
   appId: 'app-order', appName: '订单中心',
-  serviceName: 'order-service', port: 8000,
+  serviceId: 'order-service', serviceName: '订单服务', port: 8000,
   clientToken: 'dev-gateway-token',      // 与网关 gateway.proxy.auth.client-token 同值
 })
 client.start()                            // 注册 + 心跳 + 上报线程

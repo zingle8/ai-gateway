@@ -16,7 +16,10 @@ public class ServiceInstanceDTO {
     /** 应用名称，如 订单中心 */
     private String appName;
 
-    /** 服务名，如 order-service */
+    /** 服务ID（英文唯一标识），如 order-service；未配置时服务端回退用 serviceName */
+    private String serviceId;
+
+    /** 服务名（中文显示名），如 订单服务；可空，空则显示同 serviceId */
     private String serviceName;
 
     /** 实例 IP */

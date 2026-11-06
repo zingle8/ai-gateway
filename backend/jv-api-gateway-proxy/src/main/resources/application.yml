@@ -91,6 +91,9 @@ gateway:
         - /api/discovery/services/deregister
         - /api/trace/logs/batch
         - /api/trace/spans/batch
+        # 业务系统 app-regtech（自带 JWT 鉴权，由 jv-regtech-* 各服务的
+        # JwtInterceptor 保护；平台只做路由与采集，不再做平台级鉴权）
+        - /api/regtech/**
 
 logging:
   level:

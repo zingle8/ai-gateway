@@ -60,19 +60,26 @@ async function verifyToken(serverAddr, token, timeoutMs = 3000) {
 class GatewayClient {
   /**
    * @param {object} opts
-   *   appId / appName / serviceName  注册身份
+   *   appId / appName                应用身份
+   *   serviceId                      服务ID（英文唯一标识，如 order-service）；
+   *                                  未配置时回退用 serviceName，兼容旧写法
+   *   serviceName                    服务名（中文显示名，如 订单服务），可空，空则与服务ID一致
    *   serverAddr                     平台统一入口，如 http://127.0.0.1:28090/api
    *   port                           服务端口；0 表示无 HTTP 服务（脚本/定时任务）
    *   clientToken                    上报共享密钥，与网关 gateway.proxy.auth.client-token 同值
    *   heartbeatIntervalMs            心跳毫秒（默认 30000，下限 10000）
    */
   constructor(opts) {
-    if (!opts || !opts.appId || !opts.serviceName) {
-      throw new Error('GatewayClient 需要 appId 与 serviceName');
+    const resolvedId = opts && (opts.serviceId || opts.serviceName);
+    if (!opts || !opts.appId || !resolvedId) {
+      throw new Error('GatewayClient 需要 appId 与 serviceId（英文唯一标识，兼容旧参数 serviceName）');
     }
     this.appId = opts.appId;
     this.appName = opts.appName || opts.appId;
-    this.serviceName = opts.serviceName;
+    // 服务ID（英文唯一标识）：未配置时回退 serviceName，兼容旧写法
+    this.serviceId = resolvedId;
+    // 服务名（中文显示名）：未配置时与服务ID一致
+    this.serviceName = opts.serviceName || resolvedId;
     this.port = Number(opts.port || 0);
     this.ip = opts.ip || localIp();
     this.language = opts.language || 'Node.js';
@@ -110,7 +117,7 @@ class GatewayClient {
     const ok = await this._post(PATH_REGISTER, this._instance());
     this._registered = ok;
     if (ok) {
-      console.log(`[jv-gateway] 已注册到网关平台：${this.appId} (${this.serviceName}) ${this.ip}:${this.port}`);
+      console.log(`[jv-gateway] 已注册到网关平台：${this.appId} (${this.serviceId} / ${this.serviceName}) ${this.ip}:${this.port}`);
     } else {
       console.warn('[jv-gateway] 注册失败（不影响业务启动，下个心跳周期自动重试）');
     }
@@ -146,7 +153,8 @@ class GatewayClient {
     spanId = spanId || ids.spanId;
     const now = isoNow();
     this.reporter.offerLog({
-      appId: this.appId, appName: this.appName, serviceName: this.serviceName,
+      appId: this.appId, appName: this.appName,
+      serviceId: this.serviceId, serviceName: this.serviceName,
       api: path, protocol: 'HTTP/1.1', reqIp: this.ip, reqPort: this.port,
       statusCode, errType, cost: Math.round(costMs),
       reqTime: now, resTime: now, reqBody: reqBody || '', resBody: resBody || '',
@@ -155,7 +163,8 @@ class GatewayClient {
     });
     this.reporter.offerSpan({
       traceId, spanId, parentSpanId: '', kind: 'SERVER',
-      appId: this.appId, appName: this.appName, serviceName: this.serviceName,
+      appId: this.appId, appName: this.appName,
+      serviceId: this.serviceId, serviceName: this.serviceName,
       api: path, peerService: '', statusCode, errType,
       cost: Math.round(costMs), startTime: now,
     });
@@ -163,7 +172,8 @@ class GatewayClient {
 
   _instance() {
     return {
-      appId: this.appId, appName: this.appName, serviceName: this.serviceName,
+      appId: this.appId, appName: this.appName,
+      serviceId: this.serviceId, serviceName: this.serviceName,
       ip: this.ip, port: this.port, language: this.language,
       version: this.version, registerTime: isoNow(),
     };
@@ -181,7 +191,7 @@ class GatewayClient {
 
   async _beat() {
     try {
-      // 未注册成功时先补注册（幂等，服务端按 serviceName upsert），与 Java SDK 同语义
+      // 未注册成功时先补注册（幂等，服务端按 serviceId upsert），与 Java SDK 同语义
       if (!this._registered) await this.register();
       if (this._registered) await this.heartbeat();
     } catch (_) { /* 后台线程绝不拖垮业务 */ }

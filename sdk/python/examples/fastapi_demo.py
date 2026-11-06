@@ -17,7 +17,7 @@ from jv_gateway.auth import GatewayAuth
 client = GatewayClient(
     server_addr="http://127.0.0.1:28090/api",
     app_id="app-order", app_name="订单中心",
-    service_name="order-service", port=8000,
+    service_id="order-service", service_name="订单服务", port=8000,
     client_token="dev-gateway-token",        # 与网关 gateway.proxy.auth.client-token 同值
 )
 client.start()

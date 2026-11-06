@@ -31,7 +31,7 @@ public class DiscoveryController {
     @GetMapping("/services")
     public R<PageResult<GwServiceEntity>> page(@RequestParam(required = false) String keyword,
                                          @RequestParam(required = false) String appId,
-                                         @RequestParam(required = false) String serviceName,
+                                         @RequestParam(required = false) String serviceId,
                                          @RequestParam(required = false) String status,
                                          @RequestParam(required = false) String language,
                                          @RequestParam(defaultValue = "24h") String range,
@@ -40,7 +40,7 @@ public class DiscoveryController {
         ServiceQuery query = new ServiceQuery();
         query.setKeyword(keyword);
         query.setAppId(appId);
-        query.setServiceName(serviceName);
+        query.setServiceId(serviceId);
         query.setStatus(status);
         query.setLanguage(language);
         query.setWindowSeconds((int) Math.min(Integer.MAX_VALUE, TimeRange.of(range).getWindowSeconds()));
@@ -56,8 +56,8 @@ public class DiscoveryController {
     @GetMapping("/trend")
     public R<Map<String, Object>> trend(@RequestParam(defaultValue = "24h") String range,
                                         @RequestParam(required = false) String appId,
-                                        @RequestParam(required = false) String serviceName) {
-        return R.ok(discoveryService.trend(range, appId, serviceName));
+                                        @RequestParam(required = false) String serviceId) {
+        return R.ok(discoveryService.trend(range, appId, serviceId));
     }
 
     /**

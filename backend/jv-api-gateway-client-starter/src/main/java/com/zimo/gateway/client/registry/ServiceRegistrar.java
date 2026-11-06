@@ -32,7 +32,7 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
     private final RestClient restClient;
     private final ScheduledExecutorService executor;
 
-    /** 注册是否成功；失败时心跳周期会自动补注册（服务端按 serviceName upsert，幂等） */
+    /** 注册是否成功；失败时心跳周期会自动补注册（服务端按 serviceId upsert，幂等） */
     private volatile boolean registered = false;
 
     public ServiceRegistrar(GatewayClientProperties properties, Environment environment) {
@@ -69,7 +69,7 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
                     .toBodilessEntity();
             registered = true;
             log.info("已注册到网关平台：{} ({}) {}: {}",
-                    instance.getAppId(), instance.getServiceName(), instance.getIp(), instance.getPort());
+                    instance.getAppId(), instance.getServiceId(), instance.getIp(), instance.getPort());
         } catch (Exception e) {
             // 标记未注册：下个心跳周期由 heartbeatQuietly 自动补注册，
             // 避免启动顺序早于网关（如本平台各服务）时一次失败就永久"离线"
@@ -113,7 +113,7 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
                     .body(instance)
                     .retrieve()
                     .toBodilessEntity();
-            log.info("已从网关平台下线：{} {}", instance.getServiceName(), instance.getPort());
+            log.info("已从网关平台下线：{} {}", instance.getServiceId(), instance.getPort());
         } catch (Exception e) {
             log.debug("从网关平台下线失败：{}", e.getMessage());
         }
@@ -138,7 +138,13 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
         ServiceInstanceDTO instance = new ServiceInstanceDTO();
         instance.setAppId(properties.getAppId());
         instance.setAppName(properties.getAppName());
-        instance.setServiceName(properties.getServiceName());
+        // 服务ID（英文唯一标识）：未配置时回退 serviceName，兼容旧版配置
+        String serviceId = properties.getServiceId() != null && !properties.getServiceId().isBlank()
+                ? properties.getServiceId() : properties.getServiceName();
+        instance.setServiceId(serviceId);
+        // 服务名（中文显示名）：未配置时与服务ID一致
+        instance.setServiceName(properties.getServiceName() != null && !properties.getServiceName().isBlank()
+                ? properties.getServiceName() : serviceId);
         // 显式配置优先，多网卡机器上自动探测可能选中虚拟网卡
         instance.setIp(properties.getIp() != null && !properties.getIp().isEmpty()
                 ? properties.getIp() : LocalIps.get());

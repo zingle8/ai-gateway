@@ -44,7 +44,10 @@ public class GatewayClientProperties {
     /** 应用名称，如 订单中心 */
     private String appName = "示例应用";
 
-    /** 服务名，如 order-service */
+    /** 服务ID（英文唯一标识），如 order-service；留空时回退使用 serviceName（兼容旧配置） */
+    private String serviceId = "";
+
+    /** 服务名（中文显示名），如 订单服务；留空时服务端显示同 serviceId */
     private String serviceName = "demo-service";
 
     /** 服务端口，未配置时自动取 server.port */

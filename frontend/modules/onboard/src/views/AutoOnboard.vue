@@ -9,7 +9,7 @@
       <div class="gw-card-bd">
         <el-steps :active="3" finish-status="success" align-center class="onboard-steps">
           <el-step title="引入 SDK" description="Java 加依赖 / Python 放 SDK 目录" />
-          <el-step title="填写配置" description="app-id、service-name、port" />
+          <el-step title="填写配置" description="app-id、service-id、service-name、port" />
           <el-step title="启动应用" description="自动注册 + 心跳 + 日志上报" />
         </el-steps>
 
@@ -172,7 +172,7 @@
     <div class="gw-card" style="margin-top: var(--gw-gap)">
       <div class="gw-card-hd">
         配置项说明
-        <span class="gw-muted gw-sm">都有默认值，通常只需要填 app-id / service-name / port</span>
+        <span class="gw-muted gw-sm">都有默认值，通常只需要填 app-id / service-id / service-name / port</span>
       </div>
       <div class="gw-card-bd">
         <el-table :data="configRows" size="small" border stripe>
@@ -197,7 +197,7 @@
             <div class="doc-block">
               <div class="doc-block-title">① 注册</div>
               <p class="doc-text">
-                启动时 <code>POST /discovery/services/register</code>，带上 appId / serviceName / ip / port / language / version；
+                启动时 <code>POST /discovery/services/register</code>，带上 appId / serviceId / serviceName / ip / port / language / version；
                 同服务名重复注册是<strong>幂等更新</strong>，扩缩容、重启都不会产生重复记录。
               </p>
             </div>
@@ -262,7 +262,8 @@
         <el-table :data="services" size="small" border stripe v-loading="loading">
           <el-table-column prop="appId" label="应用ID" width="120" />
           <el-table-column prop="appName" label="应用名" width="120" />
-          <el-table-column prop="serviceName" label="服务名" min-width="160" />
+          <el-table-column prop="serviceId" label="服务ID" min-width="150" />
+          <el-table-column prop="serviceName" label="服务名" min-width="110" />
           <el-table-column prop="port" label="端口" width="90" />
           <el-table-column prop="language" label="语言" width="110" />
           <el-table-column prop="version" label="版本" width="100" />
@@ -328,7 +329,8 @@ const javaConfig = `zimo:
       server-addr: http://127.0.0.1:28090/api   # 平台统一入口，不是微服务端口
       app-id: app-order
       app-name: 订单中心
-      service-name: order-service
+      service-id: order-service                      # 服务ID（英文唯一标识）
+      service-name: 订单服务                          # 服务名（中文显示名）
       port: 8000
       # 上报共享密钥（X-Gateway-Client-Token）：注册/心跳/采集上报自动携带，
       # 网关侧校验（gateway.proxy.auth.client-token），防止内网伪造注册与上报
@@ -395,7 +397,7 @@ from jv_gateway.wsgi import WSGITraceMiddleware      # FastAPI 改用 jv_gateway
 client = GatewayClient(
     server_addr="http://127.0.0.1:28090/api",
     app_id="app-order", app_name="订单中心",
-    service_name="order-service", port=8000,
+    service_id="order-service", service_name="订单服务", port=8000,
     client_token="dev-gateway-token",        # 与网关 gateway.proxy.auth.client-token 同值
 )
 client.start()                                        # 注册 + 心跳 + 上报线程
@@ -410,7 +412,7 @@ from jv_gateway.auth import GatewayAuth
 from jv_gateway.asgi import ASGIAuthMiddleware
 app.add_middleware(ASGIAuthMiddleware, auth=GatewayAuth(client))`
 
-const pythonJob = `client = GatewayClient(app_id="app-job", service_name="recon-job", port=0,
+const pythonJob = `client = GatewayClient(app_id="app-job", service_id="recon-job", service_name="对账任务", port=0,
                        client_token="dev-gateway-token")
 client.start()
 
@@ -425,7 +427,7 @@ const { GatewayClient, traceExpress, GatewayAuth } = require('./jv-gateway/index
 const nodeWeb = `const client = new GatewayClient({
   serverAddr: 'http://127.0.0.1:28090/api',
   appId: 'app-order', appName: '订单中心',
-  serviceName: 'order-service', port: 8000,
+  serviceId: 'order-service', serviceName: '订单服务', port: 8000,
   clientToken: 'dev-gateway-token',        // 与网关 gateway.proxy.auth.client-token 同值
 })
 client.start()                             // 注册 + 心跳 + 上报线程
@@ -441,7 +443,7 @@ app.use(new GatewayAuth(client).express())
 process.on('SIGTERM', () => client.stop()) // 刷出剩余日志并下线`
 
 const nodeJob = `const client = new GatewayClient({
-  appId: 'app-job', serviceName: 'recon-job', port: 0,
+  appId: 'app-job', serviceId: 'recon-job', serviceName: '对账任务', port: 0,
   clientToken: 'dev-gateway-token',
 })
 client.start()
@@ -457,7 +459,8 @@ Content-Type: application/json
 {
   "appId": "app-order",
   "appName": "订单中心",
-  "serviceName": "order-service",
+  "serviceId": "order-service",
+  "serviceName": "订单服务",
   "ip": "10.20.3.11",
   "port": 8080,
   "language": "Go 1.22",
@@ -473,7 +476,8 @@ Content-Type: application/json
 [{
   "appId": "app-order",
   "appName": "订单中心",
-  "serviceName": "order-service",
+  "serviceId": "order-service",
+  "serviceName": "订单服务",
   "api": "POST /api/v1/order/create",
   "traceId": "4f2a9c1e8b7d4a3f",
   "protocol": "HTTP/1.1",
@@ -497,7 +501,7 @@ Content-Type: application/json
 const deregisterSnippet = `DELETE {server-addr}/discovery/services/deregister
 Content-Type: application/json
 
-{ "appId": "app-order", "serviceName": "order-service" }`
+{ "appId": "app-order", "serviceId": "order-service", "serviceName": "订单服务" }`
 
 /* ---------------------------------------------------------------- 表格数据 */
 
@@ -505,7 +509,8 @@ const configRows = [
   { java: 'server-addr', py: 'server_addr', def: 'http://127.0.0.1:28090/api', desc: '平台统一入口，SDK 自动拼接 /discovery、/trace 前缀' },
   { java: 'app-id', py: 'app_id', def: 'app-demo', desc: '应用编码，控制台按此筛选' },
   { java: 'app-name', py: 'app_name', def: '示例应用', desc: '应用名称，展示用' },
-  { java: 'service-name', py: 'service_name', def: 'demo-service', desc: '服务名，注册的唯一键（同名重复注册即更新）' },
+  { java: 'service-id', py: 'service_id', def: 'demo-service', desc: '服务ID（英文唯一标识），注册的唯一键（同ID重复注册即幂等更新）' },
+  { java: 'service-name', py: 'service_name', def: '演示服务', desc: '服务名（中文显示名），控制台展示；不填则显示服务ID' },
   { java: 'port', py: 'port', def: '8080 / $PORT', desc: '服务端口；纯脚本类可填 0' },
   { java: 'ip', py: 'ip', def: '自动探测', desc: '注册用的本机 IP；多网卡机器（Docker / VPN / 虚拟机）建议显式指定，否则可能选中虚拟网卡' },
   { java: 'language', py: 'language', def: 'Java 17 / Python 3.x', desc: '语言类型，控制台展示' },
@@ -560,7 +565,7 @@ const faqs = [
   },
   {
     q: '一个应用多实例部署，会不会注册出多条记录？',
-    a: '不会。注册以 service-name 为唯一键做幂等更新，多实例共享一条服务记录，实例数与健康状态由心跳维护。'
+    a: '不会。注册以 service-id 为唯一键做幂等更新，多实例共享一条服务记录，实例数与健康状态由心跳维护。'
   },
   {
     q: '可以只上报日志、不自动注册吗？',

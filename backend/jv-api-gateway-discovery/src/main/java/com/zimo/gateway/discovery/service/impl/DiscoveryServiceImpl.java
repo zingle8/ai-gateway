@@ -50,10 +50,10 @@ public class DiscoveryServiceImpl implements DiscoveryService {
     }
 
     @Override
-    public Map<String, Object> trend(String range, String appId, String serviceName) {
+    public Map<String, Object> trend(String range, String appId, String serviceId) {
         TimeRange timeRange = TimeRange.of(range);
         List<Map<String, Object>> rows = serviceMapper.selectTrendBuckets(
-                timeRange.since(), timeRange.getBucketSeconds(), appId, serviceName);
+                timeRange.since(), timeRange.getBucketSeconds(), appId, serviceId);
         // qps=true：一次查询同时返回 QPS 序列（values）与请求量序列（requestValues），
         // 页面上「请求量趋势 / QPS 趋势」两张图共用这份数据，口径天然一致
         return TrendBuckets.build(rows, timeRange, true);
@@ -64,7 +64,8 @@ public class DiscoveryServiceImpl implements DiscoveryService {
      * 并补充区间调用次数（calls）与已登记接口数（apiCount）。
      *
      * <p>tb_gw_service 里这几个字段只在注册瞬间写过一次，之后没人更新；
-     * 这里按服务名聚合：QPS 恒取近 60 秒（瞬时速率语义），调用次数 / 耗时 / 流量按页面所选区间统计，
+     * 这里按服务ID聚合（tb_gw_trace_log.service_name 上报的就是服务ID）：QPS 恒取近 60 秒（瞬时速率语义），
+     * 调用次数 / 耗时 / 流量按页面所选区间统计，
      * 接口数来自 tb_gw_api 的登记记录（与调用无关，未登记的服务为 0）。
      *
      * @param windowSeconds 平均耗时 / 流量的聚合窗口（秒），由统一时间区间换算
@@ -94,7 +95,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
         }
 
         for (GwServiceEntity service : services) {
-            double[] stat = stats.get(service.getServiceName());
+            double[] stat = stats.get(service.getServiceId());
             if (stat != null) {
                 service.setQps((int) stat[0]);
                 service.setAvgRt((int) Math.round(stat[1]));
@@ -108,7 +109,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
                 service.setOutFlow("0 B");
                 service.setCalls(0L);
             }
-            service.setApiCount(apiCounts.getOrDefault(service.getServiceName(), 0L).intValue());
+            service.setApiCount(apiCounts.getOrDefault(service.getServiceId(), 0L).intValue());
         }
     }
 
@@ -147,16 +148,22 @@ public class DiscoveryServiceImpl implements DiscoveryService {
 
     @Override
     public void register(ServiceInstanceDTO instance) {
-        if (instance == null || !StringUtils.hasText(instance.getServiceName())) {
-            throw new BizException(ResultCode.BAD_REQUEST.getCode(), "服务名不能为空");
+        // 服务ID 是英文唯一标识；旧版 SDK 只有 serviceName 时回退兼容（serviceName 当 ID 用）
+        String serviceId = instance == null ? null
+                : (StringUtils.hasText(instance.getServiceId()) ? instance.getServiceId() : instance.getServiceName());
+        if (!StringUtils.hasText(serviceId)) {
+            throw new BizException(ResultCode.BAD_REQUEST.getCode(), "服务ID不能为空（service-id，英文唯一标识）");
         }
-        GwServiceEntity service = serviceMapper.selectByServiceName(instance.getServiceName());
+        // 服务名是中文显示名：SDK 传了就用，没传则与 serviceId 相同
+        String serviceName = StringUtils.hasText(instance.getServiceName()) ? instance.getServiceName() : serviceId;
+        GwServiceEntity service = serviceMapper.selectByServiceId(serviceId);
         LocalDateTime now = LocalDateTime.now();
         if (service == null) {
             service = new GwServiceEntity();
             service.setAppId(instance.getAppId());
             service.setAppName(instance.getAppName());
-            service.setServiceName(instance.getServiceName());
+            service.setServiceId(serviceId);
+            service.setServiceName(serviceName);
             service.setIp(instance.getIp());
             service.setPort(instance.getPort());
             service.setLanguage(instance.getLanguage());
@@ -178,6 +185,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
 
         service.setAppId(instance.getAppId());
         service.setAppName(instance.getAppName());
+        service.setServiceName(serviceName);
         service.setIp(instance.getIp());
         service.setPort(instance.getPort());
         service.setLanguage(instance.getLanguage());
@@ -197,9 +205,11 @@ public class DiscoveryServiceImpl implements DiscoveryService {
 
     @Override
     public void deregister(ServiceInstanceDTO instance) {
-        if (instance == null || !StringUtils.hasText(instance.getServiceName())) {
+        String serviceId = instance == null ? null
+                : (StringUtils.hasText(instance.getServiceId()) ? instance.getServiceId() : instance.getServiceName());
+        if (!StringUtils.hasText(serviceId)) {
             return;
         }
-        serviceMapper.markAbnormalByName(instance.getServiceName(), LocalDateTime.now());
+        serviceMapper.markAbnormalByServiceId(serviceId, LocalDateTime.now());
     }
 }

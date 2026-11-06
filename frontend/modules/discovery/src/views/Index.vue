@@ -49,7 +49,7 @@
       <!-- 过滤栏 -->
       <div class="gw-card-bd">
         <div class="filter-bar">
-          <el-input v-model="query.keyword" placeholder="应用ID / 应用名 / 服务名" clearable style="width: 220px;" />
+          <el-input v-model="query.keyword" placeholder="应用ID / 应用名 / 服务ID / 服务名" clearable style="width: 220px;" />
           <el-select v-model="query.appId" placeholder="全部应用" clearable filterable style="width: 200px;" @change="onAppChange">
             <el-option
               v-for="app in appOptions"
@@ -58,8 +58,13 @@
               :value="app.appId"
             />
           </el-select>
-          <el-select v-model="query.serviceName" placeholder="全部服务" clearable filterable style="width: 190px;">
-            <el-option v-for="s in serviceOptions" :key="s.serviceName" :label="s.serviceName" :value="s.serviceName" />
+          <el-select v-model="query.serviceId" placeholder="全部服务" clearable filterable style="width: 210px;">
+            <el-option
+              v-for="s in serviceOptions"
+              :key="s.serviceId"
+              :label="s.serviceName ? `${s.serviceName}（${s.serviceId}）` : s.serviceId"
+              :value="s.serviceId"
+            />
           </el-select>
           <el-select v-model="query.status" placeholder="全部状态" clearable style="width: 130px;">
             <el-option label="健康" value="健康" />
@@ -79,7 +84,8 @@
         <el-table :data="rows" size="small" style="width: 100%" @row-click="openDetail">
           <el-table-column prop="appId" label="应用ID" width="120" />
           <el-table-column prop="appName" label="应用名" width="110" />
-          <el-table-column prop="serviceName" label="服务名" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="serviceId" label="服务ID" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="serviceName" label="服务名" min-width="110" show-overflow-tooltip />
           <el-table-column label="接口数" width="80">
             <template #default="{ row }">{{ row.apiCount ?? 0 }}</template>
           </el-table-column>
@@ -121,8 +127,8 @@
     </section>
 
     <!-- 服务详情抽屉 -->
-    <el-drawer v-model="detailVisible" :title="'服务详情 · ' + (detail.serviceName || '')" size="min(560px, 94vw)">
-      <div v-if="detail.serviceName" class="drawer-sec">
+    <el-drawer v-model="detailVisible" :title="'服务详情 · ' + (detail.serviceName || detail.serviceId || '')" size="min(560px, 94vw)">
+      <div v-if="detail.serviceId" class="drawer-sec">
         <div class="drawer-sec-title">基本信息</div>
         <div class="kv-grid">
           <div v-for="f in detailFields" :key="f.label" class="kv-item">
@@ -163,7 +169,10 @@ const trendScope = computed(() => {
     const app = appOptions.value.find((a) => a.appId === query.appId)
     parts.push(app?.appName || query.appId)
   }
-  if (query.serviceName) parts.push(query.serviceName)
+  if (query.serviceId) {
+    const svc = allServices.value.find((x) => x.serviceId === query.serviceId)
+    parts.push(svc?.serviceName || query.serviceId)
+  }
   return (parts.length ? parts.join(' · ') : '全部服务') + ' · ' + rangeDesc.value
 })
 const loadTrend = async () => {
@@ -171,7 +180,7 @@ const loadTrend = async () => {
     discoTrend.value = await fetchDiscoveryTrend({
       range: range.value,
       appId: query.appId || undefined,
-      serviceName: query.serviceName || undefined
+      serviceId: query.serviceId || undefined
     })
   } catch (e) {
     discoTrend.value = { times: [], values: [], requestValues: [] }
@@ -181,7 +190,7 @@ const loadTrend = async () => {
 const query = reactive({
   keyword: '',
   appId: '',
-  serviceName: '',
+  serviceId: '',
   status: '',
   language: '',
   current: 1,
@@ -190,7 +199,7 @@ const query = reactive({
 
 // 下拉选项均由 /discovery/filters 按库中真实数据填充
 const appOptions = ref([])        // [{ appId, appName }]
-const allServices = ref([])       // [{ appId, serviceName }]
+const allServices = ref([])       // [{ appId, serviceId, serviceName }]
 const langOptions = ref([])
 
 // 「全部服务」选项随已选应用级联：选了应用只列该应用下的服务
@@ -209,8 +218,8 @@ const loadFilters = async () => {
 
 // 切换应用后，原选中的服务若不属于新应用则清空，避免「应用 A + 服务 B」组合查空
 const onAppChange = () => {
-  if (query.serviceName && !serviceOptions.value.some((s) => s.serviceName === query.serviceName)) {
-    query.serviceName = ''
+  if (query.serviceId && !serviceOptions.value.some((s) => s.serviceId === query.serviceId)) {
+    query.serviceId = ''
   }
 }
 

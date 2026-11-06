@@ -8,14 +8,14 @@ import lombok.Data;
 @Data
 public class ServiceQuery {
 
-    /** 关键字：应用ID / 应用名 / 服务名 */
+    /** 关键字：应用ID / 应用名 / 服务ID / 服务名 */
     private String keyword;
 
     /** 应用编码 */
     private String appId;
 
-    /** 服务名 */
-    private String serviceName;
+    /** 服务ID（英文唯一标识） */
+    private String serviceId;
 
     /** 服务状态：健康 / 亚健康 / 异常 */
     private String status;

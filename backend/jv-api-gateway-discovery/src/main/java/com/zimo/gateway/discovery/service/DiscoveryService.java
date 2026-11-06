@@ -28,7 +28,7 @@ public interface DiscoveryService {
      * @param serviceName 服务过滤（可选）
      * @return {range, bucket, points, times, requestValues, values(QPS)}
      */
-    Map<String, Object> trend(String range, String appId, String serviceName);
+    Map<String, Object> trend(String range, String appId, String serviceId);
 
     /**
      * 服务详情

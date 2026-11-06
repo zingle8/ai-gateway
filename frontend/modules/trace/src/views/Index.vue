@@ -26,7 +26,12 @@
             />
           </el-select>
           <el-select v-model="query.service" placeholder="全部服务" clearable filterable style="width: 170px;">
-            <el-option v-for="s in serviceOptions" :key="s.serviceName" :label="s.serviceName" :value="s.serviceName" />
+            <el-option
+              v-for="s in serviceOptions"
+              :key="s.serviceId"
+              :label="s.serviceName ? `${s.serviceName}（${s.serviceId}）` : s.serviceId"
+              :value="s.serviceId"
+            />
           </el-select>
           <el-select v-model="query.status" placeholder="全部状态码" clearable style="width: 150px;">
             <el-option v-for="s in statusOptions" :key="s" :label="String(s)" :value="s" />
@@ -45,7 +50,7 @@
       <!-- 列表 -->
       <div class="gw-card-bd no-pad">
         <el-table :data="rows" size="small" style="width: 100%" @row-click="openDetail">
-          <el-table-column prop="serviceName" label="服务名" width="140" />
+          <el-table-column prop="serviceName" label="服务ID" width="150" show-overflow-tooltip />
           <el-table-column prop="api" label="接口名" min-width="220" show-overflow-tooltip />
           <el-table-column label="请求参数" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
@@ -228,7 +233,7 @@ const query = reactive({
 
 // 筛选项默认值仅作兜底；真实值由 /trace/logs/filters 按库中数据动态填充
 const appOptions = ref([])      // [{ appId, appName }]
-const allServices = ref([])     // [{ appId, serviceName }]
+const allServices = ref([])     // [{ appId, serviceId, serviceName }]
 
 // 「全部服务」随已选应用级联：选了应用只列该应用下的服务
 const serviceOptions = computed(() =>
@@ -237,7 +242,7 @@ const serviceOptions = computed(() =>
 
 // 切换应用后，原选中的服务若不属于新应用则清空，避免「应用 A + 服务 B」组合查空
 const onAppChange = () => {
-  if (query.service && !serviceOptions.value.some((s) => s.serviceName === query.service)) {
+  if (query.service && !serviceOptions.value.some((s) => s.serviceId === query.service)) {
     query.service = ''
   }
 }
@@ -364,7 +369,7 @@ const spanTree = computed(() => {
     for (const { s, t } of children) {
       rows.push({
         key: s.spanId,
-        label: s.serviceName + (s.peerService ? ' → ' + s.peerService : ''),
+        label: (s.serviceName || s.serviceId) + (s.peerService ? ' → ' + s.peerService : ''),
         api: s.api || '',
         cost: s.cost || 0,
         err: (s.statusCode || 0) >= 400 || (s.errType && s.errType !== '无'),

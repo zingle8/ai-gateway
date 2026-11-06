@@ -18,7 +18,10 @@ public class GwServiceEntity {
     /** 应用名称，如 订单中心 */
     private String appName;
 
-    /** 服务名，如 order-service */
+    /** 服务ID（英文唯一标识），如 order-service */
+    private String serviceId;
+
+    /** 服务名（中文显示名），如 订单服务；空则展示同 serviceId */
     private String serviceName;
 
     /** 实例 IP，由 SDK 心跳上报（多网卡机器建议在 SDK 侧显式配置） */
@@ -42,7 +45,7 @@ public class GwServiceEntity {
     /** 区间调用 / 请求次数（tb_gw_trace_log 按所选时间区间统计） */
     private Long calls;
 
-    /** 已登记接口数（tb_gw_api 按服务名关联） */
+    /** 已登记接口数（tb_gw_api 按服务ID关联） */
     private Integer apiCount;
 
     /** 服务状态：健康 / 亚健康 / 异常 / 离线 */
