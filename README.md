@@ -123,15 +123,19 @@ chmod +x scripts/*.sh
 | --- | --- |
 | [backend/README.md](backend/README.md) | 后端权威文档：模块划分、命名规范、MyBatis 持久层约定、数据库/Redis/Nacos、接口清单、认证鉴权设计 |
 | [frontend/README.md](frontend/README.md) | 前端权威文档：monorepo 结构、模块约定（新增页面三件套）、UI 规范、常用命令 |
-| [docs/modules-deployment.md
-- [Maven 私服部署指南](docs/maven-nexus-deployment.md) —— SDK 跨团队分发（Nexus 一键部署/发布/接入）
-- [服务拆解与按需启动方案](docs/modules-deployment.md) —— 模块依赖矩阵、套餐组装、交付清单
-- [docs/PLAN.md]](docs/PLAN.md) | **项目计划与决策记录**：模块取舍（auth/authz/config 为什么不拆/为什么拆）、已完成能力、未完成清单（P0/P1/P2） |
+| **计划与进度** | |
+| [docs/DEVELOPMENT-PLAN.md](docs/DEVELOPMENT-PLAN.md) | **开发计划与进度计划**：版本总览表（v0.1 已完成 / v0.2~v0.4+ 计划）、各版本功能与 Bug 明细清单、时间点与参与人 |
+| [docs/PLAN.md](docs/PLAN.md) | **项目计划与决策记录**：架构决策（ADR，auth/authz/config 为什么不拆/为什么拆）、逐日变更记录、未完成清单（P0/P1/P2） |
+| **部署与运维** | |
+| [docs/modules-deployment.md](docs/modules-deployment.md) | 服务拆解与按需启动方案：模块依赖矩阵、套餐组装、交付检查清单 |
+| [docs/maven-nexus-deployment.md](docs/maven-nexus-deployment.md) | Maven 私服部署指南：Nexus 一键部署 / 发布 / 业务方接入 |
 | [docs/configuration.md](docs/configuration.md) | **配置信息一览**：数据库/Redis/Nacos 账号密码与端口、JWT 密钥、环境变量清单 |
+| **设计与接入** | |
 | [docs/auth-design.md](docs/auth-design.md) | 认证与鉴权：JWT、登录限流、账号解锁 |
 | [docs/gateway-proxy.md](docs/gateway-proxy.md) | 网关转发与调用日志采集链路 |
 | [docs/client-integration.md](docs/client-integration.md) | Java SDK 接入指南（自动注册 + 日志采集） |
 | [sdk/python/README.md](sdk/python/README.md) | Python SDK 接入指南（Flask / FastAPI / WSGI / ASGI） |
+| [sdk/nodejs/README.md](sdk/nodejs/README.md) | Node.js SDK 接入指南（Express 示例） |
 
 ## 常见问题
 
