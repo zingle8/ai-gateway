@@ -188,3 +188,20 @@
 }
 
 .wf-bar.err { background: var(--gw-danger); }
+
+/* 两列卡片栅格：趋势图与分布卡片并排；窄屏（<900px）回落单列。
+   此前 .grid-2 只有页面内的 media query 覆盖、缺基础样式，实际一直是堆叠的 */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+/* 纵向卡片间距规则（.gw-card + .gw-card）会作用到栅格内的第二列，抵消掉 */
+.grid-2 > .gw-card + .gw-card { margin-top: 0; }
+
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+  .grid-2 > .gw-card + .gw-card { margin-top: 12px; }
+}

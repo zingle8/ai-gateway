@@ -209,10 +209,4 @@ useAutoRefresh(load)
   flex-direction: column;
   gap: 3px;
 }
-
-@media (max-width: 1400px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
-}
 </style>

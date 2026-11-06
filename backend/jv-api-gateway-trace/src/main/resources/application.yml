@@ -47,7 +47,7 @@ zimo:
       # 上报共享密钥（X-Gateway-Client-Token）：注册/心跳/采集上报请求携带，与网关 proxy 校验端同值
       client-token: ${GATEWAY_CLIENT_TOKEN:dev-gateway-token}
       server-addr: http://127.0.0.1:28090/api
-      app-id: app-gateway
+      app-id: app-api_gateway
       app-name: API网关平台
       service-id: jv-api-gateway-trace
       service-name: 链路追踪

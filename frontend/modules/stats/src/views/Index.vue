@@ -40,26 +40,26 @@
       </div>
     </div>
 
-    <div class="grid-2">
-      <!-- 请求趋势 -->
-      <section class="gw-card">
-        <div class="gw-card-hd">
-          <span>请求量趋势</span>
-          <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
-        </div>
-        <div class="gw-card-bd">
-          <TrendChart
-            :times="trend.times"
-            :values="trend.values"
-            unit=" 次"
-            series-name="请求数"
-            :height="160"
-          />
-          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
-        </div>
-      </section>
+    <!-- 请求趋势（整行） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>请求量趋势</span>
+        <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
+      </div>
+      <div class="gw-card-bd">
+        <TrendChart
+          :times="trend.times"
+          :values="trend.values"
+          unit=" 次"
+          series-name="请求数"
+          :height="160"
+        />
+        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
+      </div>
+    </section>
 
-      <!-- 请求方法分布 -->
+    <!-- 请求方法分布 + 状态码分布：并排一行 -->
+    <div class="grid-2">
       <section class="gw-card">
         <div class="gw-card-hd"><span>请求方法分布</span></div>
         <div class="gw-card-bd">
@@ -73,10 +73,7 @@
           <el-empty v-if="methodDist.length === 0" description="该区间无调用" :image-size="60" />
         </div>
       </section>
-    </div>
 
-    <div class="grid-2">
-      <!-- 状态码分布 -->
       <section class="gw-card">
         <div class="gw-card-hd"><span>状态码分布</span></div>
         <div class="gw-card-bd">
@@ -90,27 +87,27 @@
           <el-empty v-if="statusDist.length === 0" description="该区间无调用" :image-size="60" />
         </div>
       </section>
-
-      <!-- Top 服务 -->
-      <section class="gw-card">
-        <div class="gw-card-hd"><span>Top 服务</span></div>
-        <div class="gw-card-bd no-pad">
-          <el-table :data="topServices" size="small" style="width: 100%">
-            <el-table-column prop="name" label="服务ID" min-width="150" show-overflow-tooltip />
-            <el-table-column prop="count" label="请求数" width="90" />
-            <el-table-column label="平均耗时" width="100">
-              <template #default="{ row }">{{ row.avgRt }} ms</template>
-            </el-table-column>
-            <el-table-column label="错误率" width="90">
-              <template #default="{ row }">
-                <span :class="row.errorRate > 0 ? 'gw-down' : ''">{{ row.errorRate }}%</span>
-              </template>
-            </el-table-column>
-          </el-table>
-          <el-empty v-if="topServices.length === 0" description="该区间无调用" :image-size="60" />
-        </div>
-      </section>
     </div>
+
+    <!-- Top 服务 -->
+    <section class="gw-card">
+      <div class="gw-card-hd"><span>Top 服务</span></div>
+      <div class="gw-card-bd no-pad">
+        <el-table :data="topServices" size="small" style="width: 100%">
+          <el-table-column prop="name" label="服务ID" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="count" label="请求数" width="90" />
+          <el-table-column label="平均耗时" width="100">
+            <template #default="{ row }">{{ row.avgRt }} ms</template>
+          </el-table-column>
+          <el-table-column label="错误率" width="90">
+            <template #default="{ row }">
+              <span :class="row.errorRate > 0 ? 'gw-down' : ''">{{ row.errorRate }}%</span>
+            </template>
+          </el-table-column>
+        </el-table>
+        <el-empty v-if="topServices.length === 0" description="该区间无调用" :image-size="60" />
+      </div>
+    </section>
 
     <!-- Top 接口 -->
     <section class="gw-card">
@@ -334,11 +331,5 @@ onMounted(async () => {
   font-size: 12px;
   text-align: right;
   color: var(--gw-text);
-}
-
-@media (max-width: 1400px) {
-  .grid-2 {
-    grid-template-columns: 1fr;
-  }
 }
 </style>

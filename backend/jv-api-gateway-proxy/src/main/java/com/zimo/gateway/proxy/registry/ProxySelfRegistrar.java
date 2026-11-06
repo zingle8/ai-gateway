@@ -57,8 +57,9 @@ public class ProxySelfRegistrar implements ApplicationRunner {
     private void sendHeartbeat(String action) {
         try {
             if (heartbeatBody == null) {
-                heartbeatBody = "{\"appId\":\"app-gateway\",\"appName\":\"API网关平台\","
-                        + "\"serviceName\":\"jv-api-gateway-proxy\",\"ip\":\"127.0.0.1\","
+                heartbeatBody = "{\"appId\":\"app-api_gateway\",\"appName\":\"API网关平台\","
+                        + "\"serviceId\":\"jv-api-gateway-proxy\",\"serviceName\":\"网关代理\","
+                        + "\"ip\":\"127.0.0.1\","
                         + "\"port\":" + port + ",\"language\":\"Java 17 (WebFlux)\",\"version\":\"1.0.0\"}";
             }
             HttpRequest request = HttpRequest.newBuilder()
