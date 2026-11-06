@@ -75,6 +75,27 @@
       </div>
     </section>
 
+    <!-- 入站 & 出站流量趋势（整行，双折线：蓝=入站、绿=出站） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>入站 &amp; 出站流量趋势</span>
+        <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
+      </div>
+      <div class="gw-card-bd">
+        <TrendChart
+          :times="trend.times"
+          :values="trend.inboundValues"
+          :values2="trend.outboundValues"
+          series-name="入站"
+          series-name2="出站"
+          unit=" KB"
+          scale-second
+          :height="160"
+        />
+        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
+      </div>
+    </section>
+
     <!-- 请求方法分布 + 状态码分布：并排一行 -->
     <div class="grid-2">
       <section class="gw-card">
@@ -193,7 +214,7 @@ const data = ref({
   topApis: []
 })
 
-const trend = ref({ times: [], values: [], requestValues: [] })
+const trend = ref({ times: [], values: [], requestValues: [], inboundValues: [], outboundValues: [] })
 // 请求量趋势与 QPS 趋势同源：后端一次查询返回两套序列（values=QPS、requestValues=请求量）
 const requestTrend = computed(() => trend.value.requestValues || [])
 const statusDist = computed(() => data.value.statusDist || [])
@@ -260,7 +281,7 @@ const loadTrend = async () => {
   try {
     trend.value = await fetchStatsTrend(buildParams())
   } catch (e) {
-    trend.value = { times: [], values: [], requestValues: [] }
+    trend.value = { times: [], values: [], requestValues: [], inboundValues: [], outboundValues: [] }
   }
 }
 

@@ -30,23 +30,40 @@ public final class TrendBuckets {
     /**
      * 把稀疏桶补成连续点位。
      *
-     * @param rows mapper 结果，每行含 b（桶起点 epoch 秒）、c（桶内请求数）
+     * @param rows mapper 结果，每行含 b（桶起点 epoch 秒）、c（桶内请求数），
+     *             可选 si / so（桶内入站 / 出站字节数，缺失时流量序列补 0）
      * @param qps  true = 主序列为 QPS（桶内请求数 ÷ 桶宽秒数），并额外返回
      *             {@code requestValues}（桶内请求数序列，供「请求量趋势」图共用同一次查询）；
      *             false = 主序列为桶内请求量
      * @return {range, bucket, points, times, values[, requestValues]}
      */
+    /** 字节序列 → KB 序列（保留 1 位小数；低流量时段不至于整条线贴 0） */
+    private static List<Number> kb(List<Number> bytes) {
+        List<Number> out = new ArrayList<>(bytes.size());
+        for (Number b : bytes) {
+            out.add(Math.round(b.longValue() / 102.4) / 10.0);
+        }
+        return out;
+    }
+
     public static Map<String, Object> build(List<Map<String, Object>> rows, TimeRange range, boolean qps) {
         long bucketSec = range.getBucketSeconds();
         ZoneId zone = ZoneId.systemDefault();
 
         Map<Long, Long> buckets = new LinkedHashMap<>();
+        Map<Long, Long> inBytes = new LinkedHashMap<>();
+        Map<Long, Long> outBytes = new LinkedHashMap<>();
         if (rows != null) {
             for (Map<String, Object> row : rows) {
                 Object key = row.get("b");
                 Object count = row.get("c");
                 if (key instanceof Number && count instanceof Number) {
-                    buckets.put(((Number) key).longValue(), ((Number) count).longValue());
+                    long epoch = ((Number) key).longValue();
+                    buckets.put(epoch, ((Number) count).longValue());
+                    Object si = row.get("si");
+                    Object so = row.get("so");
+                    inBytes.put(epoch, si instanceof Number ? ((Number) si).longValue() : 0L);
+                    outBytes.put(epoch, so instanceof Number ? ((Number) so).longValue() : 0L);
                 }
             }
         }
@@ -66,11 +83,16 @@ public final class TrendBuckets {
         List<String> times = new ArrayList<>(points);
         List<Number> values = new ArrayList<>(points);
         List<Number> requestValues = new ArrayList<>(points);
+        List<Number> inboundBytes = new ArrayList<>(points);
+        List<Number> outboundBytes = new ArrayList<>(points);
         for (int i = points - 1; i >= 0; i--) {
             long epoch = baseEpoch - (long) i * bucketSec;
             long count = buckets.getOrDefault(epoch, 0L);
             times.add(LocalDateTime.ofInstant(Instant.ofEpochSecond(epoch), zone).format(labelFmt));
             requestValues.add(count);
+            // 流量序列：桶内字节数折算为 KB（保留 1 位小数），供「入站 & 出站流量趋势」双折线
+            inboundBytes.add(inBytes.getOrDefault(epoch, 0L));
+            outboundBytes.add(outBytes.getOrDefault(epoch, 0L));
             if (qps) {
                 // 保留 1 位小数：取整会把 0.49 压成 0，低流量时段整条线会假性归零
                 values.add(Math.round(count * 10.0 / bucketSec) / 10.0);
@@ -88,6 +110,8 @@ public final class TrendBuckets {
         if (qps) {
             data.put("requestValues", requestValues);
         }
+        data.put("inboundValues", kb(inboundBytes));
+        data.put("outboundValues", kb(outboundBytes));
         return data;
     }
 

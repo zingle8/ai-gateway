@@ -124,7 +124,8 @@
 
     <!-- 总览 QPS 趋势与统计请求量趋势共用：只传 windowMinutes 与 bucketSec 即为全量 -->
     <select id="trendBuckets" parameterType="com.zimo.gateway.overview.model.StatsQuery" resultType="map">
-        SELECT FLOOR(UNIX_TIMESTAMP(req_time) / #{bucketSec}) * #{bucketSec} AS b, COUNT(*) AS c
+        SELECT FLOOR(UNIX_TIMESTAMP(req_time) / #{bucketSec}) * #{bucketSec} AS b, COUNT(*) AS c,
+               SUM(COALESCE(req_bytes, 0)) AS si, SUM(COALESCE(res_bytes, 0)) AS so
         FROM tb_gw_trace_log
         WHERE <include refid="statsFilters"/>
         GROUP BY b

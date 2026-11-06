@@ -17,14 +17,27 @@
       <!-- Y 轴网格与刻度值 -->
       <g class="tc-grid">
         <template v-for="t in yTicks" :key="t.v">
-          <line :x1="pad.left" :y1="t.y" :x2="width - pad.right" :y2="t.y" />
+          <line :x1="pad.left" :y1="t.y" :x2="width - padRight" :y2="t.y" />
           <text :x="pad.left - 6" :y="t.y + 3.5" text-anchor="end">{{ t.label }}</text>
         </template>
+      </g>
+
+      <!-- 右侧第二序列刻度（双轴模式） -->
+      <g v-if="hasSecond && scaleSecond" class="tc-grid tc-grid2">
+        <text
+          v-for="(t, i) in yTicks2"
+          :key="'r' + i"
+          :x="width - padRight + 6"
+          :y="t.y + 3.5"
+          text-anchor="start"
+        >{{ t.label }}</text>
       </g>
 
       <!-- 面积 + 折线（viewBox 用真实像素，线宽不被拉伸变形） -->
       <path v-if="hasData" :d="areaPath" :fill="`url(#${gradId})`" stroke="none" />
       <path v-if="hasData" :d="linePath" class="tc-line" />
+      <!-- 第二序列（如出站流量）：仅折线，不叠面积 -->
+      <path v-if="hasSecond && hasData" :d="linePath2" class="tc-line2" />
 
       <!-- 悬浮：竖向准线 + 数据点 -->
       <g v-if="hover" class="tc-hover">
@@ -44,6 +57,12 @@
       </g>
     </svg>
 
+    <!-- 图例：仅在双序列时出现 -->
+    <div v-if="hasSecond" class="tc-legend">
+      <span class="lg"><i class="lg-dot" />{{ seriesName }}</span>
+      <span class="lg"><i class="lg-dot lg-dot2" />{{ seriesName2 }}</span>
+    </div>
+
     <!-- 空数据提示：全 0 时折线贴底，需要明确告知不是「图挂了」 -->
     <div v-if="!hasData" class="tc-empty">该区间暂无调用数据</div>
 
@@ -53,6 +72,10 @@
       <div class="tc-tip-val">
         <span class="dot" />{{ seriesName }}
         <b>{{ formatNum(hover.value) }}{{ unit }}</b>
+      </div>
+      <div v-if="hasSecond" class="tc-tip-val">
+        <span class="dot dot2" />{{ seriesName2 }}
+        <b>{{ formatNum(hover.value2) }}{{ unit }}</b>
       </div>
     </div>
   </div>
@@ -70,12 +93,20 @@ const props = defineProps({
   unit: { type: String, default: '' },
   /** tooltip 里的系列名 */
   seriesName: { type: String, default: '调用量' },
+  /** 第二数值序列（可选，双折线用，如出站流量） */
+  values2: { type: Array, default: () => [] },
+  /** 第二序列名 */
+  seriesName2: { type: String, default: '对比' },
+  /** 第二序列按自身量级缩放（双 Y 轴）：两条线量级差大时用，避免小值序列贴底不可见 */
+  scaleSecond: { type: Boolean, default: false },
   height: { type: Number, default: 160 }
 })
 
 const wrap = ref(null)
 const width = ref(600)
 const pad = { top: 10, right: 10, bottom: 20, left: 44 }
+/** 双轴时右侧留出第二序列刻度，避免刻度文字被裁 */
+const padRight = computed(() => (props.scaleSecond && props.values2.length ? 46 : pad.right))
 const gradId = 'tc-grad-' + Math.random().toString(36).slice(2, 8)
 
 let ro = null
@@ -92,14 +123,18 @@ onMounted(() => {
 onBeforeUnmount(() => ro?.disconnect())
 
 const count = computed(() => Math.min(props.values.length, props.times.length))
-const hasData = computed(() => props.values.some((v) => Number(v) > 0))
+const hasSecond = computed(() => props.values2.length > 0)
+const hasData = computed(
+  () => props.values.some((v) => Number(v) > 0) || (hasSecond.value && props.values2.some((v) => Number(v) > 0))
+)
 
 /**
  * Y 轴上界：先按「4 段」估算每段步长，再把步长归到 1/2/5×10^n，
  * 保证 5 个刻度值都是整数或 0.5 的倍数（否则会出现 1.25 / 3.75 这种刻度）。
  */
 const yMax = computed(() => {
-  const max = Math.max(0, ...props.values.map(Number))
+  const second = hasSecond.value && !props.scaleSecond ? props.values2.map(Number) : []
+  const max = Math.max(0, ...props.values.map(Number), ...second)
   if (max <= 0) return 4
   const raw = max / 4
   const mag = Math.pow(10, Math.floor(Math.log10(raw)))
@@ -108,7 +143,18 @@ const yMax = computed(() => {
   return step * 4
 })
 
-const innerW = computed(() => Math.max(1, width.value - pad.left - pad.right))
+/** 第二序列自身量级的上界（双轴模式下使用） */
+const yMax2 = computed(() => {
+  const max = Math.max(0, ...props.values2.map(Number))
+  if (max <= 0) return 4
+  const raw = max / 4
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)))
+  const n = raw / mag
+  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * mag
+  return step * 4
+})
+
+const innerW = computed(() => Math.max(1, width.value - pad.left - padRight.value))
 const innerH = computed(() => Math.max(1, props.height - pad.top - pad.bottom))
 const stepX = computed(() => (count.value > 1 ? innerW.value / (count.value - 1) : 0))
 
@@ -120,6 +166,33 @@ const pointAt = (i) => {
 }
 
 const points = computed(() => Array.from({ length: count.value }, (_, i) => pointAt(i)))
+
+/** 第二序列点位：与主序列共用 X 轴与 Y 轴刻度 */
+const pointAt2 = (i) => {
+  const v = Number(props.values2[i] || 0)
+  const upper = props.scaleSecond ? yMax2.value : yMax.value
+  const x = pad.left + (count.value > 1 ? i * stepX.value : innerW.value / 2)
+  const y = pad.top + innerH.value - (v / upper) * innerH.value
+  return { x, y, v }
+}
+
+/** 右侧第二序列刻度（仅双轴模式） */
+const yTicks2 = computed(() =>
+  [0, 0.25, 0.5, 0.75, 1].map((r) => {
+    const v = yMax2.value * r
+    return {
+      y: pad.top + innerH.value - r * innerH.value,
+      label: formatNum(yMax2.value < 10 ? Math.round(v * 10) / 10 : Math.round(v))
+    }
+  })
+)
+
+const points2 = computed(() => Array.from({ length: count.value }, (_, i) => pointAt2(i)))
+
+const linePath2 = computed(() => {
+  if (!count.value) return ''
+  return points2.value.map((p, i) => (i === 0 ? 'M' : 'L') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ')
+})
 
 const linePath = computed(() => {
   if (!count.value) return ''
@@ -176,9 +249,10 @@ const hover = computed(() => {
     x: p.x,
     y: p.y,
     value: p.v,
+    value2: hasSecond.value ? (points2.value[hoverIdx.value]?.v ?? 0) : 0,
     time: props.times[hoverIdx.value] || '',
     tipX: Math.max(0, tipX),
-    tipY: Math.max(0, p.y - 52)
+    tipY: Math.max(0, Math.min(p.y, hasSecond.value ? points2.value[hoverIdx.value]?.y ?? p.y : p.y) - 58)
   }
 })
 
@@ -232,6 +306,35 @@ const trimZero = (s) => String(Number(s))
   stroke-linejoin: round;
   stroke-linecap: round;
 }
+
+.tc-line2 {
+  fill: none;
+  stroke: var(--gw-success);
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.tc-legend {
+  position: absolute;
+  left: 4px;
+  top: -2px;
+  display: flex;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--gw-text-tertiary);
+}
+
+.tc-legend .lg { display: flex; align-items: center; gap: 4px; }
+
+.tc-legend .lg-dot {
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--gw-info);
+}
+
+.tc-legend .lg-dot2 { background: var(--gw-success); }
 
 .tc-hover line {
   stroke: var(--gw-text-tertiary);
@@ -298,4 +401,6 @@ const trimZero = (s) => String(Number(s))
   background: var(--gw-info);
   flex-shrink: 0;
 }
+
+.tc-tip-val .dot2 { background: var(--gw-success); }
 </style>
