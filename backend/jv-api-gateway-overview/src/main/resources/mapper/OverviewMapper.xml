@@ -121,11 +121,22 @@
 
     <!-- ============================================================ 统计字典 -->
 
+    <!-- 应用下拉字典：按 app_id 去重（改名后只取最新一条），名称优先取注册表 tb_gw_service -->
     <select id="filterApps" resultType="map">
-        SELECT DISTINCT app_id AS appId, app_name AS appName
-        FROM tb_gw_trace_log
-        WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
-        ORDER BY app_id
+        SELECT t.app_id AS appId, COALESCE(NULLIF(s.app_name, ''), t.app_name) AS appName
+        FROM tb_gw_trace_log t
+        JOIN (
+            SELECT app_id, MAX(id) AS mid FROM tb_gw_trace_log
+            WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+            GROUP BY app_id
+        ) m ON m.mid = t.id
+        LEFT JOIN (
+            SELECT app_id, MAX(id) AS sid FROM tb_gw_service
+            WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+            GROUP BY app_id
+        ) sm ON sm.app_id = t.app_id
+        LEFT JOIN tb_gw_service s ON s.id = sm.sid
+        ORDER BY t.app_id
     </select>
 
     <select id="distinctServices" resultType="string">

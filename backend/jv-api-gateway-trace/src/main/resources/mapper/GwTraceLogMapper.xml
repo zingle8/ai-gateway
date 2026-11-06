@@ -76,10 +76,23 @@
     </select>
 
     <!-- 应用下拉字典：取库中真实出现过的应用 -->
+    <!-- 应用下拉字典：按 app_id 去重（同一应用历史上可能换过名称，只取最新一条），
+         名称优先取注册表 tb_gw_service（权威），未注册的应用回退 trace 表最新名称 -->
     <select id="selectDistinctApps" resultType="com.zimo.gateway.trace.model.FilterOption">
-        SELECT DISTINCT app_id, app_name FROM tb_gw_trace_log
-        WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
-        ORDER BY app_id
+        SELECT t.app_id, COALESCE(NULLIF(s.app_name, ''), t.app_name) AS app_name
+        FROM tb_gw_trace_log t
+        JOIN (
+            SELECT app_id, MAX(id) AS mid FROM tb_gw_trace_log
+            WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+            GROUP BY app_id
+        ) m ON m.mid = t.id
+        LEFT JOIN (
+            SELECT app_id, MAX(id) AS sid FROM tb_gw_service
+            WHERE deleted = 0 AND app_id IS NOT NULL AND app_id != ''
+            GROUP BY app_id
+        ) sm ON sm.app_id = t.app_id
+        LEFT JOIN tb_gw_service s ON s.id = sm.sid
+        ORDER BY t.app_id
     </select>
 
     <!-- 接口名下拉字典：api 形如 "GET /api/xxx"，与方法下拉组合即可定位到唯一接口 -->
