@@ -132,14 +132,14 @@
       <div class="gw-card-hd"><span>Top 服务</span></div>
       <div class="gw-card-bd no-pad">
         <el-table :data="topServices" size="small" style="width: 100%">
-          <el-table-column prop="name" label="服务ID" min-width="180" show-overflow-tooltip />
-          <el-table-column prop="serviceLabel" label="服务名" width="110" show-overflow-tooltip />
-          <el-table-column prop="appName" label="所属应用" width="140" show-overflow-tooltip />
-          <el-table-column prop="count" label="请求数" width="90" />
-          <el-table-column label="平均耗时" width="110">
+          <el-table-column prop="name" label="服务ID" min-width="260" show-overflow-tooltip />
+          <el-table-column prop="serviceLabel" label="服务名" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="appName" label="所属应用" width="120" show-overflow-tooltip />
+          <el-table-column prop="count" label="请求数" width="80" />
+          <el-table-column label="平均耗时" width="100">
             <template #default="{ row }">{{ row.avgRt }} ms</template>
           </el-table-column>
-          <el-table-column label="错误率" width="90">
+          <el-table-column label="错误率" width="80">
             <template #default="{ row }">
               <span :class="row.errorRate > 0 ? 'gw-down' : ''">{{ row.errorRate }}%</span>
             </template>
@@ -157,19 +157,19 @@
       </div>
       <div class="gw-card-bd no-pad">
         <el-table :data="topApis" size="small" style="width: 100%">
-          <el-table-column prop="name" label="接口" min-width="240" show-overflow-tooltip />
-          <el-table-column prop="serviceLabel" label="所属服务" width="130" show-overflow-tooltip />
-          <el-table-column prop="appName" label="所属应用" width="130" show-overflow-tooltip />
-          <el-table-column prop="count" label="请求数" width="90" />
-          <el-table-column label="平均耗时" width="110">
+          <el-table-column prop="name" label="接口" min-width="320" show-overflow-tooltip />
+          <el-table-column prop="serviceLabel" label="所属服务" min-width="130" show-overflow-tooltip />
+          <el-table-column prop="appName" label="所属应用" width="120" show-overflow-tooltip />
+          <el-table-column prop="count" label="请求数" width="80" />
+          <el-table-column label="平均耗时" width="100">
             <template #default="{ row }">{{ row.avgRt }} ms</template>
           </el-table-column>
-          <el-table-column label="错误率" width="90">
+          <el-table-column label="错误率" width="80">
             <template #default="{ row }">
               <span :class="row.errorRate > 0 ? 'gw-down' : ''">{{ row.errorRate }}%</span>
             </template>
           </el-table-column>
-          <el-table-column label="占比" width="90">
+          <el-table-column label="占比" width="80">
             <template #default="{ row }">{{ percentOf(row.count) }}</template>
           </el-table-column>
         </el-table>

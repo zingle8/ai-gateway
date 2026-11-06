@@ -95,17 +95,17 @@
       </div>
       <div class="gw-card-bd no-pad">
         <el-table :data="instances" size="small" style="width: 100%">
-          <el-table-column prop="name" label="服务名" min-width="160" />
-          <el-table-column label="实例地址" width="180">
+          <el-table-column prop="name" label="服务名" min-width="150" />
+          <el-table-column label="实例地址" min-width="180">
             <template #default="{ row }">{{ row.ip }}:{{ row.port }}</template>
           </el-table-column>
-          <el-table-column prop="appName" label="归属应用" width="140" />
-          <el-table-column prop="calls" label="区间调用" width="110" />
-          <el-table-column prop="qps" label="QPS" width="90" />
-          <el-table-column label="平均耗时" width="110">
+          <el-table-column prop="appName" label="归属应用" width="120" />
+          <el-table-column prop="calls" label="区间调用" width="90" />
+          <el-table-column prop="qps" label="QPS" width="80" />
+          <el-table-column label="平均耗时" width="100">
             <template #default="{ row }">{{ row.avgRt }} ms</template>
           </el-table-column>
-          <el-table-column prop="lastHeartbeat" label="最后心跳" width="180" />
+          <el-table-column prop="lastHeartbeat" label="最后心跳" width="165" />
           <el-table-column label="状态" width="100">
             <template #default="{ row }">
               <el-tag size="small" :type="statusType(row.status)">{{ row.status }}</el-tag>
