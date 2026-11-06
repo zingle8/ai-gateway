@@ -104,9 +104,57 @@ chmod +x scripts/*.sh
 | jv-api-gateway-overview | 28082 | 网关总览 / 数据统计 |
 | jv-api-gateway-discovery | 28083 | 服务实例 / 路由配置 / API 清单 |
 | jv-api-gateway-trace | 28084 | 调用日志查询与详情 |
+| jv-api-gateway-config | 28085 | 系统配置管理（DB/Redis/Nacos 多来源托管） |
 
 后端各服务统一 context-path `/api`；前端所有 `/api` 请求先到 proxy(28090)，
 再按 `tb_gw_route` 表二次分发到各微服务 —— 即前端联调依赖 proxy 与路由表数据（种子数据已含）。
+
+## 平台组成与子模块职责
+
+平台 = 1 个流量入口（proxy）+ 5 个业务微服务 + 三端 SDK。所有 `/api` 请求统一走 proxy，
+按 `tb_gw_route` 转发，转发时旁路采集调用日志（不经手业务逻辑）。
+
+| 模块 | 端口 | 职责 |
+| --- | --- | --- |
+| jv-api-gateway-proxy | 28090 | **网关流量入口**：按路由表转发；`AuthGlobalFilter` 统一鉴权（token 验签 + Redis/MySQL 双层缓存 + 豁免控制）；`TraceGlobalFilter` 双端采集调用日志；DB 动态路由每 30 秒热刷新（改规则免重启）；侧边栏菜单健康探测（直连各模块业务接口） |
+| jv-api-gateway-user | 28081 | **账号与安全**：登录认证（JWT）、用户管理、分组与权限（permCodes 权限点下发）、API Key 全生命周期（签发/轮换/续期/吊销 + 审计）、开放认证（register / login / token verify） |
+| jv-api-gateway-overview | 28082 | **运营数据**：网关总览指标卡与运行时指标；数据统计（请求量 / QPS / 入站出站流量趋势、方法与状态码分布、Top 服务 / Top 接口），趋势查询一次聚合三套序列 |
+| jv-api-gateway-discovery | 28083 | **注册与路由**：服务注册表（SDK 注册 / 心跳 / 90 秒判离线巡检）、转发路由 CRUD（tb_gw_route）、API 清单（tb_gw_api） |
+| jv-api-gateway-trace | 28084 | **可观测查询**：调用链日志分页 / 报文详情、服务拓扑（调用边预聚合）、慢链路 TopN |
+| jv-api-gateway-config | 28085 | **配置中心**：tb_sys_config 系统配置，支持 DB / Redis / Nacos 多来源托管，提供无需登录的公开配置接口（如自动刷新频率、健康标识开关） |
+| jv-api-gateway-common | — | 公共库：R 响应体、分页、全局异常、JWT 工具、趋势桶对齐（TrendBuckets） |
+| SDK（Java starter / Python / Node.js） | — | 业务系统接入：自动注册实例 + 心跳 + 调用日志上报；Java 走 Spring Boot Starter 自动装配，Python 支持 Flask / FastAPI / WSGI / ASGI，Node 零依赖带 Express 示例 |
+
+## 控制台菜单（8 大模块 21 项）
+
+登录后左侧菜单按模块分组。悬浮任意菜单可查看「后端服务 ｜ 运行状态（延迟）｜ 功能上线标记」，
+绿点 / 灰点实时反映对应微服务健康状态（每 30 秒刷新）。
+
+| 模块 | 菜单 | 路径 | 页面内容 | 状态 |
+| --- | --- | --- | --- | --- |
+| 网关总览 | 网关总览 | `/overview` | 指标卡、请求量 / QPS / 流量三张趋势折线图、运行时指标 | ✅ |
+| 数据统计 | 数据统计 | `/stats` | 三趋势 + 方法 / 状态码分布 + Top 服务 / Top 接口（含归属应用与服务） | ✅ |
+| 服务发现 | 服务发现 | `/discovery` | 注册表列表（健康 / 离线 / 异常三态）、应用与服务双下拉过滤 | ✅ |
+| 可观测 | 日志追踪 | `/trace` | 跨服务调用链检索、报文详情 | ✅ |
+| 可观测 | 服务拓扑 | `/topology` | 服务调用关系图、慢链路 TopN | ✅ |
+| 接入中心 | 系统接入 | `/system-onboard` | 接入方式说明（文档向导） | 静态页 |
+| 接入中心 | 自动接入 | `/auto-onboard` | 已注册实例列表（SDK 自动注册） | ✅ |
+| 接入中心 | 路由配置 | `/route-config` | 转发规则 CRUD，30 秒内网关热生效 | ✅ |
+| 接入中心 | 上线发布 | `/go-live` | 灰度与正式发布（规划中） | 占位 |
+| 接入中心 | 开放认证 | `/open-auth` | 免令牌开放接口的调用方约束（规划中） | 静态页 |
+| 认证与安全 | 用户管理 | `/auth/user` | 平台账号 CRUD、启停 | ✅ |
+| 认证与安全 | API Key | `/auth/api-keys` | Key 签发 / 启停 / 轮换 / 续期 / 吊销 + 审计看板 | ✅ |
+| 认证与安全 | 登录方式 | `/auth/login-methods` | 密码 / 验证码 / 扫码 / SSO 因子开关 | 设计稿 |
+| 认证与安全 | 单点登录 | `/auth/sso` | OIDC / SAML Provider 配置 | 设计稿 |
+| 认证与安全 | 令牌与会话 | `/auth/sessions` | 在线会话管理、强制下线 | 设计稿 |
+| 认证与安全 | 安全策略 | `/auth/policy` | MFA 范围、TOTP 偏移、step-up 开关 | 设计稿 |
+| 分组权限 | 分组管理 | `/perm/group` | 权限分组与成员、permCodes 维护 | ✅ |
+| 分组权限 | 部门组织 | `/perm/org` | 部门树维护 | ✅ |
+| 分组权限 | 平台功能与菜单 | `/perm/menu` | 菜单与功能点登记 | ✅ |
+| 系统管理 | 角色管理 | `/system/role` | 角色定义（规划中，暂由分组权限承担） | 占位 |
+| 系统管理 | 系统设置 | `/system/settings` | 系统配置项（刷新频率、健康标识开关等） | ✅ |
+
+> ✅ = 已上线（有真实后端交互，共 13 项）；设计稿 / 占位 / 静态页 = 未上线（共 8 项，接真计划见 [开发计划](docs/DEVELOPMENT-PLAN.md)）。
 
 ## 默认账号
 
