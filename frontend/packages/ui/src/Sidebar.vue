@@ -10,10 +10,16 @@
         <div v-if="item.path">
           <el-tooltip
             :disabled="!dotOf(item.path)"
-            :content="tipOf(item.path, item.title)"
             placement="right"
             :show-after="100"
           >
+            <template #content>
+              <!-- 功能上线标记着色：已上线=绿色、未上线=灰色（未登记不显示） -->
+              <span>{{ item.title }}</span><span
+                v-if="tagOf(item.path)"
+                :style="{ color: tagOf(item.path).color }"
+              >{{ tagOf(item.path).text }}</span><span> ｜ 后端服务：{{ serviceOf(item.path) || '未配置' }} ｜ 运行状态：{{ statusTextOf(item.path) }}</span>
+            </template>
             <div
               class="nav-item"
               :class="{ active: isActive(item.path) }"
@@ -36,10 +42,15 @@
           <div v-for="child in item.children" :key="child.path">
             <el-tooltip
               :disabled="!dotOf(child.path)"
-              :content="tipOf(child.path, child.title)"
               placement="right"
               :show-after="100"
             >
+              <template #content>
+                <span>{{ child.title }}</span><span
+                  v-if="tagOf(child.path)"
+                  :style="{ color: tagOf(child.path).color }"
+                >{{ tagOf(child.path).text }}</span><span> ｜ 后端服务：{{ serviceOf(child.path) || '未配置' }} ｜ 运行状态：{{ statusTextOf(child.path) }}</span>
+              </template>
               <div
                 class="nav-item sub"
                 :class="{ active: isActive(child.path) }"
@@ -97,16 +108,25 @@ const dotOf = (path) => {
   return props.health.statuses[service]?.status || 'DOWN'
 }
 
-const tipOf = (path, title) => {
+/** 运行状态文本（含探测耗时） */
+const statusTextOf = (path) => {
   const service = serviceOf(path)
   const row = service ? props.health.statuses[service] : null
   const status = row ? STATUS_TEXT[row.status] || row.status : '未探测'
   const latency = row && row.latencyMs >= 0 ? `（${row.latencyMs}ms）` : ''
-  // 功能上线标记：true=功能已上线（有后端业务），false=功能未上线（纯前端占位页）；
-  // 未登记的 path（如文档页、文档库）不加标记
+  return `${status}${latency}`
+}
+
+/**
+ * 功能上线标记（带颜色）：true=功能已上线（绿），false=功能未上线（灰）；
+ * 未登记的 path（如文档页、文档库）返回 null 不显示。
+ * 颜色写死而非用 CSS 变量：tooltip 挂在 body 下，深色底上需要保证可读性
+ */
+const tagOf = (path) => {
   const live = props.featureStatus[path]
-  const tag = live === true ? '[功能已上线]' : live === false ? '[功能未上线]' : ''
-  return `${title}${tag} ｜ 后端服务：${service || '未配置'} ｜ 运行状态：${status}${latency}`
+  if (live === true) return { text: '[功能已上线]', color: '#4ADE80' }
+  if (live === false) return { text: '[功能未上线]', color: 'rgba(255, 255, 255, .5)' }
+  return null
 }
 
 /** 分组标识取子项中最差状态：ERROR > DOWN > UP */
