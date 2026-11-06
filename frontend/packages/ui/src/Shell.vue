@@ -1,6 +1,12 @@
 <template>
   <div class="shell">
-    <Sidebar :menus="menus" :brand="brand" :services="services" :health="health" />
+    <Sidebar
+      :menus="menus"
+      :brand="brand"
+      :services="services"
+      :feature-status="featureStatus"
+      :health="health"
+    />
     <div class="shell-main">
       <HeaderBar />
       <main class="shell-content">
@@ -19,7 +25,9 @@ defineProps({
   menus: { type: Array, default: () => [] },
   brand: { type: String, default: 'API网关平台' },
   /** 菜单 path → 后端服务名（由 portal 按模块装配注入） */
-  services: { type: Object, default: () => ({}) }
+  services: { type: Object, default: () => ({}) },
+  /** 菜单 path → 功能是否已上线（true/false；未登记不显示标记，如文档页） */
+  featureStatus: { type: Object, default: () => ({}) }
 })
 
 /**

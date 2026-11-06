@@ -66,6 +66,8 @@ const props = defineProps({
   brand: { type: String, default: 'API网关平台' },
   /** 菜单 path → 后端服务名 */
   services: { type: Object, default: () => ({}) },
+  /** 菜单 path → 功能是否已上线（未登记的 path 不显示标记，如文档类页面） */
+  featureStatus: { type: Object, default: () => ({}) },
   /** { enabled, statuses: { [service]: { status, latencyMs, detail } } } */
   health: { type: Object, default: () => ({ enabled: false, statuses: {} }) }
 })
@@ -100,7 +102,11 @@ const tipOf = (path, title) => {
   const row = service ? props.health.statuses[service] : null
   const status = row ? STATUS_TEXT[row.status] || row.status : '未探测'
   const latency = row && row.latencyMs >= 0 ? `（${row.latencyMs}ms）` : ''
-  return `${title} ｜ 后端服务：${service || '未配置'} ｜ 运行状态：${status}${latency}`
+  // 功能上线标记：true=功能已上线（有后端业务），false=功能未上线（纯前端占位页）；
+  // 未登记的 path（如文档页、文档库）不加标记
+  const live = props.featureStatus[path]
+  const tag = live === true ? '[功能已上线]' : live === false ? '[功能未上线]' : ''
+  return `${title}${tag} ｜ 后端服务：${service || '未配置'} ｜ 运行状态：${status}${latency}`
 }
 
 /** 分组标识取子项中最差状态：ERROR > DOWN > UP */

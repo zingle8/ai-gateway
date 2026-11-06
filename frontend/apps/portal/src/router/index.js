@@ -26,6 +26,39 @@ export const menuRoutes = modules.flatMap((m) => m.menu)
  * 每个一级菜单对应一个后端微服务；接入中心 / 认证 / 分组权限的控制台接口
  * 都落在 jv-api-gateway-user，系统设置落在 jv-api-gateway-config。
  */
+/**
+ * 菜单功能上线标记：悬浮提示里展示 [功能已上线] / [功能未上线]。
+ *  - true  ：页面有真实后端业务（有接口交互）
+ *  - false ：纯前端占位页 / 静态说明页，暂无后端业务
+ *  - 未登记 ：不显示标记（文档类页面、文档库在此排除）
+ * 基于各页面实际接口调用盘点（2026-11-06）：
+ *   未上线 = 占位组件（go-live、system/role）或零接口调用
+ *   （system-onboard、open-auth、login-methods、sso、sessions、policy）
+ */
+export const MENU_FEATURE_STATUS = {
+  '/overview': true,
+  '/stats': true,
+  '/discovery': true,
+  '/trace': true,
+  '/topology': true,
+  '/system-onboard': false,
+  '/auto-onboard': true,
+  '/route-config': true,
+  '/go-live': false,
+  '/open-auth': false,
+  '/auth/user': true,
+  '/auth/login-methods': false,
+  '/auth/sso': false,
+  '/auth/sessions': false,
+  '/auth/policy': false,
+  '/auth/api-keys': true,
+  '/perm/group': true,
+  '/perm/org': true,
+  '/perm/menu': true,
+  '/system/role': false,
+  '/system/settings': true
+}
+
 export const MENU_SERVICES = {
   '/overview': 'jv-api-gateway-overview',
   '/stats': 'jv-api-gateway-overview',
@@ -58,7 +91,12 @@ export const MENU_SERVICES = {
  */
 const Layout = {
   name: 'AppLayout',
-  render: () => h(Shell, { menus: menuRoutes, brand: 'API网关平台', services: MENU_SERVICES })
+  render: () => h(Shell, {
+    menus: menuRoutes,
+    brand: 'API网关平台',
+    services: MENU_SERVICES,
+    featureStatus: MENU_FEATURE_STATUS
+  })
 }
 
 export const routes = [
