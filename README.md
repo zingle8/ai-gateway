@@ -1,8 +1,28 @@
 # AI 网关平台（ai-gateway）
 
-统一接入网关 + 运营控制台的一体化平台：微服务在网关注册路由并对平台暴露管理能力，
-网关转发时自动采集调用日志（请求/响应报文、Header、Query 参数），控制台提供
-账号权限、服务发现、路由配置、日志追踪、数据统计等运营页面。
+**一句话**：开箱即用的「API 网关 + 运营控制台」一体化平台——业务系统以最小成本接入统一网关，
+团队在控制台完成路由、账号、调用监控的全部运营工作。
+
+## 这个平台是干嘛的
+
+面向「有多个业务系统 / 微服务，希望统一管理流量入口」的团队，解决四类问题：
+
+| 痛点 | 平台方案 | 控制台入口 |
+| --- | --- | --- |
+| 流量入口分散，每个服务各开端口对外 | 统一网关转发，路由表 30 秒热生效（改规则免重启） | 接入中心 · 路由配置 |
+| 出了问题不知道谁在调谁、慢在哪一跳 | 网关转发旁路自动采集报文 / Header / 耗时，跨服务串链路 | 可观测 · 日志追踪 / 服务拓扑 |
+| 服务上下线状态不透明，靠人肉 ping | SDK 自动注册 + 30 秒心跳，90 秒无心跳判离线 | 服务发现 |
+| 调用量、错误率、流量没有报表 | 请求量 / QPS / 入站出站流量趋势、方法与状态码分布、Top 服务与接口 | 数据统计 / 网关总览 |
+
+配套的运营底座：JWT 登录认证、分组权限（permCodes 权限点）、API Key 签发 / 轮换 / 吊销（带审计）、
+系统配置中心（DB / Redis / Nacos 多来源）。
+
+**典型使用流程**
+
+1. 运维用 scripts 一键起平台（见[快速开始](#快速开始)）；
+2. 管理员在「路由配置」登记业务系统转发规则；业务系统按需接入 SDK（见[接入与配置](#接入与配置)）——注册、心跳、调用日志上报全自动；
+3. 团队日常在控制台看总览与统计、查调用链、管 API Key；
+4. 需要裁剪交付时按模块组装（见 [docs/modules-deployment.md](docs/modules-deployment.md)）。
 
 ```
 浏览器 ──> 控制台前端 (Vite, 28080)
@@ -74,9 +94,19 @@ chmod +x scripts/*.sh
 
 # 4. 打开控制台，使用默认账号登录
 #    http://127.0.0.1:28080   admin / Admin@123
+
+# 5. 验证：六个后端服务状态应全部 up
+./scripts/status.sh
 ```
 
-日常使用只需 `./scripts/start.sh` / `./scripts/stop.sh`，改了代码用 `./scripts/restart.sh backend --build`。
+说明：
+
+- **启动顺序**：start.sh 内部已按依赖编排（MySQL 可达性检查 → user/overview/discovery/trace/config → proxy → 前端），
+  单个业务服务启动失败不影响其他服务，可用 `./scripts/start.sh backend --build` 重试；
+- **日常使用**：启停用 `./scripts/start.sh` / `./scripts/stop.sh`；改了代码用 `./scripts/restart.sh backend --build`；
+- **看日志**：`./scripts/logs.sh jv-api-gateway-proxy -n 200`（其余服务同理）；
+- **默认已配置好**：数据库种子含 11 条转发路由（控制台各页面走网关互通）与 3 个演示服务，
+  启动后无需任何手工配置即可浏览全部已上线页面。
 
 ## 运维脚本
 
@@ -155,6 +185,30 @@ chmod +x scripts/*.sh
 | 系统管理 | 系统设置 | `/system/settings` | 系统配置项（刷新频率、健康标识开关等） | ✅ |
 
 > ✅ = 已上线（有真实后端交互，共 13 项）；设计稿 / 占位 / 静态页 = 未上线（共 8 项，接真计划见 [开发计划](docs/DEVELOPMENT-PLAN.md)）。
+
+## 接入与配置
+
+### 业务系统接入（三端 SDK 任选其一）
+
+| 步骤 | Java（Spring Boot 3） | Python | Node.js |
+| --- | --- | --- | --- |
+| 1. 引入 SDK | Maven 依赖 `jv-api-gateway-client-starter`（自动装配） | `sdk/python`（jv_gateway 包，Flask / FastAPI / WSGI / ASGI） | `sdk/nodejs`（jv-gateway，零第三方依赖，附 Express 示例） |
+| 2. 写配置 | yml 三要素：`server-addr`（网关 28090）、`app-id`、`service-id` + 中文名 | 同左（配置对象） | 同左（普通对象） |
+| 3. 启动即接入 | 自动注册实例 → 30 秒心跳 → 请求自动采集上报（免代码侵入） | 同左 | 同左 |
+
+- 详细步骤、全部参数（豁免路径、上报开关、fail-open 等）→ [docs/client-integration.md](docs/client-integration.md) / [sdk/python/README.md](sdk/python/README.md) / [sdk/nodejs/README.md](sdk/nodejs/README.md)
+- 依赖从哪拿 → 私服 [docs/maven-nexus-deployment.md](docs/maven-nexus-deployment.md)（Nexus 一键部署），或免私服的 file:// / 云制品库方案；
+- **不想接 SDK 也可以**：只在「路由配置」页登记转发规则，网关即可直接转发（代价：服务发现页看不到实例状态，统计页无调用归属）。
+
+### 配置看哪里
+
+| 想改什么 | 去哪里 |
+| --- | --- |
+| 数据库 / Redis / Nacos 连接、JWT 密钥、端口 | 各服务 `application.yml` 或环境变量，全量账号密码与端口清单见 [docs/configuration.md](docs/configuration.md) |
+| 平台运行时开关（页面刷新频率、菜单健康标识开关等） | 控制台「系统设置」页（落 `tb_sys_config`，改值 30 秒内生效，无需重启） |
+| 转发路由 | 控制台「路由配置」页（30 秒热生效） |
+| SDK 端参数 | 各语言接入文档（心跳间隔、采集开关、鉴权豁免、fail-open） |
+| 账号与权限 | 控制台「用户管理」「分组管理」页 |
 
 ## 默认账号
 
