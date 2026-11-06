@@ -1,4 +1,4 @@
-# AI 网关平台 · 后端工程（com.zimo）
+# API 网关平台 · 后端工程（com.zimo）
 
 Spring Boot 3.2.12 + 原生 MyBatis + MySQL + Nacos，Maven 多模块，
 按业务域拆分为 5 个可独立启动的微服务。

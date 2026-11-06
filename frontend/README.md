@@ -1,4 +1,4 @@
-# AI 网关平台 · 前端工程（@zimo）
+# API 网关平台 · 前端工程（@zimo）
 
 Vue 3 + Vite + Element Plus，采用 **npm workspaces 单体仓库（monorepo）** 组织，
 按业务域拆成独立的模块包，每个前端模块与后端微服务一一对应（前端微服务化）。

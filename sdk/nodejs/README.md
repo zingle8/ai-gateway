@@ -1,4 +1,4 @@
-# jv-gateway —— AI 网关平台 Node.js 接入 SDK
+# jv-gateway —— API 网关平台 Node.js 接入 SDK
 
 零第三方依赖（`node:http` / `node:crypto`），Node.js 16+。
 与 Java SDK（`jv-api-gateway-client-starter`）、Python SDK（`sdk/python`）上报协议完全一致：

@@ -1,4 +1,4 @@
-# AI 网关平台（ai-gateway）
+# API 网关平台（api-gateway）
 
 **一句话**：开箱即用的「API 网关 + 运营控制台」一体化平台——业务系统以最小成本接入统一网关，
 团队在控制台完成路由、账号、调用监控的全部运营工作。
@@ -57,7 +57,7 @@
 ## 目录结构
 
 ```
-ai-gateway/
+api-gateway/
 ├── backend/                  # Maven 多模块后端（8 个模块，5 个可启动）
 │   ├── jv-api-gateway-common/        # R 响应体、分页、全局异常、JWT 工具
 │   ├── jv-api-gateway-user/          # 28081 账号、角色、登录（JWT）、Redis 限流

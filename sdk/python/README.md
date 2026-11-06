@@ -1,4 +1,4 @@
-# jv_gateway —— AI 网关平台 Python 接入 SDK
+# jv_gateway —— API 网关平台 Python 接入 SDK
 
 零第三方依赖（标准库 `urllib` / `threading` / `queue`），Python 3.8+。
 与 Java SDK（`jv-api-gateway-client-starter`）上报协议完全一致：
@@ -25,10 +25,10 @@ sdk/python/
 
 ```bash
 # 方式一：PYTHONPATH（零安装）
-export PYTHONPATH=/path/to/ai-gateway/sdk/python:$PYTHONPATH
+export PYTHONPATH=/path/to/api-gateway/sdk/python:$PYTHONPATH
 
 # 方式二：pip（可编辑安装）
-pip install -e /path/to/ai-gateway/sdk/python
+pip install -e /path/to/api-gateway/sdk/python
 ```
 
 ## 快速开始
