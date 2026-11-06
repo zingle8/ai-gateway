@@ -13,7 +13,7 @@
   <!-- ======== 运行日志（root 输出）按等级分文件 ======== -->
   <appender name="RUN_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--运行--INFO.txt</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--api-gateway--${MODULE}--运行--INFO.txt</fileNamePattern>
       <maxHistory>168</maxHistory>
       <totalSizeCap>2GB</totalSizeCap>
     </rollingPolicy>
@@ -24,7 +24,7 @@
   </appender>
   <appender name="RUN_WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--运行--WARN.txt</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--api-gateway--${MODULE}--运行--WARN.txt</fileNamePattern>
       <maxHistory>168</maxHistory>
       <totalSizeCap>1GB</totalSizeCap>
     </rollingPolicy>
@@ -35,7 +35,7 @@
   </appender>
   <appender name="RUN_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--运行--ERROR.txt</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--api-gateway--${MODULE}--运行--ERROR.txt</fileNamePattern>
       <maxHistory>336</maxHistory>
       <totalSizeCap>1GB</totalSizeCap>
     </rollingPolicy>
@@ -48,7 +48,7 @@
   <!-- ======== 采集&amp;上报日志（SDK 出站链路）按等级分文件 ======== -->
   <appender name="SDK_INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--采集上报--INFO.txt</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--api-gateway--${MODULE}--采集上报--INFO.txt</fileNamePattern>
       <maxHistory>168</maxHistory>
       <totalSizeCap>2GB</totalSizeCap>
     </rollingPolicy>
@@ -59,7 +59,7 @@
   </appender>
   <appender name="SDK_WARN" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--采集上报--WARN.txt</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--api-gateway--${MODULE}--采集上报--WARN.txt</fileNamePattern>
       <maxHistory>168</maxHistory>
       <totalSizeCap>1GB</totalSizeCap>
     </rollingPolicy>
@@ -70,7 +70,7 @@
   </appender>
   <appender name="SDK_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--ai-gateway--${MODULE}--采集上报--ERROR.txt</fileNamePattern>
+      <fileNamePattern>${LOG_HOME}/%d{yyyy-MM-dd'--'HH}--api-gateway--${MODULE}--采集上报--ERROR.txt</fileNamePattern>
       <maxHistory>336</maxHistory>
       <totalSizeCap>1GB</totalSizeCap>
     </rollingPolicy>

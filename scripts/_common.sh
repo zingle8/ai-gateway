@@ -99,13 +99,13 @@ wait_for_port() {
 
 pid_file() { printf '%s/%s.pid' "$LOG_DIR" "$1"; }
 
-# 平台日志统一切分目录 logs/app/，文件名 = 日期--小时--ai-gateway--模块名--日志类型--日志等级.txt
+# 平台日志统一切分目录 logs/app/，文件名 = 日期--小时--api-gateway--模块名--日志类型--日志等级.txt
 # 应用运行日志由各模块 logback-spring.xml 按小时滚动切分（运行/采集上报 × INFO/WARN/ERROR）；
 # 本函数仅用于 nohup 的 CONSOLE 兜底输出（logback 文件损坏或启动早期失败时排查用）
 log_file() {
   local ts
   ts="$(date +%Y-%m-%d'--'%H)"
-  printf '%s/app/%s--ai-gateway--%s--运行--CONSOLE.txt' "$LOG_DIR" "$ts" "$1"
+  printf '%s/app/%s--api-gateway--%s--运行--CONSOLE.txt' "$LOG_DIR" "$ts" "$1"
 }
 
 read_pid() {

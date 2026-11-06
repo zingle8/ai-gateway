@@ -62,7 +62,7 @@ mybatis:
 gateway:
   jwt:
     # 与 jv-api-gateway-user 保持一致：user 签发，网关验签（生产经环境变量注入）
-    secret: ${GATEWAY_JWT_SECRET:ai-gateway-platform-jwt-secret-key-change-me-please}
+    secret: ${GATEWAY_JWT_SECRET:api-gateway-platform-jwt-secret-key-change-me-please}
   proxy:
     # 请求/响应体最多记录多少字节，超出截断
     max-body-size: 8192

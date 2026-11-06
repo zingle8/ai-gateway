@@ -67,7 +67,7 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 
 | 项 | 默认值 | 环境变量 |
 | --- | --- | --- |
-| JWT 签名密钥 | `ai-gateway-platform-jwt-secret-key-change-me-please` | `GATEWAY_JWT_SECRET`（**生产必须覆盖**，≥ 32 字节） |
+| JWT 签名密钥 | `api-gateway-platform-jwt-secret-key-change-me-please` | `GATEWAY_JWT_SECRET`（**生产必须覆盖**，≥ 32 字节） |
 | Token 有效期 | 8 小时 | yml `gateway.jwt.expire-hours` |
 | 内置超管账号 | `admin` / `Admin@123` | yml `gateway.default-admin.username/password` |
 
@@ -89,7 +89,7 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 
 | 变量 | 默认值 | 作用 |
 | --- | --- | --- |
-| `GATEWAY_JWT_SECRET` | `ai-gateway-platform-jwt-secret-key-change-me-please` | JWT 签名密钥（生产必改） |
+| `GATEWAY_JWT_SECRET` | `api-gateway-platform-jwt-secret-key-change-me-please` | JWT 签名密钥（生产必改） |
 | `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD` | `127.0.0.1` / `6379` / `Redis@123456` | Redis 连接 |
 | `DB_HOST` / `DB_PORT` / `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `127.0.0.1` / `3306` / `root` / `Root@123456` / `api_gateway` | 仅供 `scripts/init-db.sh` 等脚本使用（后端连接串在 yml 内） |
 | `JAVA_OPTS` | `-Xms256m -Xmx512m` | `scripts/start.sh` 启动 JVM 参数 |

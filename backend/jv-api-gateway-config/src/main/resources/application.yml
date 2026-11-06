@@ -50,7 +50,7 @@ gateway:
       timeout-ms: 3000
   jwt:
     # 与 user 服务共用：verify 只做验签，不签发
-    secret: ${GATEWAY_JWT_SECRET:ai-gateway-platform-jwt-secret-key-change-me-please}
+    secret: ${GATEWAY_JWT_SECRET:api-gateway-platform-jwt-secret-key-change-me-please}
     expire-hours: 8
 
 mybatis:
