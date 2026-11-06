@@ -40,41 +40,40 @@
       </div>
     </div>
 
-    <!-- 请求量趋势 + QPS 趋势：同源一次查询，两套序列并排 -->
-    <div class="grid-2">
-      <section class="gw-card">
-        <div class="gw-card-hd">
-          <span>请求量趋势</span>
-          <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
-        </div>
-        <div class="gw-card-bd">
-          <TrendChart
-            :times="trend.times"
-            :values="requestTrend"
-            unit=" 次"
-            series-name="请求数"
-            :height="160"
-          />
-          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
-        </div>
-      </section>
+    <!-- 请求量趋势（整行） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>请求量趋势</span>
+        <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
+      </div>
+      <div class="gw-card-bd">
+        <TrendChart
+          :times="trend.times"
+          :values="requestTrend"
+          unit=" 次"
+          series-name="请求数"
+          :height="160"
+        />
+        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
+      </div>
+    </section>
 
-      <section class="gw-card">
-        <div class="gw-card-hd">
-          <span>QPS 趋势</span>
-          <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
-        </div>
-        <div class="gw-card-bd">
-          <TrendChart
-            :times="trend.times"
-            :values="trend.values"
-            series-name="QPS"
-            :height="160"
-          />
-          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
-        </div>
-      </section>
-    </div>
+    <!-- QPS 趋势（整行，与请求量趋势同源一次查询） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>QPS 趋势</span>
+        <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
+      </div>
+      <div class="gw-card-bd">
+        <TrendChart
+          :times="trend.times"
+          :values="trend.values"
+          series-name="QPS"
+          :height="160"
+        />
+        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
+      </div>
+    </section>
 
     <!-- 请求方法分布 + 状态码分布：并排一行 -->
     <div class="grid-2">

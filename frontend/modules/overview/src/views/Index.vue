@@ -18,42 +18,41 @@
       </div>
     </div>
 
-    <div class="grid-2">
-      <!-- 请求量趋势（区间内每桶请求数） -->
-      <section class="gw-card">
-        <div class="gw-card-hd">
-          <span>请求量趋势</span>
-          <span class="gw-sm gw-muted">{{ rangeDesc }}</span>
-        </div>
-        <div class="gw-card-bd">
-          <TrendChart
-            :times="trend.times"
-            :values="requestTrend"
-            unit=" 次"
-            series-name="请求量"
-            :height="160"
-          />
-          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ sampleDesc }}</div>
-        </div>
-      </section>
+    <!-- 请求量趋势（区间内每桶请求数，整行） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>请求量趋势</span>
+        <span class="gw-sm gw-muted">{{ rangeDesc }}</span>
+      </div>
+      <div class="gw-card-bd">
+        <TrendChart
+          :times="trend.times"
+          :values="requestTrend"
+          unit=" 次"
+          series-name="请求量"
+          :height="160"
+        />
+        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ sampleDesc }}</div>
+      </div>
+    </section>
 
-      <!-- QPS 趋势（同一份数据按桶宽折算） -->
-      <section class="gw-card">
-        <div class="gw-card-hd">
-          <span>QPS 趋势</span>
-          <span class="gw-sm gw-muted">{{ rangeDesc }}</span>
-        </div>
-        <div class="gw-card-bd">
-          <TrendChart
-            :times="trend.times"
-            :values="trend.values"
-            series-name="QPS"
-            :height="160"
-          />
-          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ sampleDesc }}</div>
-        </div>
-      </section>
-    </div>
+    <!-- QPS 趋势（同一份数据按桶宽折算，整行） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>QPS 趋势</span>
+        <span class="gw-sm gw-muted">{{ rangeDesc }}</span>
+      </div>
+      <div class="gw-card-bd">
+        <TrendChart
+          :times="trend.times"
+          :values="trend.values"
+          series-name="QPS"
+          :height="160"
+        />
+        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ sampleDesc }}</div>
+      </div>
+    </section>
+
 
     <!-- 运行时指标 -->
     <section class="gw-card">
