@@ -419,7 +419,7 @@ const basicFields = computed(() => {
   return [
     { label: '应用ID', value: d.appId },
     { label: '应用名', value: d.appName },
-    { label: '服务名', value: d.serviceName },
+    { label: '服务ID', value: d.serviceName },
     { label: '接口名', value: d.api },
     { label: 'traceId', value: d.traceId },
     { label: '协议', value: d.protocol },

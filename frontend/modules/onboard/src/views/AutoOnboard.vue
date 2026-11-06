@@ -198,7 +198,7 @@
               <div class="doc-block-title">① 注册</div>
               <p class="doc-text">
                 启动时 <code>POST /discovery/services/register</code>，带上 appId / serviceId / serviceName / ip / port / language / version；
-                同服务名重复注册是<strong>幂等更新</strong>，扩缩容、重启都不会产生重复记录。
+                同服务ID重复注册是<strong>幂等更新</strong>，扩缩容、重启都不会产生重复记录。
               </p>
             </div>
           </el-col>

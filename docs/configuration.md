@@ -102,7 +102,8 @@ docker exec redis redis-cli -a 'Redis@123456' KEYS 'gw:login:fail:*'   # 被锁�
 | 配置 | 默认值 | 作用 |
 | --- | --- | --- |
 | `zimo.gateway.client.server-addr` | `http://127.0.0.1:28080/api` | 平台统一入口（注册 / 心跳 / 上报都走它） |
-| `zimo.gateway.client.app-id` / `app-name` / `service-name` | `app-demo` / 示例应用 / `demo-service` | 接入归属 |
+| `zimo.gateway.client.app-id` / `app-name` | `app-demo` / 示例应用 | 接入归属：应用ID（英文）/ 应用名（中文） |
+| `zimo.gateway.client.service-id` / `service-name` | `demo-service` / 演示服务 | 接入归属：服务ID（英文唯一标识，注册幂等键）/ 服务名（中文显示名，不填则显示服务ID） |
 | `zimo.gateway.client.trace.sample-rate` | `1.0` | 采集采样率（高流量服务建议 0.1~0.3） |
 | `zimo.gateway.client.registry.heartbeat-interval` | `30000` | 心跳间隔（ms） |
 

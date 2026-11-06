@@ -143,13 +143,13 @@ const mouse = ref({ x: 0, y: 0 })
 const filterApp = ref('')
 const filterService = ref('')
 const appOptions = ref([])      // [{ appId, appName }]
-const allServices = ref([])     // [{ appId, serviceName }]
+const allServices = ref([])     // [{ appId, serviceId, serviceName }]
 
 // 服务下拉随应用级联：选了应用只列该应用下实际调用过的服务
 const serviceOptions = computed(() =>
   filterApp.value
-    ? allServices.value.filter((s) => s.appId === filterApp.value).map((s) => s.serviceName)
-    : [...new Set(allServices.value.map((s) => s.serviceName))]
+    ? allServices.value.filter((s) => s.appId === filterApp.value).map((s) => s.serviceId)
+    : [...new Set(allServices.value.map((s) => s.serviceId))]
 )
 
 const loadFilters = async () => {
@@ -226,7 +226,7 @@ const layout = computed(() => {
     })
   })
 
-  // 服务名普遍带统一前缀（jv-api-gateway-*），直接截断会让节点名全都一样，
+  // 服务ID普遍带统一前缀（jv-api-gateway-*），直接截断会让节点名全都一样，
   // 这里剥离公共前缀只显示有区分度的部分，完整名留到悬浮提示
   const common = commonPrefix(nodes.map((n) => n.name))
   const maxCalls = Math.max(...es.map((x) => x.calls), 1)
@@ -288,7 +288,7 @@ const layout = computed(() => {
 })
 
 /**
- * 服务名的公共前缀（按 '-' 边界收口）。
+ * 服务ID的公共前缀（按 '-' 边界收口）。
  * 取「首段相同」的最大分组求前缀 —— 拓扑里混有 IP:port 形态的节点时，
  * 直接对全部名称求前缀会因首个字符不同而退化为空串。
  */

@@ -80,7 +80,7 @@ java -jar backend/jv-api-gateway-proxy/target/jv-api-gateway-proxy.jar
 ## 六、采集内容
 
 每条记录包含：`api`（方法 + 路径）、`status_code`、`cost`、`res_ip/res_port`（上游地址）、
-`req_header/res_header`、`req_body/res_body`、`req_bytes/res_bytes`、`trace_id`、`service_name`。
+`req_header/res_header`、`req_body/res_body`、`req_bytes/res_bytes`、`trace_id`、`service_name`（存服务ID，英文唯一标识）。
 
 约束：
 

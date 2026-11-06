@@ -12,7 +12,8 @@ public class StatsQuery {
 
     private String appId;
 
-    private String serviceName;
+    /** 服务ID（英文唯一标识，对应 tb_gw_trace_log.service_name 值） */
+    private String serviceId;
 
     private String api;
 

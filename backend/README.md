@@ -306,7 +306,7 @@ PARTITION BY RANGE (TO_DAYS(req_time)) (   -- span 表用 start_time，edge 表�
 
 - 协议：W3C `traceparent: 00-<traceId:32hex>-<spanId:16hex>-01`，同时兼容旧 `X-Gateway-Trace-Id`
 - 网关 `TraceGlobalFilter`：有上游 traceparent 就继承（否则作为链路根），转发时注入新的 CLIENT spanId
-  与 `X-Gateway-Served-By`（网关服务名，供下游 SDK 记录 peer_service，拓扑图节点因此能与服务发现对齐）
+  与 `X-Gateway-Served-By`（网关服务ID，供下游 SDK 记录 peer_service，拓扑图节点因此能与服务发现对齐）
 - 服务侧 SDK：`GatewayTraceFilter` 读 traceparent 记 SERVER span；`TracePropagationInterceptor`
   在通过 Spring 自动装配的 `RestClient.Builder` 发起调用时记 CLIENT span 并注入 header
 - SDK 自身的注册/心跳/上报路径已在 `excludePaths` 默认排除，避免自引用噪音
@@ -528,7 +528,7 @@ proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴
 | `DOWN` 灰 | 连接拒绝 / 超时 / 无响应（服务没起来或检查不到） |
 | `ERROR` 红 | 可达但返回 5xx（进程在、运行有问题） |
 
-前端侧边栏据此渲染状态点 + 悬浮信息（菜单名｜服务名｜状态），
+前端侧边栏据此渲染状态点 + 悬浮信息（菜单名｜服务ID｜状态），
 开关 `platform.menu.health.enabled`（系统设置页，30 秒内生效）。
 
 服务健康状态语义（`tb_gw_service.status`）：
@@ -625,16 +625,16 @@ proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴
 | GET | `/api/overview/runtime` | 运行时信息 |
 | GET | `/api/overview/instances` | 已接入服务实例列表（`calls` / 平均耗时按 `?range=` 区间统计，QPS 恒为近 60 秒；按区间调用量降序取前 8） |
 | GET | `/api/stats/filters` | 数据统计筛选项（应用 / 服务 / 接口 / 方法） |
-| GET | `/api/stats/summary` | 数据统计聚合：指标卡（含 `avgRt` / `p95` / `p99`）+ 状态码/方法分布 + Top 服务/接口，支持 `appId`、`serviceName`、`api`、`method`、`range` 过滤 |
+| GET | `/api/stats/summary` | 数据统计聚合：指标卡（含 `avgRt` / `p95` / `p99`）+ 状态码/方法分布 + Top 服务/接口，支持 `appId`、`serviceId`（服务ID）、`api`、`method`、`range` 过滤 |
 | GET | `/api/stats/trend` | 请求量趋势，`?range=` 与总览 QPS 趋势完全一致（固定 60 点），同样支持四个维度过滤；返回桶内请求量（总览返回 QPS） |
 
 ### jv-api-gateway-discovery（28083）
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceName** / status / language 过滤；`?range=` 决定平均耗时与流量的聚合窗口；返回 `calls`（区间调用次数）与 `apiCount`（已登记接口数） |
-| GET | `/api/discovery/trend` | 调用趋势：区间内请求量 + QPS 双序列（`requestValues` / `values`），支持 `?appId=` `?serviceName=` 过滤、`?range=` 统一时间区间 |
-| GET | `/api/discovery/filters` | 筛选项字典：应用（appId+appName）、服务（appId+serviceName）、语言类型 |
+| GET | `/api/discovery/services` | 服务分页列表（keyword / appId / **serviceId** / status / language 过滤；`?range=` 决定平均耗时与流量的聚合窗口；返回 `calls`（区间调用次数）与 `apiCount`（已登记接口数） |
+| GET | `/api/discovery/trend` | 调用趋势：区间内请求量 + QPS 双序列（`requestValues` / `values`），支持 `?appId=` `?serviceId=` 过滤、`?range=` 统一时间区间 |
+| GET | `/api/discovery/filters` | 筛选项字典：应用（appId+appName）、服务（appId+serviceId+serviceName）、语言类型 |
 | GET | `/api/discovery/services/{id}` | 服务详情 |
 | POST | `/api/discovery/services/register` | 服务实例注册（自动接入） |
 | POST | `/api/discovery/services/heartbeat` | 服务心跳 |
@@ -656,7 +656,7 @@ proxy 每 30 秒直连探测各服务端口（`GET /health/menu-services` 免鉴
 | --- | --- | --- |
 | GET | `/api/trace/logs` | 调用日志分页列表（含 `req_params`；支持 `appId` / `service` / `method` / `api` 精确过滤，`params` 模糊检索 query / 请求体） |
 | GET | `/api/trace/logs/{id}` | 日志详情（含 `req_params`、Header、请求体、响应体） |
-| GET | `/api/trace/logs/filters` | 筛选项字典（**应用** / 协议 / 方法 / 服务名（带 appId，供级联）/ 接口名 / 报文格式，取库中真实出现过的值） |
+| GET | `/api/trace/logs/filters` | 筛选项字典（**应用** / 协议 / 方法 / 服务（带 appId，供级联；值为服务ID、展示服务名）/ 接口名 / 报文格式，取库中真实出现过的值） |
 | POST | `/api/trace/logs/batch` | 批量上报调用日志（接入 SDK 使用） |
 | POST | `/api/trace/spans/batch` | 批量上报链路 span（接入 SDK / 网关使用） |
 | GET | `/api/trace/traces/{traceId}` | 链路详情：按 traceId 取全量 span（前端组树画瀑布图） |

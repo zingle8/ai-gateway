@@ -13,7 +13,7 @@
           <el-select v-model="query.appId" placeholder="全部应用" clearable filterable style="width: 165px;">
             <el-option v-for="a in apps" :key="a.appId" :label="a.appName || a.appId" :value="a.appId" />
           </el-select>
-          <el-select v-model="query.serviceName" placeholder="全部服务" clearable filterable style="width: 180px;">
+          <el-select v-model="query.serviceId" placeholder="全部服务ID" clearable filterable style="width: 180px;">
             <el-option v-for="s in services" :key="s" :label="s" :value="s" />
           </el-select>
           <el-select v-model="query.api" placeholder="全部接口" clearable filterable style="width: 250px;">
@@ -96,7 +96,7 @@
         <div class="gw-card-hd"><span>Top 服务</span></div>
         <div class="gw-card-bd no-pad">
           <el-table :data="topServices" size="small" style="width: 100%">
-            <el-table-column prop="name" label="服务名" min-width="150" show-overflow-tooltip />
+            <el-table-column prop="name" label="服务ID" min-width="150" show-overflow-tooltip />
             <el-table-column prop="count" label="请求数" width="90" />
             <el-table-column label="平均耗时" width="100">
               <template #default="{ row }">{{ row.avgRt }} ms</template>
@@ -155,7 +155,7 @@ const sampleDesc = computed(() => timeRangeOf(range.value).desc)
 
 const query = reactive({
   appId: '',
-  serviceName: '',
+  serviceId: '',
   api: '',
   method: ''
 })
@@ -261,7 +261,7 @@ const switchRange = () => load()
 
 const reset = () => {
   query.appId = ''
-  query.serviceName = ''
+  query.serviceId = ''
   query.api = ''
   query.method = ''
   range.value = DEFAULT_TIME_RANGE

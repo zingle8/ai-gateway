@@ -73,7 +73,7 @@ export const modules = [overview, stats, discovery, trace, auth, onboard, perm, 
 
 1. **traceId / spanId 无需担心重复**：均为纯随机 UUID（traceId 128 位、spanId 64 位），
    不含机器标识、不依赖中心发号器，碰撞概率 2^-122 量级，与部署实例数无关；
-2. **需要关注服务注册**：注册表按 `serviceName` upsert，同服务多实例（不同 ip:port）时
+2. **需要关注服务注册**：注册表按 `serviceId`（服务ID，英文唯一标识）upsert，同一服务多实例（不同 ip:port）时
    心跳整体刷新，多实例的可视化/权重/健康剔除见 PLAN 的 P1「服务发现控制台」；
    多 pod 客户交付前建议排期该能力；
 3. 日志统一切分目录 `logs/app/`（文件名 = 日期--小时--ai-gateway--模块名--类型--等级.txt）

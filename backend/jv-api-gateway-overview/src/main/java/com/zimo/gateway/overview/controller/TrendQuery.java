@@ -28,7 +28,7 @@ final class TrendQuery {
         return (int) range.getWindowMinutes();
     }
 
-    /** 构造趋势查询条件；统计侧可在此基础上继续设置 appId / serviceName / api / methodLike */
+    /** 构造趋势查询条件；统计侧可在此基础上继续设置 appId / serviceId / api / methodLike */
     static StatsQuery query(TimeRange range) {
         StatsQuery query = new StatsQuery();
         query.setBucketSec((long) range.getBucketSeconds());

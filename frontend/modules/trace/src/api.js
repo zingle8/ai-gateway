@@ -10,7 +10,7 @@ export function fetchTraceLogDetail(id) {
   return request.get(`/trace/logs/${id}`)
 }
 
-/** 日志追踪：筛选项字典（协议 / 服务名 / 报文格式，取库中真实出现过的值） */
+/** 日志追踪：筛选项字典（协议 / 服务ID / 报文格式，取库中真实出现过的值） */
 export function fetchTraceFilters() {
   return request.get('/trace/logs/filters')
 }

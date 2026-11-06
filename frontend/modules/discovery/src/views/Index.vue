@@ -246,7 +246,7 @@ onMounted(() => {
 const reset = () => {
   query.keyword = ''
   query.appId = ''
-  query.serviceName = ''
+  query.serviceId = ''
   query.status = ''
   query.language = ''
   query.current = 1
@@ -269,6 +269,7 @@ const detailFields = computed(() => {
   return [
     { label: '应用ID', value: d.appId },
     { label: '应用名', value: d.appName },
+    { label: '服务ID', value: d.serviceId },
     { label: '服务名', value: d.serviceName },
     { label: '端口', value: d.port },
     { label: '语言类型', value: d.language },

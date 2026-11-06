@@ -14,7 +14,7 @@
         <if test="hours != null">AND req_time >= DATE_SUB(NOW(), INTERVAL #{hours} HOUR)</if>
         <if test="windowMinutes != null">AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowMinutes} MINUTE)</if>
         <if test="appId != null and appId != ''">AND app_id = #{appId}</if>
-        <if test="serviceName != null and serviceName != ''">AND service_name = #{serviceName}</if>
+        <if test="serviceId != null and serviceId != ''">AND service_name = #{serviceId}</if>
         <if test="api != null and api != ''">AND api = #{api}</if>
         <if test="methodLike != null and methodLike != ''">AND api LIKE #{methodLike}</if>
     </sql>

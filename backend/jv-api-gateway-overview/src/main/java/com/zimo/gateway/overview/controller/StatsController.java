@@ -53,14 +53,14 @@ public class StatsController {
     @GetMapping("/summary")
     public R<Map<String, Object>> summary(
             @RequestParam(required = false) String appId,
-            @RequestParam(required = false) String serviceName,
+            @RequestParam(required = false) String serviceId,
             @RequestParam(required = false) String api,
             @RequestParam(required = false) String method,
             @RequestParam(defaultValue = "24h") String range) {
 
         TimeRange timeRange = TimeRange.of(range);
         int windowMinutes = TrendQuery.windowMinutes(timeRange);
-        StatsQuery query = filters(appId, serviceName, api, method);
+        StatsQuery query = filters(appId, serviceId, api, method);
         query.setWindowMinutes(windowMinutes);
 
         StatsAgg agg = overviewMapper.statsAgg(query);
@@ -106,16 +106,17 @@ public class StatsController {
      * 区别只在于这里返回桶内请求量（总览返回 QPS），并且同样支持四个维度过滤。
      *
      * @param range 统一时间区间（同 summary），固定切 60 个点
+     * @param serviceId 服务ID（英文唯一标识）过滤
      */
     @GetMapping("/trend")
     public R<Map<String, Object>> trend(
             @RequestParam(required = false) String appId,
-            @RequestParam(required = false) String serviceName,
+            @RequestParam(required = false) String serviceId,
             @RequestParam(required = false) String api,
             @RequestParam(required = false) String method,
             @RequestParam(defaultValue = "24h") String range) {
         TimeRange timeRange = TimeRange.of(range);
-        StatsQuery query = filters(appId, serviceName, api, method);
+        StatsQuery query = filters(appId, serviceId, api, method);
         StatsQuery trend = TrendQuery.query(timeRange);
         query.setBucketSec(trend.getBucketSec());
         query.setWindowMinutes(trend.getWindowMinutes());
@@ -125,13 +126,13 @@ public class StatsController {
     // ------------------------------------------------------------------ 内部工具
 
     /** 维度过滤条件：summary 与 trend 共用，保证两处口径不变 */
-    private StatsQuery filters(String appId, String serviceName, String api, String method) {
+    private StatsQuery filters(String appId, String serviceId, String api, String method) {
         StatsQuery query = new StatsQuery();
         if (StringUtils.hasText(appId)) {
             query.setAppId(appId);
         }
-        if (StringUtils.hasText(serviceName)) {
-            query.setServiceName(serviceName);
+        if (StringUtils.hasText(serviceId)) {
+            query.setServiceId(serviceId);
         }
         if (StringUtils.hasText(api)) {
             query.setApi(api);

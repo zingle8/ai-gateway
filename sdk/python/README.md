@@ -45,6 +45,9 @@ client = GatewayClient(
 client.start()      # 注册 + 心跳 + 上报线程
 ```
 
+- `service_id`：服务ID，英文唯一标识（注册幂等键，如 `order-service`）；未配置时回退用 `service_name`
+- `service_name`：服务名，中文显示名（如 `订单服务`）；省略时控制台显示服务ID
+
 - Flask：`app.wsgi_app = WSGITraceMiddleware(app.wsgi_app, client)`
 - FastAPI：`app.add_middleware(ASGITraceMiddleware, client=client)`
 - 脚本 / 定时任务：`client.report(method=..., path=..., status_code=..., cost_ms=...)`
