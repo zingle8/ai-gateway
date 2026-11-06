@@ -112,7 +112,14 @@
 7. **菜单按权限动态渲染**：permCodes 已下发到前端，补菜单过滤逻辑（当前全量可见，纯前端改动）
 8. **配置 / 路由变更审计**：复用 tb_gw_api_key_log 审计表模式，记录「谁在何时改的、改前值」，配置页与路由页增加变更记录查看
 9. **列表数据导出（服务发现 / 日志追踪）**：两页筛选区「重置」按钮后新增「下载」按钮，按当前筛选条件导出列表，支持 Excel（.xlsx）/ CSV / TSV / HTML 四种格式；实现方式（前端 Blob 生成 或 后端流式下载接口）与导出上限（防止全量拖库）排期时评审
-10. **接入方主机与运行指标上报（历史趋势方案）**：SDK 新增独立定时上报（60s）——主机维度（hostname / OS / CPU 核数 / 内存总量）+ 运行指标（CPU 使用率、进程/堆内存）；discovery 新增 `POST /api/discovery/metrics/batch` 批量上报端点 + 新表 `tb_gw_host_metrics`（按天分区，参照 trace_log 做法）；数据统计页新增主机 CPU / 内存趋势图，为 v0.3 告警阈值判断铺数据基础。三端 SDK 取值：Java 用 JDK 自带 `OperatingSystemMXBean`（零依赖），Python 用 psutil，Node 用 os 模块
+10. **接入方主机与运行指标上报（历史趋势方案）**：SDK 新增独立定时上报（60s）+ discovery 新增 `POST /api/discovery/metrics/batch` 端点 + 新表 `tb_gw_host_metrics`（按天分区，参照 trace_log 做法）；数据统计页新增主机资源趋势图，为 v0.3 告警阈值判断铺数据基础。**指标按六大类采集**：
+    - **CPU**：使用率 %（系统/进程）、核数、架构、1 分钟负载均值
+    - **GPU**（NVIDIA 场景可选上报）：GPU 数量、利用率 %、显存使用率 % 与总量、温度——Python 走 pynvml，Java/Node 通过 nvidia-smi 子进程解析，无 GPU 环境自动跳过
+    - **内存**：总量、系统使用率 %、进程 RSS、JVM 堆使用率 % / GC 次数与耗时 / 线程数 / fd 数（Node 对应 event loop lag 与 heapUsed，Python 对应线程与 fd 数）
+    - **磁盘**：分区总量与使用率 %、读写吞吐（B/s）、读写 IOPS、设备利用率 %（Java 用 OSHI，Python 用 psutil.disk_io_counters，Node 解析 /proc/diskstats）
+    - **网络**：网卡收发字节数速率、收发包速率、收发错误/丢包计数、TCP 已建立连接数（Java 用 OSHI，Python 用 psutil.net_io_counters，Node 解析 /proc/net/dev）
+    - **IO**：随磁盘 IOPS/吞吐覆盖；进程级 io 计数（Python psutil.Process.io_counters）作为增强项
+    - 另含主机静态维度（hostname / OS / 版本）注册时上报、随心跳刷新；单机指标开关可配（`metrics.enabled`，默认开），无 GPU 自动降级不报
 
 ---
 
