@@ -188,6 +188,38 @@ chmod +x scripts/*.sh
 
 ## 接入与配置
 
+### 接入与采集上报机制（SDK 内部做了什么）
+
+业务系统引入 SDK 后**零代码侵入**：注册、心跳、采集、上报全部由 SDK 在后台自动完成，
+控制台与服务发现页看到的数据都来自这条链路。
+
+```
+业务系统（引入 SDK，配置三要素：server-addr / app-id / service-id）
+   │ 启动
+   ├─ POST /api/discovery/services/register    注册实例（按 serviceId 幂等，状态=健康）
+   ├─ POST /api/discovery/services/heartbeat   每 30s 心跳，刷新 last_heartbeat_time
+   ├─ POST /api/trace/logs/batch               调用日志批量上报（异步，失败不阻塞业务）
+   └─ POST /api/trace/spans/batch              调用链 span 批量上报
+        │  全部打向网关 28090，网关白名单放行上报通道（不带登录 token）
+        ▼
+   proxy 校验上报共享密钥（X-Gateway-Client-Token，防伪造注册/上报，失败 401）
+        ▼
+   discovery 落库 tb_gw_service ｜ trace 落库 tb_gw_trace_log / tb_gw_trace_span
+        ▼
+   HeartbeatMonitor 每 60s 巡检 → 超 90s（3 个心跳周期）无心跳 → 标记「离线」
+```
+
+| 机制 | 说明 |
+| --- | --- |
+| 注册 | 启动时调用 register，按 serviceId 幂等（重复注册只更新）；注册失败后心跳周期自动补注册（启动顺序敏感场景自愈） |
+| 心跳判活 | 每 30s 一次；90s 无心跳判「离线」，心跳恢复即自动回「健康」；优雅停机走 deregister 标「异常」 |
+| 采集 | SDK 侧请求旁路采集 req/res 报文、Header、耗时、出入站字节数，异步批量上报，不影响业务线程 |
+| 链路串联 | `X-Gateway-Trace-Id` / `traceparent` 跨服务透传，网关侧与业务侧日志串成一条调用链 |
+| 安全双门 | ① 上报共享密钥（伪造注册/上报直接 401）；② SDK 入口鉴权（回调 `/open/auth/token/verify` 验签 + 缓存，豁免路径 / fail-open 可配） |
+
+> 网关自己的转发侧采集（`TraceGlobalFilter`）与 SDK 采集是两套入口、同一张表：
+> 经过网关的流量由网关记，SDK 只补业务系统内部调用，两边按 traceId 串联。
+
 ### 业务系统接入（三端 SDK 任选其一）
 
 | 步骤 | Java（Spring Boot 3） | Python | Node.js |
