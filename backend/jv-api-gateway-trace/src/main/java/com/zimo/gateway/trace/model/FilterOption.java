@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class FilterOption {
 
-    /** 应用编码，如 app-api_gateway */
+    /** 应用编码，如 app-api-gateway */
     private String appId;
 
     /** 应用名称，如 API网关平台 */

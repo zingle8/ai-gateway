@@ -12,6 +12,14 @@ public class StatsRow {
 
     private String name;
 
+    /** 归属应用编码 / 应用名（Top 榜展示用） */
+    private String appId;
+
+    private String appName;
+
+    /** 服务中文名（Top 接口可能跨多个服务，用「、」连接；Top 服务为单个中文名） */
+    private String serviceLabel;
+
     private Long count;
 
     private Double avgRt;

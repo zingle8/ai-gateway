@@ -40,23 +40,41 @@
       </div>
     </div>
 
-    <!-- 请求趋势（整行） -->
-    <section class="gw-card">
-      <div class="gw-card-hd">
-        <span>请求量趋势</span>
-        <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
-      </div>
-      <div class="gw-card-bd">
-        <TrendChart
-          :times="trend.times"
-          :values="trend.values"
-          unit=" 次"
-          series-name="请求数"
-          :height="160"
-        />
-        <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
-      </div>
-    </section>
+    <!-- 请求量趋势 + QPS 趋势：同源一次查询，两套序列并排 -->
+    <div class="grid-2">
+      <section class="gw-card">
+        <div class="gw-card-hd">
+          <span>请求量趋势</span>
+          <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
+        </div>
+        <div class="gw-card-bd">
+          <TrendChart
+            :times="trend.times"
+            :values="requestTrend"
+            unit=" 次"
+            series-name="请求数"
+            :height="160"
+          />
+          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
+        </div>
+      </section>
+
+      <section class="gw-card">
+        <div class="gw-card-hd">
+          <span>QPS 趋势</span>
+          <span class="gw-sm gw-muted">{{ sampleDesc }}</span>
+        </div>
+        <div class="gw-card-bd">
+          <TrendChart
+            :times="trend.times"
+            :values="trend.values"
+            series-name="QPS"
+            :height="160"
+          />
+          <div class="gw-sm gw-muted" style="margin-top: 4px">{{ activeDesc }}</div>
+        </div>
+      </section>
+    </div>
 
     <!-- 请求方法分布 + 状态码分布：并排一行 -->
     <div class="grid-2">
@@ -94,9 +112,11 @@
       <div class="gw-card-hd"><span>Top 服务</span></div>
       <div class="gw-card-bd no-pad">
         <el-table :data="topServices" size="small" style="width: 100%">
-          <el-table-column prop="name" label="服务ID" min-width="150" show-overflow-tooltip />
+          <el-table-column prop="name" label="服务ID" min-width="180" show-overflow-tooltip />
+          <el-table-column prop="serviceLabel" label="服务名" width="110" show-overflow-tooltip />
+          <el-table-column prop="appName" label="所属应用" width="140" show-overflow-tooltip />
           <el-table-column prop="count" label="请求数" width="90" />
-          <el-table-column label="平均耗时" width="100">
+          <el-table-column label="平均耗时" width="110">
             <template #default="{ row }">{{ row.avgRt }} ms</template>
           </el-table-column>
           <el-table-column label="错误率" width="90">
@@ -117,17 +137,19 @@
       </div>
       <div class="gw-card-bd no-pad">
         <el-table :data="topApis" size="small" style="width: 100%">
-          <el-table-column prop="name" label="接口" min-width="280" show-overflow-tooltip />
-          <el-table-column prop="count" label="请求数" width="100" />
+          <el-table-column prop="name" label="接口" min-width="240" show-overflow-tooltip />
+          <el-table-column prop="serviceLabel" label="所属服务" width="130" show-overflow-tooltip />
+          <el-table-column prop="appName" label="所属应用" width="130" show-overflow-tooltip />
+          <el-table-column prop="count" label="请求数" width="90" />
           <el-table-column label="平均耗时" width="110">
             <template #default="{ row }">{{ row.avgRt }} ms</template>
           </el-table-column>
-          <el-table-column label="错误率" width="100">
+          <el-table-column label="错误率" width="90">
             <template #default="{ row }">
               <span :class="row.errorRate > 0 ? 'gw-down' : ''">{{ row.errorRate }}%</span>
             </template>
           </el-table-column>
-          <el-table-column label="占比" width="110">
+          <el-table-column label="占比" width="90">
             <template #default="{ row }">{{ percentOf(row.count) }}</template>
           </el-table-column>
         </el-table>
@@ -172,7 +194,9 @@ const data = ref({
   topApis: []
 })
 
-const trend = ref({ times: [], values: [] })
+const trend = ref({ times: [], values: [], requestValues: [] })
+// 请求量趋势与 QPS 趋势同源：后端一次查询返回两套序列（values=QPS、requestValues=请求量）
+const requestTrend = computed(() => trend.value.requestValues || [])
 const statusDist = computed(() => data.value.statusDist || [])
 const methodDist = computed(() => data.value.methodDist || [])
 const topServices = computed(() => data.value.topServices || [])
@@ -237,7 +261,7 @@ const loadTrend = async () => {
   try {
     trend.value = await fetchStatsTrend(buildParams())
   } catch (e) {
-    trend.value = { times: [], values: [] }
+    trend.value = { times: [], values: [], requestValues: [] }
   }
 }
 

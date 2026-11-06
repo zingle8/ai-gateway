@@ -19,6 +19,17 @@
         <if test="methodLike != null and methodLike != ''">AND api LIKE #{methodLike}</if>
     </sql>
 
+    <!-- Top 榜专用过滤片段：统计列带表别名 t 前缀，便于 LEFT JOIN 注册表取中文服务名 -->
+    <sql id="statsFiltersT">
+        t.deleted = 0
+        <if test="hours != null">AND t.req_time >= DATE_SUB(NOW(), INTERVAL #{hours} HOUR)</if>
+        <if test="windowMinutes != null">AND t.req_time >= DATE_SUB(NOW(), INTERVAL #{windowMinutes} MINUTE)</if>
+        <if test="appId != null and appId != ''">AND t.app_id = #{appId}</if>
+        <if test="serviceId != null and serviceId != ''">AND t.service_name = #{serviceId}</if>
+        <if test="api != null and api != ''">AND t.api = #{api}</if>
+        <if test="methodLike != null and methodLike != ''">AND t.api LIKE #{methodLike}</if>
+    </sql>
+
     <!-- 聚合列：snake_case 别名由 map-underscore-to-camel-case 映射到 StatsAgg -->
     <sql id="aggCols">
         COUNT(*) AS total,
@@ -200,21 +211,37 @@
         ORDER BY `count` DESC LIMIT 8
     </select>
 
+    <!-- Top 服务：归属应用 + 服务中文名（联注册表，未注册回退服务ID） -->
     <select id="topServices" parameterType="com.zimo.gateway.overview.model.StatsQuery"
             resultType="com.zimo.gateway.overview.model.StatsRow">
-        SELECT service_name AS name, <include refid="topCols"/>
-        FROM tb_gw_trace_log
-        WHERE <include refid="statsFilters"/> AND service_name IS NOT NULL AND service_name != ''
-        GROUP BY service_name
+        SELECT t.service_name AS name,
+               MAX(t.app_id) AS app_id,
+               MAX(t.app_name) AS app_name,
+               COALESCE((SELECT MAX(s.service_name) FROM tb_gw_service s
+                         WHERE s.service_id = t.service_name AND s.deleted = 0), t.service_name) AS service_label,
+               COUNT(*) AS `count`,
+               COALESCE(ROUND(AVG(t.cost), 2), 0) AS avg_rt,
+               COALESCE(ROUND(SUM(CASE WHEN t.status_code >= 400 THEN 1 ELSE 0 END) * 100 / COUNT(*), 2), 0) AS error_rate
+        FROM tb_gw_trace_log t
+        WHERE <include refid="statsFiltersT"/> AND t.service_name IS NOT NULL AND t.service_name != ''
+        GROUP BY t.service_name
         ORDER BY `count` DESC LIMIT 8
     </select>
 
+    <!-- Top 接口：同一接口可能被多个服务提供，服务列去重后用「、」连接 -->
     <select id="topApis" parameterType="com.zimo.gateway.overview.model.StatsQuery"
             resultType="com.zimo.gateway.overview.model.StatsRow">
-        SELECT api AS name, <include refid="topCols"/>
-        FROM tb_gw_trace_log
-        WHERE <include refid="statsFilters"/> AND api IS NOT NULL AND api != ''
-        GROUP BY api
+        SELECT t.api AS name,
+               MAX(t.app_id) AS app_id,
+               MAX(t.app_name) AS app_name,
+               GROUP_CONCAT(DISTINCT COALESCE(s.service_name, t.service_name) SEPARATOR '、') AS service_label,
+               COUNT(*) AS `count`,
+               COALESCE(ROUND(AVG(t.cost), 2), 0) AS avg_rt,
+               COALESCE(ROUND(SUM(CASE WHEN t.status_code >= 400 THEN 1 ELSE 0 END) * 100 / COUNT(*), 2), 0) AS error_rate
+        FROM tb_gw_trace_log t
+        LEFT JOIN tb_gw_service s ON s.service_id = t.service_name AND s.deleted = 0
+        WHERE <include refid="statsFiltersT"/> AND t.api IS NOT NULL AND t.api != ''
+        GROUP BY t.api
         ORDER BY `count` DESC LIMIT 8
     </select>
 </mapper>

@@ -102,8 +102,10 @@ public class StatsController {
     }
 
     /**
-     * 请求量趋势：时间区间 / 桶对齐与网关总览的 QPS 趋势完全一致，
-     * 区别只在于这里返回桶内请求量（总览返回 QPS），并且同样支持四个维度过滤。
+     * 趋势数据：时间区间 / 桶对齐与网关总览完全一致，同样支持四个维度过滤。
+     *
+     * <p>qps=true 时一次查询同时返回两套序列：{@code values} 为 QPS（桶内请求数 ÷ 桶宽），
+     * {@code requestValues} 为桶内请求量——页面上的「请求量趋势」与「QPS 趋势」共用这次查询。
      *
      * @param range 统一时间区间（同 summary），固定切 60 个点
      * @param serviceId 服务ID（英文唯一标识）过滤
@@ -120,7 +122,7 @@ public class StatsController {
         StatsQuery trend = TrendQuery.query(timeRange);
         query.setBucketSec(trend.getBucketSec());
         query.setWindowMinutes(trend.getWindowMinutes());
-        return R.ok(TrendQuery.build(overviewMapper.trendBuckets(query), timeRange, false));
+        return R.ok(TrendQuery.build(overviewMapper.trendBuckets(query), timeRange, true));
     }
 
     // ------------------------------------------------------------------ 内部工具

@@ -27,45 +27,45 @@ CREATE TABLE IF NOT EXISTS tb_gw_route (
 
 -- ============================== 种子：平台自身路由 ==============================
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-discovery', '/gw-demo/**', 'http://127.0.0.1:28083', '/api', 1, 1, '自测路由：转发到服务发现接口'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-discovery', '/gw-demo/**', 'http://127.0.0.1:28083', '/api', 1, 1, '自测路由：转发到服务发现接口'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/gw-demo/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-user', '/api/auth/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：认证服务（含 /open/auth 开放认证）'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/auth/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：认证服务（含 /open/auth 开放认证）'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/auth/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-user', '/api/users/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：用户管理'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/users/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：用户管理'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/users/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-user', '/api/perm/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：分组与权限'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/perm/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：分组与权限'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/perm/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-user', '/api/keys/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：API Key 管理'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/keys/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：API Key 管理'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/keys/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-overview', '/api/overview/**', 'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：总览统计'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-overview', '/api/overview/**', 'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：总览统计'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/overview/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-overview', '/api/stats/**', 'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：数据统计'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-overview', '/api/stats/**', 'http://127.0.0.1:28082', NULL, 0, 1, '平台自身：数据统计'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/stats/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-discovery', '/api/discovery/**', 'http://127.0.0.1:28083', NULL, 0, 1, '平台自身：服务发现'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-discovery', '/api/discovery/**', 'http://127.0.0.1:28083', NULL, 0, 1, '平台自身：服务发现'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/discovery/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-trace', '/api/trace/**', 'http://127.0.0.1:28084', NULL, 0, 1, '平台自身：日志上报'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-trace', '/api/trace/**', 'http://127.0.0.1:28084', NULL, 0, 1, '平台自身：日志上报'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/trace/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-config', '/api/configs/**', 'http://127.0.0.1:28085', NULL, 0, 1, '平台自身：系统配置'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-config', '/api/configs/**', 'http://127.0.0.1:28085', NULL, 0, 1, '平台自身：系统配置'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/configs/**');
 
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
-SELECT 'app-api_gateway', 'API网关平台', 'jv-api-gateway-user', '/api/open/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：开放认证（供第三方平台对接）'
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-user', '/api/open/**', 'http://127.0.0.1:28081', NULL, 0, 1, '平台自身：开放认证（供第三方平台对接）'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/open/**');
