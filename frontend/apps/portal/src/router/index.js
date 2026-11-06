@@ -31,6 +31,9 @@ export const MENU_SERVICES = {
   '/stats': 'jv-api-gateway-overview',
   '/discovery': 'jv-api-gateway-discovery',
   '/trace': 'jv-api-gateway-trace',
+  // 服务拓扑是 trace 模块下的独立一级路由（path 为 /topology，不以 /trace 开头），
+  // 必须单独登记，否则最长前缀匹配不到、侧边栏拿不到状态点与悬浮信息
+  '/topology': 'jv-api-gateway-trace',
   '/system-onboard': 'jv-api-gateway-user',
   '/auto-onboard': 'jv-api-gateway-user',
   '/route-config': 'jv-api-gateway-user',
