@@ -3,7 +3,7 @@
 > 维护约定：任何"要不要做、为什么不做、下一步做什么"的结论都记在这里。
 > 回答"项目还有什么没做的"时以此文档为准，并以代码现状为准绳（文档落后于代码时先改文档）。
 >
-> 最后更新：2026-11-05
+> 最后更新：2026-11-06
 
 ---
 
@@ -182,6 +182,10 @@ bash scripts/init-db.sh                   # 手工执行 backend/sql 全部脚�
 
 | 日期 | 内容 |
 | --- | --- |
+| 2026-11-06 | 服务标识体系拆分落地：新增「服务ID（英文唯一标识）+ 服务名（中文显示名）」对齐应用ID/应用名模式——DB 加 service_id（uk 唯一）、注册/心跳按 serviceId 幂等（旧 SDK 回退 serviceName）、SDK 三端（Java/Python/Node）加 serviceId+中文 serviceName、前端发现/追踪页拆列展示、种子 SQL 与文档同步 |
+| 2026-11-06 | 修复采集归属口径错位：Java SDK GatewayTraceFilter 上报 serviceName 用中文名导致 trace 表混入「配置中心」等中文值、服务发现 QPS/调用次数聚合落空。修：Properties 增 effectiveServiceId()，注册与采集统一取该值；TraceLogDTO/SpanRecordDTO/SpanDTO 增 serviceId；trace 落库统一写服务ID；历史数据按注册表回填清零；trace filters 联 tb_gw_service 返回 serviceId+中文名；前端追踪列表/详情/拓扑/下拉同时展示服务ID与服务名。regtech 侧 gateway-bridge 采集上报同步对齐（已实测） |
+| 2026-11-06 | 修复筛选项「应用」下拉重复：同一 appId 历史改名（app-gateway 网关平台→API网关平台、app-smoke Node/Python冒烟、app-pay 支付中心/支付网关），字典 SQL DISTINCT app_id+app_name 产出多行。修：trace/discovery/overview 三处字典按 app_id 取最新一条，名称优先取注册表 tb_gw_service；数据侧 trace_log/trace_span 的 app_name 对齐注册表、app-smoke 统一「冒烟测试」、app-pay 归并支付中心。实测追踪页 5→3、发现页 5→2 |
+| 2026-11-06 | 冒烟测试数据归并到 regtech 应用：历史 app-smoke trace 记录迁入 app-regtech，service ID 对齐冒烟脚本现行值（node-smoke-service→test-node-smoke、py-smoke-service→test-py-smoke）；实测追踪页与服务发现页应用下拉完全统一（app-gateway + app-regtech） |
 | 2026-11-05 | 初版：沉淀 auth/authz/config 决策；补 API Key 统计看板与开放认证 logout / 双类型校验；实体统一 `XxxEntity`；仓库迁移至 `project_api-gateway` |
 | 2026-11-05 | SDK 安全双门落地：① 上报共享密钥 `X-Gateway-Client-Token` 两端实现（SDK 自动携带、网关对上报路径校验，伪造注册/上报 401）；② SDK 入口鉴权 `GatewayAuthFilter`（回调 /open/auth/token/verify 验签 + 缓存，豁免/fail-open 可配，SDK 数据上报不受影响）；③ Python SDK `sdk/python/jv_gateway` 补齐（注册/心跳/上报/中间件/入口鉴权，冒烟脚本全通过并真实落库）；④ 接入文档同步（client-integration.md、AutoOnboard 页、backend README）。修复：ConditionalOnMissingBean 按类型判重把 gatewayAuthFilter 挤掉（改按 bean 名）、豁免路径需剥离 context-path |
 | 2026-11-05 | 新增 scripts/init-nexus.sh（Nexus 3 一键部署，Docker 端口 28095、数据卷 dist/nexus-data、幂等可重复执行）+ docs/maven-nexus-deployment.md（初始化/发布/业务方接入/版本升级与运维/方案对比表），1.2 节加一键部署链接——补齐私服分发路线的部署环节 |
