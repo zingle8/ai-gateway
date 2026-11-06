@@ -263,9 +263,14 @@ zimo:
 
 ## 四、采集字段
 
+> 归属字段口径：SDK 采集上报时同时带 `serviceId`（英文服务ID）与 `serviceName`（中文服务名），
+> 服务端 `tb_gw_trace_log` / `tb_gw_trace_span` 的 `service_name` 列**统一写入服务ID**，
+> 统计、拓扑、趋势因此按 ID 聚合，中文名由控制台按注册表映射展示。
+
+
 | 分组 | 字段 |
 | --- | --- |
-| 归属 | `appId`、`appName`、`serviceId`（服务ID，英文唯一标识，上报即此值）、`serviceName`（服务名，中文显示名，仅注册时使用） |
+| 归属 | `appId`、`appName`、`serviceId`（服务ID，英文唯一标识）、`serviceName`（服务名，中文显示名）——**服务端落库统一存服务ID**：`serviceId` 优先、缺省回退 `serviceName`；中文名只在注册表 `tb_gw_service` 维护，页面展示时按 ID 映射 |
 | 请求 | `api`（method + uri）、`protocol`、`reqFormat`、`reqHeader`、`reqBody`、`reqBytes` |
 | 响应 | `statusCode`、`resFormat`、`resHeader`、`resBody`、`resBytes` |
 | 地址 | `reqIp`、`reqPort`、`resIp`、`resPort` |

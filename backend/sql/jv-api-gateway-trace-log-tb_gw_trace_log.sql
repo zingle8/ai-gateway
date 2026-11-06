@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS tb_gw_trace_log (
   id           BIGINT      NOT NULL AUTO_INCREMENT COMMENT '主键',
   app_id       VARCHAR(64)           DEFAULT NULL   COMMENT '应用编码',
   app_name     VARCHAR(64)           DEFAULT NULL   COMMENT '应用名称',
-  service_name VARCHAR(64)           DEFAULT NULL   COMMENT '命中的后端服务',
+  service_name VARCHAR(64)           DEFAULT NULL   COMMENT '服务ID（英文唯一标识，上报归属列）',
   api          VARCHAR(255)          DEFAULT NULL   COMMENT '接口，如 POST /api/v1/order/create',
   req_params   TEXT                                COMMENT '请求 Query 参数（原始 query string；表单参数在 req_body）',
   trace_id     VARCHAR(64)           DEFAULT NULL   COMMENT '链路追踪 ID',

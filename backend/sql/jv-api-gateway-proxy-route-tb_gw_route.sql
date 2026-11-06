@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS tb_gw_route (
   id            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   app_id        VARCHAR(64)  NOT NULL                COMMENT '归属应用编码',
   app_name      VARCHAR(64)           DEFAULT NULL   COMMENT '归属应用名称',
-  service_name  VARCHAR(64)           DEFAULT NULL   COMMENT '命中的服务名',
+  service_name  VARCHAR(64)           DEFAULT NULL   COMMENT '命中的服务ID（英文唯一标识）',
   path_prefix   VARCHAR(200) NOT NULL                COMMENT '匹配路径，如 /order/**',
   upstream_url  VARCHAR(255) NOT NULL                COMMENT '转发目标，如 http://10.20.3.11:8080',
   prefix_path   VARCHAR(100)          DEFAULT NULL   COMMENT '转发前追加的路径前缀，如 /api',

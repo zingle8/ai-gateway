@@ -50,7 +50,14 @@
       <!-- 列表 -->
       <div class="gw-card-bd no-pad">
         <el-table :data="rows" size="small" style="width: 100%" @row-click="openDetail">
-          <el-table-column prop="serviceName" label="服务ID" width="150" show-overflow-tooltip />
+          <el-table-column label="服务名（服务ID）" width="210" show-overflow-tooltip>
+            <template #default="{ row }">
+              <span v-if="svcName(row.serviceName) !== row.serviceName">
+                {{ svcName(row.serviceName) }}<span class="gw-muted gw-sm">（{{ row.serviceName }}）</span>
+              </span>
+              <span v-else>{{ row.serviceName }}</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="api" label="接口名" min-width="220" show-overflow-tooltip />
           <el-table-column label="请求参数" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
@@ -234,6 +241,13 @@ const query = reactive({
 // 筛选项默认值仅作兜底；真实值由 /trace/logs/filters 按库中数据动态填充
 const appOptions = ref([])      // [{ appId, appName }]
 const allServices = ref([])     // [{ appId, serviceId, serviceName }]
+
+/** 服务ID → 中文服务名（未注册/字典未加载时回退 ID 本身） */
+const svcName = (id) => {
+  if (!id) return '—'
+  const hit = allServices.value.find((x) => x.serviceId === id)
+  return hit?.serviceName || id
+}
 
 // 「全部服务」随已选应用级联：选了应用只列该应用下的服务
 const serviceOptions = computed(() =>
@@ -420,6 +434,7 @@ const basicFields = computed(() => {
     { label: '应用ID', value: d.appId },
     { label: '应用名', value: d.appName },
     { label: '服务ID', value: d.serviceName },
+    { label: '服务名', value: svcName(d.serviceName) },
     { label: '接口名', value: d.api },
     { label: 'traceId', value: d.traceId },
     { label: '协议', value: d.protocol },

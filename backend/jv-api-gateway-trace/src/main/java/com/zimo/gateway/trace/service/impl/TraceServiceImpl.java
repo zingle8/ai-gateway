@@ -91,6 +91,8 @@ public class TraceServiceImpl implements TraceService {
             }
             GwTraceSpanEntity e = new GwTraceSpanEntity();
             BeanUtils.copyProperties(dto, e);
+            // 同 log：span 的归属列存服务ID
+            e.setServiceName(isBlank(dto.getServiceId()) ? dto.getServiceName() : dto.getServiceId());
             if (e.getStartTime() == null) {
                 e.setStartTime(LocalDateTime.now());
             }
@@ -222,6 +224,9 @@ public class TraceServiceImpl implements TraceService {
     private GwTraceLogEntity convert(TraceLogDTO dto) {
         GwTraceLogEntity entity = new GwTraceLogEntity();
         BeanUtils.copyProperties(dto, entity);
+        // 归属列统一存服务ID（英文唯一标识）：新版 SDK 传 serviceId，旧版/仅传 serviceName 时回退；
+        // 中文服务名只在 tb_gw_service 维护，展示层按 ID 映射
+        entity.setServiceName(isBlank(dto.getServiceId()) ? dto.getServiceName() : dto.getServiceId());
         if (entity.getReqTime() == null) {
             entity.setReqTime(LocalDateTime.now());
         }

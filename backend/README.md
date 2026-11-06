@@ -220,7 +220,7 @@ docker exec -it redis redis-cli -a 'Redis@123456' ping   # 返回 PONG
 SELECT service_name, peer_service, COUNT(*), SUM(status_code >= 400), SUM(cost), MAX(cost)
 FROM tb_gw_trace_span
 WHERE kind = 'CLIENT' AND start_time >= :ws AND start_time < :ws + 1h
-GROUP BY service_name, peer_service
+GROUP BY service_name, peer_service   -- service_name 存服务ID（英文唯一标识）
 ```
 
 - 重算而非增量累加：同一窗口重复执行幂等，批量上报的迟到 span 会在下一轮被纠正

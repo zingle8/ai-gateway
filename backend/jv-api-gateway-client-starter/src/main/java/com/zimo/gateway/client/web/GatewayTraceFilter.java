@@ -128,7 +128,10 @@ public class GatewayTraceFilter extends OncePerRequestFilter {
         TraceLogDTO dto = new TraceLogDTO();
         dto.setAppId(properties.getAppId());
         dto.setAppName(properties.getAppName());
-        dto.setServiceName(properties.getServiceName());
+        // 归属字段统一上报服务ID（英文唯一标识）：trace 表的 service_name 存 ID，
+        // 中文服务名只在注册表里维护，展示层映射，保证统计/拓扑聚合口径一致
+        dto.setServiceId(properties.effectiveServiceId());
+        dto.setServiceName(properties.effectiveServiceId());
         dto.setApi(request.getMethod() + " " + request.getRequestURI());
         dto.setReqParams(request.getQueryString());
         dto.setProtocol(request.getProtocol());
@@ -179,7 +182,8 @@ public class GatewayTraceFilter extends OncePerRequestFilter {
         span.setKind(SpanRecordDTO.KIND_SERVER);
         span.setAppId(properties.getAppId());
         span.setAppName(properties.getAppName());
-        span.setServiceName(properties.getServiceName());
+        span.setServiceId(properties.effectiveServiceId());
+        span.setServiceName(properties.effectiveServiceId());
         span.setApi(request.getMethod() + " " + request.getRequestURI());
         span.setStatusCode(statusCode);
         span.setErrType(resolveErrType(error, statusCode));

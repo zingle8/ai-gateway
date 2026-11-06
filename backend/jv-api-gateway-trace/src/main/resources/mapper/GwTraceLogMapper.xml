@@ -57,10 +57,15 @@
     </select>
 
     <!-- 服务下拉字典：带 app_id 供前端按应用级联过滤 -->
+    <!-- 服下拉：trace 表存服务ID，联 tb_gw_service 取中文名；
+         值为 serviceId（过滤用），展示 serviceName（中文，未注册时回退 ID） -->
     <select id="selectDistinctServices" resultType="com.zimo.gateway.trace.model.FilterOption">
-        SELECT DISTINCT app_id, service_name FROM tb_gw_trace_log
-        WHERE deleted = 0 AND service_name IS NOT NULL AND service_name != ''
-        ORDER BY service_name
+        SELECT DISTINCT t.app_id, t.service_name AS serviceId,
+               COALESCE(NULLIF(s.service_name, ''), t.service_name) AS serviceName
+        FROM tb_gw_trace_log t
+        LEFT JOIN tb_gw_service s ON s.service_id = t.service_name AND s.deleted = 0
+        WHERE t.deleted = 0 AND t.service_name IS NOT NULL AND t.service_name != ''
+        ORDER BY t.service_name
     </select>
 
     <!-- 某个应用下实际调用过的服务名集合（拓扑按应用过滤时用） -->

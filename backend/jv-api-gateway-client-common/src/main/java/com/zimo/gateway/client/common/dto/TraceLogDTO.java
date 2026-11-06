@@ -17,6 +17,10 @@ public class TraceLogDTO {
     private String appName;
 
     /** 命中的后端服务 */
+    /** 服务ID（英文唯一标识），归属字段；旧版 SDK 不传时服务端回退 serviceName */
+    private String serviceId;
+
+    /** 服务名（兼容字段）：新版 SDK 传中文名，服务端落库统一存服务ID */
     private String serviceName;
 
     /** 接口，如 POST /api/v1/order/create */

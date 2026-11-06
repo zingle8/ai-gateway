@@ -12,7 +12,12 @@
           </el-select>
           <el-select v-model="filterService" placeholder="全部服务" clearable filterable
                      size="small" style="width: 190px;" @change="load">
-            <el-option v-for="s in serviceOptions" :key="s" :label="s" :value="s" />
+            <el-option
+              v-for="s in serviceOptions"
+              :key="s.serviceId"
+              :label="s.serviceName ? `${s.serviceName}（${s.serviceId}）` : s.serviceId"
+              :value="s.serviceId"
+            />
           </el-select>
           <TimeRangePicker v-model="range" size="sm" @change="load" />
           <el-button size="small" :icon="Refresh" circle @click="load" />
@@ -145,12 +150,13 @@ const filterService = ref('')
 const appOptions = ref([])      // [{ appId, appName }]
 const allServices = ref([])     // [{ appId, serviceId, serviceName }]
 
-// 服务下拉随应用级联：选了应用只列该应用下实际调用过的服务
+// 服务下拉随应用级联：选了应用只列该应用下实际调用过的服务（值=服务ID，展示中文名）
 const serviceOptions = computed(() =>
-  filterApp.value
-    ? allServices.value.filter((s) => s.appId === filterApp.value).map((s) => s.serviceId)
-    : [...new Set(allServices.value.map((s) => s.serviceId))]
+  filterApp.value ? allServices.value.filter((s) => s.appId === filterApp.value) : allServices.value
 )
+
+/** 服务ID → 中文服务名（字典未覆盖时回退 ID） */
+const svcName = (id) => allServices.value.find((x) => x.serviceId === id)?.serviceName || id
 
 const loadFilters = async () => {
   try {
@@ -162,7 +168,7 @@ const loadFilters = async () => {
 
 // 切应用后原选中服务若不属于新应用则清空，避免「应用 A + 服务 B」组合查空
 const onAppChange = () => {
-  if (filterService.value && !serviceOptions.value.includes(filterService.value)) {
+  if (filterService.value && !serviceOptions.value.some((s) => s.serviceId === filterService.value)) {
     filterService.value = ''
   }
   load()
@@ -279,7 +285,11 @@ const layout = computed(() => {
       ...n,
       x: pos[n.name].x,
       y: pos[n.name].y,
-      short: shortName(n.name, common)
+      short: (() => {
+        const cn = svcName(n.name)
+        if (cn === n.name) return shortName(n.name, common)   // 未注册：退回截断的服务ID
+        return cn.length > 8 ? cn.slice(0, 7) + '…' : cn       // 中文名：节点宽度内截断
+      })()
     })),
     edges: drawn,
     width: 20 + (maxCol + 1) * (NODE_W + COL_GAP),
@@ -340,7 +350,7 @@ const tip = computed(() => {  const base = { x: mouse.value.x + 14, y: mouse.val
     const errs = out.reduce((s, e) => s + e.errors, 0)
     return {
       ...base,
-      title: n.name,
+      title: svcName(n.name) !== n.name ? `${svcName(n.name)}（${n.name}）` : n.name,
       rows: [
         ['作为被调方', n.inCalls + ' 次'],
         ['作为调用方', n.outCalls + ' 次'],
