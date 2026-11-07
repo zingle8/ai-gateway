@@ -8,6 +8,7 @@
  */
 import { onScopeDispose } from 'vue'
 import request from '../request'
+import { useUserStore } from '../store/user'
 
 const KEY = 'platform.ui.refresh.interval'
 const DEFAULT_SECONDS = 5
@@ -46,7 +47,15 @@ export function useAutoRefresh(load, { immediate = true } = {}) {
 
   const loop = async () => {
     if (stopped) return
-    if (immediate || timer) {
+    // 登录态门禁：未登录不发起任何刷新请求（避免登录失效后 401 刷屏）；
+    // 定时器保留，重新登录后下一轮自动恢复
+    let loggedIn = true
+    try {
+      loggedIn = !!useUserStore().token
+    } catch {
+      // Pinia 未就绪等极端场景按已登录处理，交由请求层兜底
+    }
+    if ((immediate || timer) && loggedIn) {
       try {
         await load()
       } catch {
@@ -54,7 +63,8 @@ export function useAutoRefresh(load, { immediate = true } = {}) {
       }
     }
     if (stopped) return
-    const seconds = await getRefreshInterval()
+    // 未登录时固定间隔空转（不读配置、不发数据请求），重新登录后恢复正常节奏
+    const seconds = loggedIn ? await getRefreshInterval() : DEFAULT_SECONDS
     timer = setTimeout(loop, seconds * 1000)
   }
 
