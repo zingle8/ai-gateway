@@ -70,6 +70,7 @@
             <el-option label="健康" value="健康" />
             <el-option label="亚健康" value="亚健康" />
             <el-option label="异常" value="异常" />
+            <el-option label="离线" value="离线" />
           </el-select>
           <el-select v-model="query.language" placeholder="全部语言" clearable style="width: 150px;">
             <el-option v-for="lang in langOptions" :key="lang" :label="lang" :value="lang" />

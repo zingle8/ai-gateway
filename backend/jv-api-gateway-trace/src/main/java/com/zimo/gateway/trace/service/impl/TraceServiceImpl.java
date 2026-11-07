@@ -213,6 +213,7 @@ public class TraceServiceImpl implements TraceService {
         Map<String, Object> options = new LinkedHashMap<>();
         options.put("apps", traceLogMapper.selectDistinctApps());
         options.put("protocols", traceLogMapper.selectDistinctProtocols());
+        options.put("statusCodes", traceLogMapper.selectDistinctStatusCodes());
         options.put("methods", traceLogMapper.selectDistinctMethods());
         options.put("services", traceLogMapper.selectDistinctServices());
         options.put("apis", traceLogMapper.selectDistinctApis());

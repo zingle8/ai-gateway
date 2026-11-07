@@ -265,7 +265,8 @@ const methodOptions = ref(['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPT
 const protocolOptions = ref(['HTTP/1.1', 'HTTP/2', 'gRPC', 'WebSocket'])
 const reqFormatOptions = ref(['JSON', 'Protobuf', 'form', '无'])
 const resFormatOptions = ref(['JSON', 'Protobuf', '无'])
-const statusOptions = [200, 400, 403, 429, 502, 503, 504]
+// 状态码下拉：默认仅兜底，真实值由 /trace/logs/filters 按库中数据动态填充
+const statusOptions = ref([200, 400, 401, 403, 404, 429, 500, 502, 503, 504])
 const errTypeOptions = ['无', '鉴权失败', '路由失败', '限流拒绝', '参数校验失败', '上游响应超时', '上游响应异常']
 
 /** 拉筛选项字典：失败时保留兜底值，不影响列表加载 */
@@ -279,6 +280,7 @@ const loadFilters = async () => {
     if (d.apis?.length) apiOptions.value = d.apis
     if (d.reqFormats?.length) reqFormatOptions.value = d.reqFormats
     if (d.resFormats?.length) resFormatOptions.value = d.resFormats
+    if (d.statusCodes?.length) statusOptions.value = d.statusCodes
   } catch (e) { /* 字典不可用不阻塞查询 */ }
 }
 

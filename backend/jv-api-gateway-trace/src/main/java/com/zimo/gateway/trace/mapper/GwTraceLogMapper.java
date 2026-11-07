@@ -33,6 +33,9 @@ public interface GwTraceLogMapper {
      */
     List<String> selectDistinctProtocols();
 
+    /** 状态码字典：库中真实出现过的状态码，供前端下拉过滤 */
+    List<Integer> selectDistinctStatusCodes();
+
     /** HTTP 方法字典（从 api 前缀解析） */
     List<String> selectDistinctMethods();
 
