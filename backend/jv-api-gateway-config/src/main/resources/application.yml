@@ -10,32 +10,7 @@ spring:
     import:
       - optional:nacos:api-jv-api-gateway-common.yaml
       - optional:nacos:api-jv-api-gateway-config.yaml
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: "jdbc:mysql://127.0.0.1:3306/api_gateway?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
-    username: root
-    password: 'Root@123456'
-  data:
-    redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:Redis@123456}
-      database: 0
-      timeout: 3000ms
-  cloud:
-    nacos:
-      server-addr: 127.0.0.1:8848
-      username: nacos
-      password: 'nacos'
-      discovery:
-        namespace: public
-        group: DEFAULT_GROUP
-        fail-fast: false
-      config:
-        namespace: public
-        group: DEFAULT_GROUP
-        file-extension: yaml
-
+      - optional:classpath:zimo-common.yml
 gateway:
   # 平台配置的存储来源（DB / Redis / Nacos 三种，可逐项指定）
   config-store:
@@ -52,15 +27,6 @@ gateway:
     # 与 user 服务共用：verify 只做验签，不签发
     secret: ${GATEWAY_JWT_SECRET:api-gateway-platform-jwt-secret-key-change-me-please}
     expire-hours: 8
-
-mybatis:
-  mapper-locations: classpath*:mapper/*.xml
-  configuration:
-    map-underscore-to-camel-case: true
-
-logging:
-  level:
-    com.zimo.gateway: info
 
 # 平台自身接入：心跳上报，让「服务发现」页能监控到本模块
 zimo:

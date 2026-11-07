@@ -1,0 +1,27 @@
+server:
+  port: 28087
+
+# 公共配置（数据源 / Redis / Nacos / MyBatis / 日志 / context-path）统一由 common 模块提供
+spring:
+  application:
+    name: jv-api-gateway-scheduler
+  config:
+    import:
+      - optional:classpath:zimo-common.yml
+      - optional:nacos:api-jv-api-gateway-common.yaml
+      - optional:nacos:api-jv-api-gateway-scheduler.yaml
+  datasource:
+    # 调度任务多为低频批处理，连接池收紧
+    hikari:
+      maximum-pool-size: 4
+      minimum-idle: 1
+
+# 调度中心自身参数
+scheduler:
+  # 历史数据清理执行时间（HH:mm）配置键，运行期可改：MySQL（tb_sys_config）+ Redis 双存储（Redis 优先）
+  clean-run-time-key: ${zimo.config.scheduler-clean-run-time:scheduler.clean.run-time}
+  clean-default-run-time: "02:00"
+  # 分区预建跟随清理时间 +10 分钟执行
+  partition-offset-minutes: 10
+  # 物理删除分批大小（避免大事务长锁）
+  delete-batch-size: 5000

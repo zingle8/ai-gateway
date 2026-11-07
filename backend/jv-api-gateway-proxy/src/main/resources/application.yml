@@ -10,11 +10,14 @@ spring:
   application:
     name: jv-api-gateway-proxy
 
+  # 说明：proxy 是 WebFlux 网关，不依赖 jv-api-gateway-common（含 Servlet/MyBatis 体系），
+  # 公共配置文件 zimo-common.yml 位于 common 模块，本服务无法 import，故数据源在此自持；
+  # 其余 6 个业务服务通过 spring.config.import 引用 common 公共配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: "jdbc:mysql://127.0.0.1:3306/api_gateway?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&rewriteBatchedStatements=true"
-    username: root
-    password: 'Root@123456'
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Root@123456}
     hikari:
       maximum-pool-size: 8
       minimum-idle: 2
@@ -53,10 +56,18 @@ spring:
       pool:
         size: 4
 
+# proxy 不依赖 common 模块，MyBatis / 日志配置在此自持
 mybatis:
   mapper-locations: classpath*:mapper/*.xml
   configuration:
     map-underscore-to-camel-case: true
+
+logging:
+  level:
+    root: info
+    com.zimo.gateway.proxy: info
+  file:
+    name: ../logs/jv-api-gateway-proxy.log
 
 # 采集参数
 gateway:
@@ -94,10 +105,3 @@ gateway:
         # 业务系统 app-regtech（自带 JWT 鉴权，由 jv-regtech-* 各服务的
         # JwtInterceptor 保护；平台只做路由与采集，不再做平台级鉴权）
         - /api/regtech/**
-
-logging:
-  level:
-    root: info
-    com.zimo.gateway.proxy: info
-  file:
-    name: ../logs/jv-api-gateway-proxy.log

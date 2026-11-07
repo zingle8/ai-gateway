@@ -1,0 +1,53 @@
+# ============================================================
+# 平台公共配置（jv-api-gateway-common 模块内置）
+#
+# 各微服务通过 spring.config.import: optional:classpath:zimo-common.yml 引入。
+# 优先级：本服务 application.yml > 本文件（服务本地可覆盖任意字段）。
+# 约定：数据源、Redis、Nacos、MyBatis、日志等公共配置只在这里维护，
+#       服务本地只保留端口、模块特有参数与本机差异覆盖项。
+# ============================================================
+
+server:
+  servlet:
+    context-path: /api
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: "jdbc:mysql://127.0.0.1:3306/api_gateway?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true"
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:Root@123456}
+
+  # Redis：跨实例共享状态（缓存 / 计数 / 分布式锁）。
+  # 连接为懒建立，Redis 不可用时服务仍可正常启动，相关逻辑按各模块设计降级。
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:Redis@123456}
+      timeout: 3s
+
+  cloud:
+    nacos:
+      server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+      username: nacos
+      password: 'nacos'
+      discovery:
+        namespace: public
+        group: DEFAULT_GROUP
+        # 注册失败不阻止服务启动：Nacos 不可用时仍可正常提供接口，仅失去注册发现能力
+        fail-fast: false
+      config:
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: yaml
+
+mybatis:
+  mapper-locations: classpath*:mapper/*.xml
+  configuration:
+    # 数据库蛇形命名自动映射到实体驼峰字段
+    map-underscore-to-camel-case: true
+
+logging:
+  level:
+    com.zimo.gateway: info

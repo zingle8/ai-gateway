@@ -29,6 +29,7 @@
     <module>jv-api-gateway-discovery</module>
     <module>jv-api-gateway-trace</module>
     <module>jv-api-gateway-proxy</module>
+    <module>jv-api-gateway-scheduler</module>
   </modules>
 
   <properties>

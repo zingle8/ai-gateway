@@ -90,6 +90,27 @@
               <el-radio-button label="PLATFORM">PLATFORM（平台端控制）</el-radio-button>
             </el-radio-group>
 
+            <!-- 调度时间 → 专用时间选择器（走调度中心接口双写 Redis/MySQL） -->
+            <div v-else-if="item.key === 'scheduler.clean.run-time'" class="text-edit">
+              <el-time-select
+                v-model="item.value"
+                size="small"
+                start="00:00"
+                step="00:30"
+                end="23:30"
+                style="width: 130px"
+                placeholder="选择时间"
+              />
+              <el-button
+                size="small"
+                type="primary"
+                :loading="saving === item.key"
+                @click="saveCleanRunTime(item)"
+              >
+                保存
+              </el-button>
+            </div>
+
             <!-- 其他 → 输入框 + 保存 -->
             <div v-else class="text-edit">
               <el-input v-model="item.value" size="small" style="width: 200px" />
@@ -164,6 +185,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import request from '@zimo/shared'
 import { fetchConfigs, createConfig, deleteConfig, updateConfig, fetchMenuHealth } from '../api.js'
 
 const loading = ref(false)
@@ -287,6 +309,21 @@ const remove = async (item) => {
   await deleteConfig(item.key)
   ElMessage.success('已删除')
   await load()
+}
+
+/** 调度时间专用保存：走调度中心接口（MySQL + Redis 双写，立即生效） */
+const saveCleanRunTime = async (item) => {
+  if (!/^\d{2}:\d{2}$/.test(item.value || '')) {
+    ElMessage.warning('请选择有效时间（HH:mm）')
+    return
+  }
+  saving.value = item.key
+  try {
+    await request.put('/api/scheduler/config', { runTime: item.value })
+    ElMessage.success(`调度时间已更新为每日 ${item.value}，双写 Redis/MySQL 生效`)
+  } finally {
+    saving.value = ''
+  }
 }
 
 onMounted(load)
