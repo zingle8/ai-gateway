@@ -110,7 +110,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import request from '@zimo/shared'
+import { request } from '@zimo/shared'
 
 const loading = ref(false)
 const detailLoading = ref(false)
@@ -127,8 +127,8 @@ const planText = (s) => ({ DONE: '已完成', FAILED: '失败', PENDING: '待执
 const loadJobs = async () => {
   loading.value = true
   try {
-    const res = await request.get('/api/scheduler/jobs')
-    jobs.value = res.data || []
+    // request 拦截器已解包 { code, message, data }，直接返回 data
+    jobs.value = (await request.get('/scheduler/jobs')) || []
   } finally {
     loading.value = false
   }
@@ -137,12 +137,12 @@ const loadJobs = async () => {
 const loadDetail = async (jobKey) => {
   detailLoading.value = true
   try {
-    const [planRes, logRes] = await Promise.all([
-      request.get(`/api/scheduler/jobs/${jobKey}/plans?limit=50`),
-      request.get(`/api/scheduler/jobs/${jobKey}/logs?limit=50`)
+    const [planList, logList] = await Promise.all([
+      request.get(`/scheduler/jobs/${jobKey}/plans?limit=50`),
+      request.get(`/scheduler/jobs/${jobKey}/logs?limit=50`)
     ])
-    plans.value = planRes.data || []
-    logs.value = logRes.data || []
+    plans.value = planList || []
+    logs.value = logList || []
   } finally {
     detailLoading.value = false
   }
@@ -155,8 +155,8 @@ const showDetail = async (row) => {
 }
 
 const runJob = async (jobKey) => {
-  const res = await request.post(`/api/scheduler/jobs/${jobKey}/run`)
-  ElMessage.success(res.message || '任务已触发')
+  await request.post(`/scheduler/jobs/${jobKey}/run`)
+  ElMessage.success('任务已触发')
   await loadJobs()
   if (current.value?.jobKey === jobKey) await loadDetail(jobKey)
 }

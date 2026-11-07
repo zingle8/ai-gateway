@@ -284,6 +284,12 @@ public class SchedulerService {
         return mapper.listCleanTables();
     }
 
+    /** 任务键是否合法（控制器校验用） */
+    public static boolean isKnownJob(String jobKey) {
+        return SchedulerConstants.JOB_DATA_CLEAN.equals(jobKey)
+                || SchedulerConstants.JOB_PARTITION_DAILY.equals(jobKey);
+    }
+
     private SchedulerRunLogEntity latestRunLog(String jobKey) {
         return mapper.listRunLogs(jobKey, 1).stream().findFirst().orElse(null);
     }

@@ -1,5 +1,6 @@
 package com.zimo.gateway.scheduler.controller;
 
+import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.scheduler.entity.SchedulerJobEntity;
 import com.zimo.gateway.scheduler.entity.SchedulerPlanEntity;
 import com.zimo.gateway.scheduler.entity.SchedulerRunLogEntity;
@@ -19,6 +20,8 @@ import java.util.Map;
 
 /**
  * 调度计划对外接口（控制台「系统管理 → 调度计划」页数据支撑）
+ *
+ * 统一返回平台标准响应体 R（code=200 成功），与前端 @zimo/shared request 拦截器对齐。
  */
 @RestController
 @RequestMapping("/scheduler")
@@ -29,47 +32,43 @@ public class SchedulerController {
 
     /** 任务列表（含状态与执行时间） */
     @GetMapping("/jobs")
-    public Map<String, Object> jobs() {
-        List<SchedulerJobEntity> data = service.listJobs();
-        return Map.of("code", 0, "data", data);
+    public R<List<SchedulerJobEntity>> jobs() {
+        return R.ok(service.listJobs());
     }
 
     /** 执行计划列表（分区预建计划等） */
     @GetMapping("/jobs/{jobKey}/plans")
-    public Map<String, Object> plans(@PathVariable String jobKey,
-                                     @RequestParam(defaultValue = "50") int limit) {
-        List<SchedulerPlanEntity> data = service.listPlans(jobKey, limit);
-        return Map.of("code", 0, "data", data);
+    public R<List<SchedulerPlanEntity>> plans(@PathVariable String jobKey,
+                                             @RequestParam(defaultValue = "50") int limit) {
+        return R.ok(service.listPlans(jobKey, limit));
     }
 
     /** 执行记录列表 */
     @GetMapping("/jobs/{jobKey}/logs")
-    public Map<String, Object> logs(@PathVariable String jobKey,
-                                    @RequestParam(defaultValue = "50") int limit) {
-        List<SchedulerRunLogEntity> data = service.listRunLogs(jobKey, limit);
-        return Map.of("code", 0, "data", data);
+    public R<List<SchedulerRunLogEntity>> logs(@PathVariable String jobKey,
+                                               @RequestParam(defaultValue = "50") int limit) {
+        return R.ok(service.listRunLogs(jobKey, limit));
     }
 
     /** 手动触发任务 */
     @PostMapping("/jobs/{jobKey}/run")
-    public Map<String, Object> run(@PathVariable String jobKey) {
-        if (!"data-clean".equals(jobKey) && !"partition-daily".equals(jobKey)) {
-            return Map.of("code", 404, "message", "未知任务: " + jobKey);
+    public R<SchedulerRunLogEntity> run(@PathVariable String jobKey) {
+        if (!SchedulerService.isKnownJob(jobKey)) {
+            return R.fail("未知任务: " + jobKey);
         }
-        Object log = "data-clean".equals(jobKey) ? service.runClean("MANUAL") : service.runPartition("MANUAL");
-        return Map.of("code", 0, "data", log, "message", "任务已触发");
+        return R.ok("data-clean".equals(jobKey) ? service.runClean("MANUAL") : service.runPartition("MANUAL"));
     }
 
     /** 读取调度时间配置 */
     @GetMapping("/config")
-    public Map<String, Object> config() {
-        return Map.of("code", 0, "data", Map.of("runTime", service.getCleanRunTime()));
+    public R<Map<String, String>> config() {
+        return R.ok(Map.of("runTime", service.getCleanRunTime()));
     }
 
     /** 修改调度时间（MySQL + Redis 双写） */
     @PutMapping("/config")
-    public Map<String, Object> updateConfig(@RequestBody Map<String, String> body) {
+    public R<Void> updateConfig(@RequestBody Map<String, String> body) {
         service.updateCleanRunTime(body.get("runTime"));
-        return Map.of("code", 0, "message", "调度时间已更新并双写 Redis/MySQL");
+        return R.ok();
     }
 }

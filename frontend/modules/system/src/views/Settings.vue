@@ -185,7 +185,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import request from '@zimo/shared'
+import { request } from '@zimo/shared'
 import { fetchConfigs, createConfig, deleteConfig, updateConfig, fetchMenuHealth } from '../api.js'
 
 const loading = ref(false)
@@ -319,8 +319,8 @@ const saveCleanRunTime = async (item) => {
   }
   saving.value = item.key
   try {
-    await request.put('/api/scheduler/config', { runTime: item.value })
-    ElMessage.success(`调度时间已更新为每日 ${item.value}，双写 Redis/MySQL 生效`)
+    await request.put('/scheduler/config', { runTime: item.value })
+    ElMessage.success(`调度时间已更新为每日 ${item.value}，Redis/MySQL 双写已生效`)
   } finally {
     saving.value = ''
   }

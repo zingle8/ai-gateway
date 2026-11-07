@@ -7,6 +7,7 @@ import com.zimo.gateway.scheduler.entity.SchedulerPlanEntity;
 import com.zimo.gateway.scheduler.entity.SchedulerRunLogEntity;
 import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Insert;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
@@ -46,6 +47,7 @@ public interface SchedulerMapper {
 
     @Insert("INSERT INTO tb_scheduler_plan(job_key, plan_type, plan_date, target, partition_name, partition_value, status, detail, create_time)"
             + " VALUES(#{jobKey}, #{planType}, #{planDate}, #{target}, #{partitionName}, #{partitionValue}, #{status}, #{detail}, NOW())")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
     int insertPlan(SchedulerPlanEntity plan);
 
     @Update("UPDATE tb_scheduler_plan SET status = #{status}, detail = #{detail}, done_time = NOW() WHERE id = #{id}")
