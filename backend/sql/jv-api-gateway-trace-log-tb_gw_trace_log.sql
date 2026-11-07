@@ -41,7 +41,9 @@ CREATE TABLE IF NOT EXISTS tb_gw_trace_log (
   KEY idx_trace (trace_id),
   KEY idx_service (service_name),
   KEY idx_errtype (err_type),
-  KEY idx_reqtime (req_time)
+  KEY idx_reqtime (req_time),
+  KEY idx_time_cost (req_time, cost)                      COMMENT '分位数/耗时排序：覆盖索引免回表',
+  KEY idx_svc_cover (service_name, req_time, cost, req_bytes, res_bytes) COMMENT '服务维度区间聚合：覆盖索引免回表'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '网关调用日志';
 
 -- ============================== 演示数据 ==============================

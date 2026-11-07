@@ -87,16 +87,15 @@
         WHERE deleted = 0 AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND)
     </select>
 
-    <select id="rangePercentile" resultType="long">
+    <!-- 区间 cost 列：覆盖索引 (req_time, cost) 直出，Java 侧一次排序算多分位，替代多次 OFFSET filesort -->
+    <select id="rangeCosts" resultType="long">
         SELECT cost FROM tb_gw_trace_log
-        WHERE deleted = 0 AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND)
-        ORDER BY cost LIMIT 1 OFFSET #{offset}
+        WHERE deleted = 0 AND req_time >= DATE_SUB(NOW(), INTERVAL #{windowSeconds} SECOND) AND cost IS NOT NULL
     </select>
 
-    <select id="todayPercentile" resultType="long">
+    <select id="todayCosts" resultType="long">
         SELECT cost FROM tb_gw_trace_log
-        WHERE deleted = 0 AND req_time >= CURDATE()
-        ORDER BY cost LIMIT 1 OFFSET #{offset}
+        WHERE deleted = 0 AND req_time >= CURDATE() AND cost IS NOT NULL
     </select>
 
     <!-- 服务实例榜：calls / avg_cost 按所选区间统计，qps 恒取近 60 秒（瞬时速率语义） -->
@@ -188,10 +187,10 @@
         WHERE <include refid="statsFilters"/>
     </select>
 
-    <select id="statsPercentile" parameterType="com.zimo.gateway.overview.model.StatsQuery" resultType="long">
+    <!-- 过滤条件下的 cost 列：Java 侧一次排序算多分位 -->
+    <select id="statsCosts" parameterType="com.zimo.gateway.overview.model.StatsQuery" resultType="long">
         SELECT cost FROM tb_gw_trace_log
-        WHERE <include refid="statsFilters"/>
-        ORDER BY cost LIMIT 1 OFFSET #{offset}
+        WHERE <include refid="statsFilters"/> AND cost IS NOT NULL
     </select>
 
     <select id="statusDist" parameterType="com.zimo.gateway.overview.model.StatsQuery"

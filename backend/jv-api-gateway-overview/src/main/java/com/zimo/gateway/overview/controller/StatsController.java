@@ -15,7 +15,11 @@ import org.springframework.web.bind.annotation.RestController;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 数据统计：在网关总览的指标口径上，支持按 应用 / 服务 / 接口 / 方法 维度过滤。
@@ -63,7 +67,17 @@ public class StatsController {
         StatsQuery query = filters(appId, serviceId, api, method);
         query.setWindowMinutes(windowMinutes);
 
-        StatsAgg agg = overviewMapper.statsAgg(query);
+        // 一次页面 8 条独立查询，并行执行（串行时随区间变大线性劣化）
+        var fAgg = CompletableFuture.supplyAsync(() -> overviewMapper.statsAgg(query));
+        var fCosts = CompletableFuture.supplyAsync(() -> overviewMapper.statsCosts(query));
+        var fStatus = CompletableFuture.supplyAsync(() -> overviewMapper.statusDist(query));
+        var fMethod = CompletableFuture.supplyAsync(() -> overviewMapper.methodDist(query));
+        var fTopSvc = CompletableFuture.supplyAsync(() -> overviewMapper.topServices(query));
+        var fTopApi = CompletableFuture.supplyAsync(() -> overviewMapper.topApis(query));
+        var fAppCount = CompletableFuture.supplyAsync(overviewMapper::statsAppCount);
+        var fApiCount = CompletableFuture.supplyAsync(overviewMapper::statsApiCount);
+
+        StatsAgg agg = fAgg.join();
         long total = num(agg.getTotal()).longValue();
         long errors = num(agg.getErrors()).longValue();
         long reqBytes = num(agg.getReqBytes()).longValue();
@@ -76,8 +90,9 @@ public class StatsController {
         summary.put("errorRate", percent(errors, total));
         summary.put("successRate", total == 0 ? 100d : round2((total - errors) * 100d / total));
         summary.put("avgRt", round2(num(agg.getAvgRt()).doubleValue()));
-        summary.put("p95", percentile(query, total, 0.95));
-        summary.put("p99", percentile(query, total, 0.99));
+        List<Long> costs = fCosts.join();
+        summary.put("p95", percentileFromCosts(costs, 0.95));
+        summary.put("p99", percentileFromCosts(costs, 0.99));
         // QPS 按所选区间折算，1 分钟窗口下即为该分钟的每秒请求数
         summary.put("qps", round2(total / Math.max(1, windowMinutes * 60d)));
         summary.put("inbound", humanBytes(reqBytes));
@@ -85,19 +100,19 @@ public class StatsController {
         summary.put("inboundBytes", reqBytes);
         summary.put("outboundBytes", resBytes);
         // 规模指标：全平台口径，不受上面的过滤条件影响
-        summary.put("appCount", overviewMapper.statsAppCount());
+        summary.put("appCount", fAppCount.join());
         summary.put("serviceCount", overviewMapper.countServices());
-        summary.put("apiCount", overviewMapper.statsApiCount());
+        summary.put("apiCount", fApiCount.join());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("range", Map.of("code", timeRange.getCode(),
                 "label", timeRange.getRangeLabel(),
                 "minutes", windowMinutes));
         data.put("summary", summary);
-        data.put("statusDist", overviewMapper.statusDist(query));
-        data.put("methodDist", overviewMapper.methodDist(query));
-        data.put("topServices", overviewMapper.topServices(query));
-        data.put("topApis", overviewMapper.topApis(query));
+        data.put("statusDist", fStatus.join());
+        data.put("methodDist", fMethod.join());
+        data.put("topServices", fTopSvc.join());
+        data.put("topApis", fTopApi.join());
         return R.ok(data);
     }
 
@@ -146,13 +161,15 @@ public class StatsController {
         return query;
     }
 
-    /** 分位耗时（P95 / P99）：MySQL 5.7 无窗口函数，用「排序 + 偏移量」取分位点 */
-    private int percentile(StatsQuery query, long total, double quantile) {
-        if (total <= 0) {
+    /** 分位耗时：一次覆盖索引扫描取回 cost 列，Java 排序算多分位（替代多次 OFFSET filesort） */
+    private int percentileFromCosts(List<Long> costs, double quantile) {
+        if (costs == null || costs.isEmpty()) {
             return 0;
         }
-        query.setOffset(Math.min((int) Math.floor(total * quantile), (int) total - 1));
-        Long value = overviewMapper.statsPercentile(query);
+        List<Long> sorted = new ArrayList<>(costs);
+        Collections.sort(sorted);
+        int idx = (int) Math.min(Math.floor(sorted.size() * quantile), sorted.size() - 1);
+        Long value = sorted.get(idx);
         return value == null ? 0 : value.intValue();
     }
 

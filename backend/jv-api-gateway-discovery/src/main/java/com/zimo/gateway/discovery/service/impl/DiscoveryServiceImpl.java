@@ -18,6 +18,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.Map;
 
 /**
@@ -39,12 +40,15 @@ public class DiscoveryServiceImpl implements DiscoveryService {
 
     @Override
     public Page<GwServiceEntity> pageServices(ServiceQuery query) {
-        long total = serviceMapper.countPage(query);
+        int window = query.getWindowSeconds() > 0 ? query.getWindowSeconds() : DEFAULT_WINDOW_SECONDS;
+        // 分页、条数、区间聚合、接口数四路查询相互独立，并行执行
         long current = Math.max(1, query.getCurrent());
         long size = Math.max(1, query.getSize());
-        List<GwServiceEntity> records = total == 0 ? List.of() : serviceMapper.selectPage(query);
-        int window = query.getWindowSeconds() > 0 ? query.getWindowSeconds() : DEFAULT_WINDOW_SECONDS;
-        fillRuntimeStats(records, window);
+        var fTotal = CompletableFuture.supplyAsync(() -> serviceMapper.countPage(query));
+        var fRecords = CompletableFuture.supplyAsync(() -> serviceMapper.selectPage(query));
+        long total = fTotal.join();
+        List<GwServiceEntity> records = total == 0 ? List.of() : fRecords.join();
+        CompletableFuture.runAsync(() -> fillRuntimeStats(records, window)).join();
 
         return Page.of(records, total, current, size);
     }

@@ -21,9 +21,11 @@ import java.lang.management.ThreadMXBean;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * 网关总览：全局指标。
@@ -49,17 +51,27 @@ public class OverviewController {
         TimeRange timeRange = TimeRange.of(range);
         long windowSeconds = Math.max(1, Duration.between(timeRange.since(), LocalDateTime.now()).getSeconds());
 
-        long appCount = overviewMapper.countApps();
-        long serviceCount = overviewMapper.countServices();
-        long onlineCount = overviewMapper.countOnlineServices();
-        long apiCount = overviewMapper.countApis();
+        // 指标卡各查询相互独立，并行执行（串行时 24h 区间约 400ms+，并行后取最慢一条）
+        var fApp = CompletableFuture.supplyAsync(overviewMapper::countApps);
+        var fSvc = CompletableFuture.supplyAsync(overviewMapper::countServices);
+        var fOnline = CompletableFuture.supplyAsync(overviewMapper::countOnlineServices);
+        var fApi = CompletableFuture.supplyAsync(overviewMapper::countApis);
+        var fCount = CompletableFuture.supplyAsync(() -> overviewMapper.rangeCount(windowSeconds));
+        var fAgg = CompletableFuture.supplyAsync(() -> overviewMapper.rangeStats(windowSeconds));
+        var fCosts = CompletableFuture.supplyAsync(() -> overviewMapper.rangeCosts(windowSeconds));
+        CompletableFuture.allOf(fApp, fSvc, fOnline, fApi, fCount, fAgg, fCosts).join();
+
+        long appCount = fApp.join();
+        long serviceCount = fSvc.join();
+        long onlineCount = fOnline.join();
+        long apiCount = fApi.join();
 
         // 区间请求数折算到每秒，即为该区间的平均 QPS
-        long requests = overviewMapper.rangeCount(windowSeconds);
+        long requests = fCount.join();
         BigDecimal qps = BigDecimal.valueOf(requests)
                 .divide(BigDecimal.valueOf(windowSeconds), 2, RoundingMode.HALF_UP);
 
-        StatsAgg agg = overviewMapper.rangeStats(windowSeconds);
+        StatsAgg agg = fAgg.join();
         long total = number(agg.getTotal()).longValue();
         long errors = number(agg.getErrors()).longValue();
         double avgRt = number(agg.getAvgRt()).doubleValue();
@@ -79,8 +91,9 @@ public class OverviewController {
         // 兼容原字段：前端已统一按「区间请求数」展示
         data.put("todayRequests", total);
         data.put("avgRt", Math.round(avgRt));
-        data.put("p95", percentile(windowSeconds, total, 0.95));
-        data.put("p99", percentile(windowSeconds, total, 0.99));
+        List<Long> costs = fCosts.join();
+        data.put("p95", percentileFromCosts(costs, 0.95));
+        data.put("p99", percentileFromCosts(costs, 0.99));
         data.put("errorRate", round2(errorRate));
         data.put("healthScore", healthScore(serviceCount, onlineCount, errorRate));
         data.put("inbound", humanBytes(reqBytes));
@@ -178,23 +191,19 @@ public class OverviewController {
 
     // ------------------------------------------------------------------ 内部方法
 
-    /** 区间 P95 / P99：MySQL 5.7 没有窗口函数，用「排序 + 偏移量」取分位点 */
-    private int percentile(long windowSeconds, long total, double quantile) {
-        if (total <= 0) {
+    /**
+     * 分位耗时：一次覆盖索引扫描取回区间 cost 列，Java 排序后按分位取值。
+     * 替代原先每个分位一条「ORDER BY cost LIMIT 1 OFFSET n」——那会对区间内
+     * 全部行各做一次 filesort；现在 N 个分位共享一次扫描 + 一次内存排序。
+     */
+    private int percentileFromCosts(List<Long> costs, double quantile) {
+        if (costs == null || costs.isEmpty()) {
             return 0;
         }
-        int offset = Math.min((int) Math.floor(total * quantile), (int) total - 1);
-        Long value = overviewMapper.rangePercentile(windowSeconds, offset);
-        return value == null ? 0 : value.intValue();
-    }
-
-    /** 今日 P95 / P99：运行时指标区仍按自然日口径 */
-    private int todayPercentile(long total, double quantile) {
-        if (total <= 0) {
-            return 0;
-        }
-        int offset = Math.min((int) Math.floor(total * quantile), (int) total - 1);
-        Long value = overviewMapper.todayPercentile(offset);
+        List<Long> sorted = new ArrayList<>(costs);
+        Collections.sort(sorted);
+        int idx = (int) Math.min(Math.floor(sorted.size() * quantile), sorted.size() - 1);
+        Long value = sorted.get(idx);
         return value == null ? 0 : value.intValue();
     }
 

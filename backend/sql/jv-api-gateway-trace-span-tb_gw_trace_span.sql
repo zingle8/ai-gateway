@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS tb_gw_trace_span (
   KEY idx_trace  (trace_id)                          COMMENT '按链路聚合（瀑布图）',
   KEY idx_start  (start_time)                        COMMENT '时间窗查询 / 分区裁剪',
   KEY idx_edge   (service_name, peer_service, start_time) COMMENT '服务拓扑（调用对）聚合',
-  KEY idx_span   (span_id)                           COMMENT '父 span 定位'
+  KEY idx_span   (span_id)                           COMMENT '父 span 定位',
+  KEY idx_time_trace_cost (start_time, trace_id, cost, status_code) COMMENT '慢链路聚合：覆盖索引免回表'
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = '调用链路 span'
 PARTITION BY RANGE (TO_DAYS(start_time)) (
   PARTITION p20261001 VALUES LESS THAN (TO_DAYS('2026-10-02')),

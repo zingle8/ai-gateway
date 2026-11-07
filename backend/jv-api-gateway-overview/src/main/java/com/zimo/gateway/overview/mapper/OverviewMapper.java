@@ -33,7 +33,7 @@ public interface OverviewMapper {
     StatsAgg todayStats();
 
     /** 今日 P95 / P99：MySQL 5.7 无窗口函数，用排序 + 偏移量 */
-    Long todayPercentile(@Param("offset") int offset);
+    List<Long> todayCosts();
 
     /** 按时间区间（秒）聚合：总览页指标卡随所选区间变化 */
     StatsAgg rangeStats(@Param("windowSeconds") long windowSeconds);
@@ -41,7 +41,7 @@ public interface OverviewMapper {
     /** 区间内请求总数，用于折算 QPS */
     long rangeCount(@Param("windowSeconds") long windowSeconds);
 
-    Long rangePercentile(@Param("windowSeconds") long windowSeconds, @Param("offset") int offset);
+    List<Long> rangeCosts(@Param("windowSeconds") long windowSeconds);
 
     /** 已注册服务实例 + 所选区间内的真实调用聚合 */
     List<Map<String, Object>> instances(@Param("windowSeconds") long windowSeconds);
@@ -69,7 +69,7 @@ public interface OverviewMapper {
 
     StatsAgg statsAgg(StatsQuery query);
 
-    Long statsPercentile(StatsQuery query);
+    List<Long> statsCosts(StatsQuery query);
 
     List<StatsRow> statusDist(StatsQuery query);
 
