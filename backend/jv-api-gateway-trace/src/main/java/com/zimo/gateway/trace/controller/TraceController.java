@@ -130,4 +130,33 @@ public class TraceController {
                                              @RequestParam(defaultValue = "10") int limit) {
         return R.ok(traceService.slowTraces(range, limit));
     }
+
+    /**
+     * WebSocket 会话分页列表（proxy 旁路采集落库 tb_gw_ws_session）
+     */
+    @GetMapping("/ws/sessions")
+    public R<PageResult<com.zimo.gateway.trace.entity.GwWsSessionEntity>> wsSessions(
+            @RequestParam(required = false) String traceId,
+            @RequestParam(required = false) String path,
+            @RequestParam(required = false) String closeStatus,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(defaultValue = "1") long current,
+            @RequestParam(defaultValue = "10") long size) {
+        com.zimo.gateway.trace.model.WsSessionQuery query = new com.zimo.gateway.trace.model.WsSessionQuery();
+        query.setTraceId(traceId);
+        query.setPath(path);
+        query.setCloseStatus(closeStatus);
+        query.setStartTime(startTime);
+        query.setCurrent(current);
+        query.setSize(size);
+        return R.ok(PageResult.of(traceService.pageWsSessions(query)));
+    }
+
+    /**
+     * WebSocket 会话帧明细（tb_gw_ws_frame，按 sessionKey 关联）
+     */
+    @GetMapping("/ws/frames")
+    public R<java.util.List<com.zimo.gateway.trace.entity.GwWsFrameEntity>> wsFrames(@RequestParam String sessionKey) {
+        return R.ok(traceService.wsFrames(sessionKey));
+    }
 }

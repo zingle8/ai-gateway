@@ -3,9 +3,14 @@
     <section class="gw-card">
       <div class="gw-card-hd">
         <span>日志追踪</span>
-        <span class="gw-muted gw-sm">共 {{ total }} 条调用日志</span>
+        <el-radio-group v-model="viewMode" size="small">
+          <el-radio-button label="http">调用日志</el-radio-button>
+          <el-radio-button label="ws">WebSocket 会话</el-radio-button>
+        </el-radio-group>
+        <span v-if="viewMode === 'http'" class="gw-muted gw-sm">共 {{ total }} 条调用日志</span>
       </div>
 
+      <template v-if="viewMode === 'http'">
       <!-- 过滤栏 -->
       <div class="gw-card-bd">
         <div class="filter-bar">
@@ -104,7 +109,10 @@
           @current-change="onPage"
         />
       </div>
+      </template>
+      <WsSessions v-else />
     </section>
+
 
     <!-- 日志详情抽屉 -->
     <el-drawer v-model="detailVisible" :title="'请求详情 · ' + (detail.traceId || '')" size="min(620px, 94vw)">
@@ -208,10 +216,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import WsSessions from './WsSessions.vue'
 import { fetchTraceLogs, fetchTraceFilters, fetchTraceLogDetail, fetchTraceSpans } from '../api'
 import { fmtTime, fmtBytes, statusTagType, parseHeaders } from '@zimo/shared'
 
 const route = useRoute()
+const viewMode = ref('http')
 
 const rows = ref([])
 const total = ref(0)

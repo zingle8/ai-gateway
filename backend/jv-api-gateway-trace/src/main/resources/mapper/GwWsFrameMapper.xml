@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.trace.mapper.GwWsFrameMapper">
+
+    <select id="listBySessionKey" resultType="com.zimo.gateway.trace.entity.GwWsFrameEntity">
+        SELECT id, session_key, trace_id, direction, msg_type, payload, length, recv_time
+        FROM tb_gw_ws_frame
+        WHERE session_key = #{sessionKey}
+        ORDER BY id ASC
+    </select>
+</mapper>

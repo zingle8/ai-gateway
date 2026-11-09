@@ -22,7 +22,12 @@ public class WsCaptureConfig {
     @Primary
     public WebSocketService wsCaptureWebSocketService(RequestUpgradeStrategy upgradeStrategy,
                                                       WsSessionSink sink,
-                                                      @Value("${gateway.trace.ws-sample-bytes:2048}") int sampleBytes) {
-        return new WsCaptureWebSocketService(new HandshakeWebSocketService(upgradeStrategy), sink, sampleBytes);
+                                                      WsFrameSink frameSink,
+                                                      @Value("${gateway.trace.ws-sample-bytes:2048}") int sampleBytes,
+                                                      @Value("${gateway.trace.ws-frame-log:true}") boolean frameLogEnabled,
+                                                      @Value("${gateway.trace.ws-frame-sample-bytes:1024}") int frameSampleBytes,
+                                                      @Value("${gateway.trace.ws-frame-max-per-session:200}") int maxFramesPerSession) {
+        return new WsCaptureWebSocketService(new HandshakeWebSocketService(upgradeStrategy), sink, frameSink,
+                sampleBytes, frameLogEnabled, frameSampleBytes, maxFramesPerSession);
     }
 }

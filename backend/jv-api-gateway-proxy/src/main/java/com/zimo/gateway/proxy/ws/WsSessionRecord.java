@@ -9,11 +9,14 @@ import java.time.LocalDateTime;
  * WebSocket 会话级采集记录（tb_gw_ws_session）。
  *
  * <p>连接维度：双向消息数与字节数、双向首帧样本（前 N 字节）、起止时间与关闭状态。
- * 帧明细不落库（量大），样本用于排查协议问题。
+ * 帧明细另落 tb_gw_ws_frame（见 WsFrameSink），按 sessionKey 关联。
  */
 @Data
 @Builder
 public class WsSessionRecord {
+
+    /** 会话唯一键（UUID，帧明细 tb_gw_ws_frame 关联用） */
+    private String sessionKey;
 
     /** 链路追踪 ID（来自网关 TraceGlobalFilter 注入的 X-Gateway-Trace-Id） */
     private String traceId;

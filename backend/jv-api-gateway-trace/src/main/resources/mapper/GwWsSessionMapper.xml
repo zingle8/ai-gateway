@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zimo.gateway.trace.mapper.GwWsSessionMapper">
+
+    <sql id="pageWhere">
+        1 = 1
+        <if test="traceId != null and traceId != ''">AND trace_id LIKE CONCAT('%', #{traceId}, '%')</if>
+        <if test="path != null and path != ''">AND request_path LIKE CONCAT('%', #{path}, '%')</if>
+        <if test="closeStatus != null and closeStatus != ''">
+            <choose>
+                <when test="closeStatus == 'NORMAL'">AND close_status = 'NORMAL'</when>
+                <otherwise>AND close_status != 'NORMAL'</otherwise>
+            </choose>
+        </if>
+        <if test="startTime != null and startTime != ''">AND conn_start &gt;= #{startTime}</if>
+    </sql>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM tb_gw_ws_session WHERE <include refid="pageWhere"/>
+    </select>
+
+    <select id="selectPage" resultType="com.zimo.gateway.trace.entity.GwWsSessionEntity">
+        SELECT id, session_key, trace_id, request_path, upstream_url, client_ip,
+               conn_start, conn_end, duration_ms, in_msg_count, in_bytes,
+               out_msg_count, out_bytes, close_status, create_time
+        FROM tb_gw_ws_session WHERE <include refid="pageWhere"/>
+        ORDER BY conn_start DESC
+        LIMIT ${(current - 1) * size}, #{size}
+    </select>
+</mapper>

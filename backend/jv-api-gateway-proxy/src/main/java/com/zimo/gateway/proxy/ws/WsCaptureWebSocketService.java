@@ -16,6 +16,8 @@ import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR;
@@ -37,12 +39,25 @@ public class WsCaptureWebSocketService implements WebSocketService {
 
     private final WebSocketService delegate;
     private final WsSessionSink sink;
+    private final WsFrameSink frameSink;
     private final int sampleBytes;
+    /** 帧明细采集开关 */
+    private final boolean frameLogEnabled;
+    /** 每帧 payload 样本最大字节数 */
+    private final int frameSampleBytes;
+    /** 每会话最多记录帧数（超出丢弃，防超长连接刷库） */
+    private final int maxFramesPerSession;
 
-    public WsCaptureWebSocketService(WebSocketService delegate, WsSessionSink sink, int sampleBytes) {
+    public WsCaptureWebSocketService(WebSocketService delegate, WsSessionSink sink, WsFrameSink frameSink,
+                                     int sampleBytes, boolean frameLogEnabled,
+                                     int frameSampleBytes, int maxFramesPerSession) {
         this.delegate = delegate;
         this.sink = sink;
+        this.frameSink = frameSink;
         this.sampleBytes = sampleBytes;
+        this.frameLogEnabled = frameLogEnabled;
+        this.frameSampleBytes = frameSampleBytes;
+        this.maxFramesPerSession = maxFramesPerSession;
     }
 
     @Override
@@ -63,33 +78,45 @@ public class WsCaptureWebSocketService implements WebSocketService {
                 .clientIp(remote == null ? null : remote.getAddress().getHostAddress())
                 .connStart(start);
 
+        String sessionKey = UUID.randomUUID().toString().replace("-", "");
+        builder.sessionKey(sessionKey);
+
         WebSocketHandler capturing = session -> {
-            Recorder recorder = new Recorder(builder);
+            Recorder recorder = new Recorder(builder, sessionKey, traceId);
             return handler.handle(new CapturingSession(session, recorder))
                     .doFinally(signal -> sink.offer(recorder.finish(signal, start)));
         };
         return delegate.handleRequest(exchange, capturing);
     }
 
-    /** 双向计数与首帧样本累积 */
+    /** 双向计数、首帧样本与帧明细累积 */
     class Recorder {
         private final WsSessionRecord.WsSessionRecordBuilder builder;
+        private final String sessionKey;
+        private final String traceId;
         private final AtomicLong inMsg = new AtomicLong();
         private final AtomicLong inBytes = new AtomicLong();
         private final AtomicLong outMsg = new AtomicLong();
         private final AtomicLong outBytes = new AtomicLong();
+        /** 已记录帧数（IN+OUT 合计，达到 maxFramesPerSession 后不再记录） */
+        private final AtomicInteger frameCount = new AtomicInteger();
         private volatile String inSample;
         private volatile String outSample;
 
-        Recorder(WsSessionRecord.WsSessionRecordBuilder builder) {
+        Recorder(WsSessionRecord.WsSessionRecordBuilder builder, String sessionKey, String traceId) {
             this.builder = builder;
+            this.sessionKey = sessionKey;
+            this.traceId = traceId;
         }
 
         void onInbound(WebSocketMessage message) {
             inMsg.incrementAndGet();
             inBytes.addAndGet(message.getPayload().readableByteCount());
             if (inSample == null) {
-                inSample = sample(message);
+                inSample = sample(message, sampleBytes, false);
+            }
+            if (frameLogEnabled) {
+                captureFrame("IN", message);
             }
         }
 
@@ -97,20 +124,51 @@ public class WsCaptureWebSocketService implements WebSocketService {
             outMsg.incrementAndGet();
             outBytes.addAndGet(message.getPayload().readableByteCount());
             if (outSample == null) {
-                outSample = sample(message);
+                outSample = sample(message, sampleBytes, false);
+            }
+            if (frameLogEnabled) {
+                captureFrame("OUT", message);
             }
         }
 
-        /** 首帧样本：文本帧按 UTF-8 取前 N 字节，二进制帧标记 [binary n bytes] */
-        private String sample(WebSocketMessage message) {
+        /** 帧明细旁路记录：达到每会话上限后丢弃 */
+        private void captureFrame(String direction, WebSocketMessage message) {
+            if (frameCount.incrementAndGet() > maxFramesPerSession) {
+                return;
+            }
+            boolean binary = message.getType() != WebSocketMessage.Type.TEXT;
+            frameSink.offer(WsFrameRecord.builder()
+                    .sessionKey(sessionKey)
+                    .traceId(traceId)
+                    .direction(direction)
+                    .msgType(binary ? "BINARY" : "TEXT")
+                    .payload(sample(message, frameSampleBytes, binary))
+                    .length(message.getPayload().readableByteCount())
+                    .recvTime(LocalDateTime.now())
+                    .build());
+        }
+
+        /**
+         * payload 样本。文本帧取前 N 字节 UTF-8；二进制帧：binaryHex=true 时取 hex（帧明细用），
+         * 否则（会话首帧样本）仅标记长度。
+         */
+        private String sample(WebSocketMessage message, int limit, boolean binaryHex) {
             try {
-                if (message.getType() != WebSocketMessage.Type.TEXT) {
-                    return "[binary " + message.getPayload().readableByteCount() + " bytes]";
+                int n = message.getPayload().readableByteCount();
+                if (message.getType() != WebSocketMessage.Type.TEXT && !binaryHex) {
+                    return "[binary " + n + " bytes]";
                 }
-                byte[] bytes = new byte[Math.min(message.getPayload().readableByteCount(), sampleBytes)];
+                byte[] bytes = new byte[Math.min(n, limit)];
                 message.getPayload().toByteBuffer().get(bytes);
+                if (message.getType() != WebSocketMessage.Type.TEXT) {
+                    StringBuilder hex = new StringBuilder(bytes.length * 2);
+                    for (byte b : bytes) {
+                        hex.append(String.format("%02x", b));
+                    }
+                    return n > limit ? hex + "...(已截断)" : hex.toString();
+                }
                 String text = new String(bytes, StandardCharsets.UTF_8);
-                return bytes.length >= sampleBytes ? text + "...(已截断)" : text;
+                return n > limit ? text + "...(已截断)" : text;
             } catch (Exception e) {
                 return "[样本读取失败: " + e.getMessage() + "]";
             }

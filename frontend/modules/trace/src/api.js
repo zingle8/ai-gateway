@@ -20,6 +20,16 @@ export function fetchTraceSpans(traceId) {
   return request.get(`/trace/traces/${traceId}`)
 }
 
+/** WebSocket 会话列表（proxy 旁路采集落库 tb_gw_ws_session） */
+export function fetchWsSessions(params) {
+  return request.get('/trace/ws/sessions', { params })
+}
+
+/** WebSocket 帧明细（按 sessionKey 关联 tb_gw_ws_frame） */
+export function fetchWsFrames(sessionKey) {
+  return request.get('/trace/ws/frames', { params: { sessionKey } })
+}
+
 /** 服务拓扑：时间窗内调用边 + 节点（tb_gw_service_edge 预聚合） */
 export function fetchTopology(params) {
   return request.get('/trace/topology', { params })

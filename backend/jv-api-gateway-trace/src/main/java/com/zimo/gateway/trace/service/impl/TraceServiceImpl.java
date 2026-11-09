@@ -39,6 +39,8 @@ public class TraceServiceImpl implements TraceService {
     private final GwTraceSpanMapper traceSpanMapper;
 
     private final GwServiceEdgeMapper edgeMapper;
+    private final com.zimo.gateway.trace.mapper.GwWsSessionMapper wsSessionMapper;
+    private final com.zimo.gateway.trace.mapper.GwWsFrameMapper wsFrameMapper;
 
     @Override
     public Page<GwTraceLogEntity> pageTraces(TraceQuery query) {
@@ -246,5 +248,23 @@ public class TraceServiceImpl implements TraceService {
         entity.setCreateTime(LocalDateTime.now());
         entity.setDeleted(0);
         return entity;
+    }
+
+    @Override
+    public Page<com.zimo.gateway.trace.entity.GwWsSessionEntity> pageWsSessions(com.zimo.gateway.trace.model.WsSessionQuery query) {
+        long total = wsSessionMapper.countPage(query);
+        long current = Math.max(1, query.getCurrent());
+        long size = Math.max(1, query.getSize());
+        List<com.zimo.gateway.trace.entity.GwWsSessionEntity> records = total == 0
+                ? List.of() : wsSessionMapper.selectPage(query);
+        return Page.of(records, total, current, size);
+    }
+
+    @Override
+    public List<com.zimo.gateway.trace.entity.GwWsFrameEntity> wsFrames(String sessionKey) {
+        if (sessionKey == null || sessionKey.isBlank()) {
+            return List.of();
+        }
+        return wsFrameMapper.listBySessionKey(sessionKey);
     }
 }

@@ -59,4 +59,10 @@ public interface TraceService {
      * @return key 为 protocols / services / reqFormats / resFormats
      */
     Map<String, Object> filterOptions();
+
+    /** WebSocket 会话分页列表（tb_gw_ws_session，proxy 旁路捕获写入） */
+    Page<com.zimo.gateway.trace.entity.GwWsSessionEntity> pageWsSessions(com.zimo.gateway.trace.model.WsSessionQuery query);
+
+    /** WebSocket 会话的帧明细列表 */
+    java.util.List<com.zimo.gateway.trace.entity.GwWsFrameEntity> wsFrames(String sessionKey);
 }
