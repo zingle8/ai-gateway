@@ -36,6 +36,16 @@ public class BodyCaptureResponse extends ServerHttpResponseDecorator {
         return super.writeWith(Flux.from(body).doOnNext(this::capture));
     }
 
+    /**
+     * 流式响应（SSE / text/event-stream / 分块流）走 writeAndFlushWith：每个 chunk 写完立即 flush，
+     * 不经过 writeWith。同样做旁路捕获，否则 SSE 响应体在追踪日志里为空。
+     */
+    @Override
+    public Mono<Void> writeAndFlushWith(Publisher<? extends Publisher<? extends DataBuffer>> body) {
+        return super.writeAndFlushWith(Flux.from(body)
+                .map(inner -> Flux.from(inner).doOnNext(this::capture)));
+    }
+
     private void capture(DataBuffer buffer) {
         int readable = buffer.readableByteCount();
         totalBytes += readable;
