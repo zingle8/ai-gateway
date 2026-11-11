@@ -28,6 +28,17 @@
       <div class="gw-card-hd">
         <span>平台配置</span>
         <div class="hd-actions">
+          <el-input
+            v-model="keyword"
+            size="small"
+            clearable
+            placeholder="搜索配置名 / 参数值 / 描述"
+            style="width: 220px"
+          >
+            <template #prefix>
+              <el-icon><Search /></el-icon>
+            </template>
+          </el-input>
           <span class="gw-sm gw-muted">当前生效的鉴权缓存：{{ effectiveCacheMode || '—' }}</span>
           <el-button size="small" @click="load">刷新</el-button>
           <el-button size="small" type="primary" @click="openCreate">新增配置</el-button>
@@ -35,7 +46,7 @@
       </div>
 
       <div v-loading="loading" class="gw-card-bd">
-        <div v-for="item in filtered" :key="item.key" class="config-row">
+        <div v-for="item in pagedRows" :key="item.key" class="config-row">
           <div class="config-main">
             <div class="config-title">
               {{ item.key }}
@@ -124,13 +135,22 @@
           </div>
         </div>
 
-        <el-empty v-if="!loading && !filtered.length" description="暂无该来源的配置" :image-size="70" />
+        <el-empty
+          v-if="!loading && !filtered.length"
+          :description="keyword.trim() ? '没有匹配的配置项' : '暂无该来源的配置'"
+          :image-size="70"
+        />
       </div>
 
       <div class="gw-card-ft">
-        <span class="gw-sm gw-muted">
-          鉴权缓存：auto = Redis 可用则用 Redis，否则本地 Caffeine；MySQL 始终保存源数据。缓存 TTL 30 秒，停用 Key / 退出登录最迟 30 秒生效。
-        </span>
+        <span class="gw-sm gw-muted">共 {{ filtered.length }} 项{{ keyword.trim() ? '（已筛选）' : '' }} · 鉴权缓存 auto = Redis 可用则用 Redis，否则本地 Caffeine；缓存 TTL 30 秒</span>
+        <GwPager
+          :total="filtered.length"
+          :current="page"
+          :size="size"
+          @page-change="onPage"
+          @size-change="onSizeChange"
+        />
       </div>
     </section>
 
@@ -183,8 +203,10 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
+import { GwPager } from '@zimo/ui'
 import { request } from '@zimo/shared'
 import { fetchConfigs, createConfig, deleteConfig, updateConfig, fetchMenuHealth } from '../api.js'
 
@@ -193,6 +215,7 @@ const saving = ref('')
 const creating = ref(false)
 const rows = ref([])
 const filter = ref('ALL')
+const keyword = ref('')
 const effectiveCacheMode = ref('')
 const createDialog = ref(false)
 
@@ -214,9 +237,31 @@ const SOURCE_META = {
   NACOS: { label: 'Nacos', tone: 'nacos', desc: '配置中心 properties 文本' }
 }
 
-const filtered = computed(() =>
-  filter.value === 'ALL' ? rows.value : rows.value.filter((r) => r.source === filter.value)
+/** 前端分页：配置项列表按当前筛选结果切片 */
+const page = ref(1)
+const size = ref(10)
+const pagedRows = computed(() =>
+  filtered.value.slice((page.value - 1) * size.value, page.value * size.value)
 )
+const onPage = (p) => (page.value = p)
+const onSizeChange = (s) => {
+  size.value = s
+  page.value = 1
+}
+/** 切换来源筛选或输入搜索词后回到第 1 页 */
+watch([filter, keyword], () => {
+  page.value = 1
+})
+
+/** 搜索字段：配置名 / 配置值 / 描述 / 平台·应用·服务（不区分大小写模糊匹配） */
+const KEYWORD_FIELDS = ['key', 'value', 'remark', 'platformName', 'appName', 'serviceName', 'valueType', 'sourceLabel']
+
+const filtered = computed(() => {
+  const k = keyword.value.trim().toLowerCase()
+  const bySource = filter.value === 'ALL' ? rows.value : rows.value.filter((r) => r.source === filter.value)
+  if (!k) return bySource
+  return bySource.filter((r) => KEYWORD_FIELDS.some((f) => String(r[f] ?? '').toLowerCase().includes(k)))
+})
 
 const sourceCards = computed(() => {
   const total = rows.value.length
