@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="gw-card-bd no-pad">
-        <el-table v-loading="loading" :data="filtered" size="small" style="width: 100%">
+        <el-table v-loading="loading" :data="pagedRows" size="small" style="width: 100%">
           <el-table-column prop="name" label="名称" min-width="160" />
           <el-table-column label="keyId" width="130">
             <template #default="{ row }">
@@ -65,10 +65,14 @@
         </el-table>
       </div>
       <div class="gw-card-ft">
-        <span class="gw-sm gw-muted">
-          明文只在签发 / 轮换时返回一次，服务端仅存 SHA-256；续期只延长有效期、不换密钥（已过期续期后立即恢复）；
-          网关校验失败 / 停用 / 过期一律 401，缓存 30 秒后失效
-        </span>
+        <span class="gw-sm gw-muted">共 {{ filtered.length }} 个 Key · 明文只在签发 / 轮换时返回一次，服务端仅存 SHA-256；网关校验失败 / 停用 / 过期一律 401</span>
+        <GwPager
+          :total="filtered.length"
+          :current="page"
+          :size="size"
+          @page-change="onPage"
+          @size-change="onSizeChange"
+        />
       </div>
     </section>
 
@@ -144,7 +148,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { GwPager } from '@zimo/ui'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   fetchApiKeys, fetchApiKeyStats, issueApiKey, setApiKeyStatus, rotateApiKey, renewApiKey, revokeApiKey
@@ -180,6 +185,11 @@ const renewDialog = ref(false)
 const renewRow = ref(null)
 const renewDays = ref(90)
 const renewing = ref(false)
+
+/** 关键词筛选后回到第 1 页，避免停在越界页码 */
+watch(keyword, () => {
+  page.value = 1
+})
 
 const filtered = computed(() => {
   const k = keyword.value.trim()
@@ -240,6 +250,18 @@ const submitRenew = async () => {
   } finally {
     renewing.value = false
   }
+}
+
+/** 前端分页：接口返回全量列表，按页切片展示 */
+const page = ref(1)
+const size = ref(10)
+const pagedRows = computed(() =>
+  filtered.value.slice((page.value - 1) * size.value, page.value * size.value)
+)
+const onPage = (p) => (page.value = p)
+const onSizeChange = (s) => {
+  size.value = s
+  page.value = 1
 }
 
 const load = async () => {

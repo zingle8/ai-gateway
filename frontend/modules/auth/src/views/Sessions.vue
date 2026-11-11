@@ -29,7 +29,7 @@
             </div>
           </div>
           <div class="gw-card-bd no-pad">
-            <el-table :data="filteredSessions" size="small" style="width: 100%">
+            <el-table :data="pagedSessions" size="small" style="width: 100%">
               <el-table-column prop="account" label="账号" width="130" />
               <el-table-column label="类型" width="100">
                 <template #default="{ row }">
@@ -63,9 +63,14 @@
             </el-table>
           </div>
           <div class="gw-card-ft">
-            <span class="gw-sm gw-muted">
-              强制下线 = 令牌版本 +1，该会话的 access 立即失效（无需等自然过期）
-            </span>
+            <span class="gw-sm gw-muted">共 {{ filteredSessions.length }} 个在线会话 · 强制下线 = 令牌版本 +1，access 立即失效</span>
+            <GwPager
+              :total="filteredSessions.length"
+              :current="sessionPage"
+              :size="sessionSize"
+              @page-change="onSessionPage"
+              @size-change="onSessionSize"
+            />
           </div>
         </section>
       </template>
@@ -77,7 +82,7 @@
             <span class="gw-sm gw-muted">最近 {{ revokes.length }} 条</span>
           </div>
           <div class="gw-card-bd no-pad">
-            <el-table :data="revokes" size="small" style="width: 100%" max-height="420">
+            <el-table :data="pagedRevokes" size="small" style="width: 100%" max-height="420">
               <el-table-column prop="time" label="时间" width="170" />
               <el-table-column prop="account" label="账号" width="140" />
               <el-table-column prop="scope" label="吊销范围" width="160">
@@ -91,6 +96,16 @@
               <el-table-column prop="operator" label="操作人" width="130" />
             </el-table>
           </div>
+          <div class="gw-card-ft">
+            <span class="gw-sm gw-muted">共 {{ revokes.length }} 条吊销记录</span>
+            <GwPager
+              :total="revokes.length"
+              :current="revokePage"
+              :size="revokeSize"
+              @page-change="onRevokePage"
+              @size-change="onRevokeSize"
+            />
+          </div>
         </section>
       </template>
     </PaneTabs>
@@ -98,9 +113,9 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { PaneTabs } from '@zimo/ui'
+import { GwPager, PaneTabs } from '@zimo/ui'
 
 const stats = [
   { label: '在线会话', value: '12', hint: 'access 未过期的活跃会话', icon: 'User', tone: 'info' },
@@ -137,6 +152,32 @@ const filteredSessions = computed(() => {
   if (!k) return sessions.value
   return sessions.value.filter((s) => s.account.includes(k) || s.ip.includes(k))
 })
+
+/** 分页：在线会话 / 吊销记录各自独立 */
+const sessionPage = ref(1)
+const sessionSize = ref(10)
+const pagedSessions = computed(() =>
+  filteredSessions.value.slice((sessionPage.value - 1) * sessionSize.value, sessionPage.value * sessionSize.value)
+)
+const onSessionPage = (p) => (sessionPage.value = p)
+const onSessionSize = (s) => {
+  sessionSize.value = s
+  sessionPage.value = 1
+}
+
+const revokePage = ref(1)
+const revokeSize = ref(10)
+const pagedRevokes = computed(() =>
+  revokes.value.slice((revokePage.value - 1) * revokeSize.value, revokePage.value * revokeSize.value)
+)
+const onRevokePage = (p) => (revokePage.value = p)
+const onRevokeSize = (s) => {
+  revokeSize.value = s
+  revokePage.value = 1
+}
+
+/** 关键词筛选后回到第 1 页，避免停在越界页码 */
+watch(keyword, () => { sessionPage.value = 1 })
 
 const revoke = async (row) => {
   await ElMessageBox.confirm(

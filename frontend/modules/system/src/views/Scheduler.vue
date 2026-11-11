@@ -8,7 +8,7 @@
           <el-button type="primary" size="small" :loading="loading" @click="loadAll">刷新</el-button>
         </div>
       </template>
-      <el-table :data="jobs" v-loading="loading" highlight-current-row @row-click="showDetail" style="cursor: pointer">
+      <el-table :data="pagedJobs" v-loading="loading" highlight-current-row @row-click="showDetail" style="cursor: pointer">
         <el-table-column prop="jobName" label="任务名称" min-width="280" show-overflow-tooltip />
         <el-table-column prop="jobKey" label="任务键" width="150" />
         <el-table-column prop="runTime" label="调度时间" width="100" align="center">
@@ -39,6 +39,17 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <div class="sched-pager">
+        <span class="muted sched-total">共 {{ jobs.length }} 个调度任务</span>
+        <GwPager
+          :total="jobs.length"
+          :current="page"
+          :size="size"
+          @page-change="onPage"
+          @size-change="onSizeChange"
+        />
+      </div>
     </el-card>
 
     <!-- 任务详情弹框 -->
@@ -108,7 +119,8 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { GwPager } from '@zimo/ui'
 import { ElMessage } from 'element-plus'
 import { request } from '@zimo/shared'
 
@@ -119,6 +131,18 @@ const current = ref(null)
 const plans = ref([])
 const logs = ref([])
 const dialogVisible = ref(false)
+
+/** 前端分页：调度任务列表按页切片 */
+const page = ref(1)
+const size = ref(10)
+const pagedJobs = computed(() =>
+  jobs.value.slice((page.value - 1) * size.value, page.value * size.value)
+)
+const onPage = (p) => (page.value = p)
+const onSizeChange = (s) => {
+  size.value = s
+  page.value = 1
+}
 
 const fmt = (v) => (v ? String(v).replace('T', ' ').slice(0, 19) : '')
 const planTag = (s) => ({ DONE: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
@@ -167,6 +191,8 @@ onMounted(loadJobs)
 
 <style scoped>
 .scheduler-page { display: flex; flex-direction: column; gap: 16px; }
+.sched-pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding-top: 10px; }
+.sched-total { font-size: 12px; }
 .card-header { display: flex; justify-content: space-between; align-items: center; }
 .muted { color: var(--el-text-color-secondary); }
 .mb16 { margin-bottom: 16px; }

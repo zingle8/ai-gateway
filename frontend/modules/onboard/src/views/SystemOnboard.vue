@@ -19,17 +19,30 @@
         </el-descriptions>
 
         <el-divider content="left">配置项</el-divider>
-        <el-table :data="configRows" size="small" border stripe>
+        <el-table :data="pagedRows" size="small" border stripe>
           <el-table-column prop="key" label="配置项" width="260" />
           <el-table-column prop="desc" label="说明" min-width="240" />
           <el-table-column prop="def" label="默认值" width="140" />
         </el-table>
+
+        <div class="gw-card-ft onboard-pager">
+          <span class="gw-sm gw-muted">共 {{ configRows.length }} 个配置项</span>
+          <GwPager
+            :total="configRows.length"
+            :current="page"
+            :size="size"
+            @page-change="onPage"
+            @size-change="onSizeChange"
+          />
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { computed, ref } from 'vue'
+import { GwPager } from '@zimo/ui'
 const configRows = [
   { key: 'zimo.gateway.client.enabled', desc: '接入 SDK 总开关', def: 'true' },
   { key: 'zimo.gateway.client.server-addr', desc: '网关平台地址', def: 'http://127.0.0.1:8080/api' },
@@ -45,4 +58,25 @@ const configRows = [
   { key: 'zimo.gateway.client.registry.enabled', desc: '是否自动注册（自动接入）', def: 'true' },
   { key: 'zimo.gateway.client.registry.heartbeat-interval', desc: '心跳间隔（ms）', def: '30000' }
 ]
+
+
+/** 前端分页：静态配置项清单按页切片展示 */
+const page = ref(1)
+const size = ref(10)
+const pagedRows = computed(() =>
+  configRows.slice((page.value - 1) * size.value, page.value * size.value)
+)
+const onPage = (p) => (page.value = p)
+const onSizeChange = (s) => {
+  size.value = s
+  page.value = 1
+}
 </script>
+
+<style scoped>
+/* 分页条位于 gw-card-bd 内，抵消 16px 内边距以与卡片左右对齐 */
+.onboard-pager {
+  margin: 12px -16px -12px;
+  border-top: 1px solid var(--gw-border-light);
+}
+</style>

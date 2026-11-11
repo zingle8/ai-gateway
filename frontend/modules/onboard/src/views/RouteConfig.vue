@@ -28,7 +28,7 @@
           <el-button type="primary" @click="openDialog()">新增路由</el-button>
         </div>
 
-        <el-table v-loading="loading" :data="rows" size="small" border stripe>
+        <el-table v-loading="loading" :data="pagedRows" size="small" border stripe>
           <el-table-column prop="pathPrefix" label="匹配路径" width="180" />
           <el-table-column prop="upstreamUrl" label="转发目标" min-width="210" show-overflow-tooltip />
           <el-table-column label="路径处理" width="190">
@@ -56,6 +56,17 @@
             </template>
           </el-table-column>
         </el-table>
+
+        <div v-if="rows.length" class="gw-card-ft route-pager">
+          <span class="gw-sm gw-muted">共 {{ rows.length }} 条路由规则</span>
+          <GwPager
+            :total="rows.length"
+            :current="page"
+            :size="size"
+            @page-change="onPage"
+            @size-change="onSizeChange"
+          />
+        </div>
 
         <el-empty v-if="!loading && rows.length === 0" description="还没有配置转发规则" :image-size="80" />
 
@@ -111,6 +122,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { GwPager } from '@zimo/ui'
 import { createRoute, deleteRoute, fetchRoutes, toggleRoute, updateRoute } from '../api'
 
 const rows = ref([])
@@ -146,10 +158,23 @@ const sample = computed(() => {
   return `# 配好规则后，业务方把地址指向网关即可（原上游：${first.upstreamUrl}）\ncurl "http://网关地址:28090${example}"\n\n# 每次调用都会出现在「日志追踪」里，含请求/响应报文和转发目标`
 })
 
+/** 前端分页：路由列表一次全量拉取，按页切片 */
+const page = ref(1)
+const size = ref(10)
+const pagedRows = computed(() =>
+  rows.value.slice((page.value - 1) * size.value, page.value * size.value)
+)
+const onPage = (p) => (page.value = p)
+const onSizeChange = (s) => {
+  size.value = s
+  page.value = 1
+}
+
 async function load() {
   loading.value = true
   try {
     rows.value = (await fetchRoutes({ keyword: keyword.value || undefined })) || []
+    page.value = 1
   } finally {
     loading.value = false
   }
@@ -198,6 +223,11 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* 分页条位于 gw-card-bd 内，抵消 16px 内边距以与卡片左右对齐 */
+.route-pager {
+  margin: 12px -16px -12px;
+  border-top: 1px solid var(--gw-border-light);
+}
 .hd-hint {
   margin-left: 10px;
   font-size: 11.5px;
