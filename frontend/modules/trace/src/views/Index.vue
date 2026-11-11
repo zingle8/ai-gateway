@@ -100,13 +100,13 @@
 
       <!-- 分页条（吸底） -->
       <div class="gw-card-ft">
-        <span class="gw-muted gw-sm">共 {{ total }} 条 · 每页 {{ query.size }} 条 · 第 {{ query.current }} / {{ pages }} 页</span>
-        <el-pagination
-          layout="prev, pager, next"
-          :current-page="query.current"
-          :page-size="query.size"
+        <span class="gw-muted gw-sm">共 {{ total }} 条</span>
+        <GwPager
           :total="total"
-          @current-change="onPage"
+          :current="query.current"
+          :size="query.size"
+          @page-change="onPage"
+          @size-change="onSizeChange"
         />
       </div>
       </template>
@@ -214,6 +214,7 @@
 </template>
 
 <script setup>
+import { GwPager } from '@zimo/ui'
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import WsSessions from './WsSessions.vue'
@@ -334,6 +335,11 @@ const onPage = (p) => {
   load()
 }
 
+const onSizeChange = (s) => {
+  query.size = s
+  query.current = 1
+  load()
+}
 /** 列表接口不返回 Header / 报文体大字段，必须按 id 拉详情，否则抽屉恒为空 */
 const openDetail = async (row) => {
   detail.value = row

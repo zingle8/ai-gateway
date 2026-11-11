@@ -116,13 +116,13 @@
 
       <!-- 分页条（吸底） -->
       <div class="gw-card-ft">
-        <span class="gw-muted gw-sm">共 {{ total }} 条 · 每页 {{ query.size }} 条 · 第 {{ query.current }} / {{ pages }} 页</span>
-        <el-pagination
-          layout="prev, pager, next"
-          :current-page="query.current"
-          :page-size="query.size"
+        <span class="gw-muted gw-sm">共 {{ total }} 条</span>
+        <GwPager
           :total="total"
-          @current-change="onPage"
+          :current="query.current"
+          :size="query.size"
+          @page-change="onPage"
+          @size-change="onSizeChange"
         />
       </div>
     </section>
@@ -144,7 +144,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
-import { TimeRangePicker, TrendChart } from '@zimo/ui'
+import { TimeRangePicker, TrendChart, GwPager } from '@zimo/ui'
 import { DEFAULT_TIME_RANGE, fmtTime, dotClass, timeRangeLabel, useAutoRefresh } from '@zimo/shared'
 import { fetchServices, fetchServiceFilters, fetchDiscoveryTrend } from '../api'
 
@@ -259,6 +259,11 @@ const onPage = (p) => {
   load()
 }
 
+const onSizeChange = (s) => {
+  query.size = s
+  query.current = 1
+  load()
+}
 const openDetail = (row) => {
   detail.value = row
   detailVisible.value = true

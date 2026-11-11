@@ -79,13 +79,13 @@
       </div>
 
       <div class="gw-card-ft">
-        <span class="gw-muted gw-sm">共 {{ total }} 条 · 每页 {{ query.size }} 条 · 第 {{ query.current }} / {{ pages }} 页</span>
-        <el-pagination
-          layout="prev, pager, next"
-          :current-page="query.current"
-          :page-size="query.size"
+        <span class="gw-muted gw-sm">共 {{ total }} 条</span>
+        <GwPager
           :total="total"
-          @current-change="onPage"
+          :current="query.current"
+          :size="query.size"
+          @page-change="onPage"
+          @size-change="onSizeChange"
         />
       </div>
     </section>
@@ -130,6 +130,7 @@
 </template>
 
 <script setup>
+import { GwPager } from '@zimo/ui'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { fetchUsers, createUser, updateUser, deleteUser, updateUserStatus } from '../../api'
@@ -195,6 +196,11 @@ const onPage = (p) => {
   load()
 }
 
+const onSizeChange = (s) => {
+  query.size = s
+  query.current = 1
+  load()
+}
 const openCreate = () => {
   Object.assign(form, emptyForm())
   formVisible.value = true
