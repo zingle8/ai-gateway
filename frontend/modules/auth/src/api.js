@@ -145,3 +145,25 @@ export function fetchLoginMethods() {
 export function saveLoginMethods(data) {
   return request.put('/policies/login-methods', data)
 }
+
+/* ---------------------------------------------------------- 鉴权精细豁免（tb_gw_auth_exempt） */
+
+export function fetchAuthExempts() {
+  return request.get('/auth-exempts')
+}
+
+export function createAuthExempt(data) {
+  return request.post('/auth-exempts', data)
+}
+
+export function updateAuthExempt(id, data) {
+  return request.put(`/auth-exempts/${id}`, data)
+}
+
+export function updateAuthExemptStatus(id, status) {
+  return request.put(`/auth-exempts/${id}/status`, { status })
+}
+
+export function deleteAuthExempt(id) {
+  return request.delete(`/auth-exempts/${id}`)
+}

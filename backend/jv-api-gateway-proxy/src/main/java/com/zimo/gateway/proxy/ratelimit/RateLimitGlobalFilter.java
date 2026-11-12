@@ -47,6 +47,7 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
     private static final String SUBJECT_ALL = "all";
 
     private final RateLimitRuleRepository ruleRepository;
+    private final com.zimo.gateway.proxy.auth.AuthExemptRepository exemptRepository;
     private final TokenBucketLimiter limiter;
 
     @Override
@@ -62,6 +63,10 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
         }
         String path = request.getPath().value();
         if (path.startsWith("/health") || path.startsWith("/actuator")) {
+            return chain.filter(exchange);
+        }
+        // 控制台「鉴权豁免」中 RATE / ALL 类型的规则跳过限流（5 秒生效）
+        if (exemptRepository.isExempt(path, request.getMethod().name(), "RATE")) {
             return chain.filter(exchange);
         }
         // 规则加载与 Redis 令牌桶均为阻塞调用，移出 Netty 事件线程

@@ -12,6 +12,7 @@ import LoginMethodsView from './src/views/LoginMethods.vue'
 import SsoView from './src/views/Sso.vue'
 import SessionsView from './src/views/Sessions.vue'
 import SecurityPolicyView from './src/views/SecurityPolicy.vue'
+import AuthExemptView from './src/views/AuthExempt.vue'
 import ApiKeysView from './src/views/ApiKeys.vue'
 
 export const menu = [
@@ -24,6 +25,7 @@ export const menu = [
       { path: '/auth/sso', title: '单点登录', icon: 'Link', perm: 'auth.sso.view' },
       { path: '/auth/sessions', title: '令牌与会话', icon: 'Timer', perm: 'auth.session.view' },
       { path: '/auth/policy', title: '安全策略', icon: 'SetUp', perm: 'auth.policy.view' },
+      { path: '/auth/exempt', title: '鉴权豁免', icon: 'Unlock', perm: 'auth.exempt.view' },
       { path: '/auth/api-keys', title: 'API Key', icon: 'Tools', perm: 'open.key.view' }
     ]
   }
@@ -55,6 +57,12 @@ export const routes = [
     name: 'AuthSessions',
     component: SessionsView,
     meta: { title: '令牌与会话', subtitle: '在线会话、refresh 家族与令牌吊销记录' }
+  },
+  {
+    path: 'auth/exempt',
+    name: 'AuthExempt',
+    component: AuthExemptView,
+    meta: { title: '鉴权豁免', subtitle: '免登录 / 免限流精细放行，支持到期自动失效' }
   },
   {
     path: 'auth/policy',

@@ -45,6 +45,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final GatewayAuthProperties properties;
     private final AuthVerifier verifier;
+    private final AuthExemptRepository exemptRepository;
 
     @Override
     public int getOrder() {
@@ -59,7 +60,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
         String path = exchange.getRequest().getPath().value();
         if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())
-                || properties.getSkipPaths().stream().anyMatch(p -> PATH_MATCHER.match(p, path))) {
+                || properties.getSkipPaths().stream().anyMatch(p -> PATH_MATCHER.match(p, path))
+                // 控制台「鉴权豁免」配置的追加放行（5 秒生效，yml 白名单仍然有效）
+                || exemptRepository.isExempt(path, exchange.getRequest().getMethod().name(), "LOGIN")) {
             // 上报通道虽在白名单，但配置了共享密钥时必须校验头，防止内网伪造注册与上报
             if (clientTokenConfigured() && isReportPath(path)
                     && !tokenMatches(exchange.getRequest().getHeaders())) {

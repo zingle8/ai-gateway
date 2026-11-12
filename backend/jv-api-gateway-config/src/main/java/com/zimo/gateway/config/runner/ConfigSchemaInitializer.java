@@ -60,7 +60,8 @@ public class ConfigSchemaInitializer implements ApplicationRunner {
         try (Connection connection = dataSource.getConnection()) {
             migrateColumns(connection);
             for (String script : new String[]{"db/jv-api-gateway-config-config-tb_sys_config.sql",
-                    "db/jv-api-gateway-config-ratelimit-tb_gw_rate_limit.sql"}) {
+                    "db/jv-api-gateway-config-ratelimit-tb_gw_rate_limit.sql",
+                    "db/jv-api-gateway-config-exempt-tb_gw_auth_exempt.sql"}) {
                 ScriptUtils.executeSqlScript(connection, new EncodedResource(
                         new ClassPathResource(script), StandardCharsets.UTF_8));
             }
