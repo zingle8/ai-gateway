@@ -45,7 +45,11 @@ public class AuthController {
      */
     @PostMapping("/login")
     public R<LoginVO> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
-        return R.ok(userService.login(request.getUsername(), request.getPassword(), IpUtil.get(httpRequest)));
+        String ua = httpRequest.getHeader("User-Agent");
+        String appId = request.getAppId() == null || request.getAppId().isBlank()
+                ? "console" : request.getAppId().trim();
+        return R.ok(userService.login(request.getUsername(), request.getPassword(),
+                IpUtil.get(httpRequest), ua, appId));
     }
 
     /**

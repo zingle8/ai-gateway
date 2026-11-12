@@ -24,6 +24,14 @@ public interface UserService {
     LoginVO login(String username, String password, String ip);
 
     /**
+     * 登录并登记在线会话。
+     *
+     * @param ua    浏览器 UA（解析设备指纹，供按端踢人）
+     * @param appId 归属平台（控制台 console，开放认证为接入方 appId）
+     */
+    LoginVO login(String username, String password, String ip, String ua, String appId);
+
+    /**
      * 注册：校验账号格式与唯一性，默认 VIEWER 角色，成功即登录（返回 JWT）
      */
     LoginVO register(RegisterRequest request, String ip);

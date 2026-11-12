@@ -106,3 +106,22 @@ export function fetchUserPlatforms(userId) {
 export function saveUserPlatforms(userId, appIds) {
   return request.put(`/open/accounts/${userId}/platforms`, { appIds })
 }
+
+/* ==========================================================================
+ * 令牌与会话（v0.2 第 2 项）：登录登记会话 + 四粒度强制下线
+ * ========================================================================== */
+
+/** 在线会话列表 */
+export function fetchSessions() {
+  return request.get('/auth/sessions')
+}
+
+/** 最近吊销记录 */
+export function fetchSessionRevokes(limit = 100) {
+  return request.get('/auth/sessions/revokes', { params: { limit } })
+}
+
+/** 强制下线：{ scope: SESSION|PLATFORM|DEVICE|ALL, sid, userId, appId, device, reason } */
+export function kickSessions(data) {
+  return request.post('/auth/sessions/kick', data)
+}

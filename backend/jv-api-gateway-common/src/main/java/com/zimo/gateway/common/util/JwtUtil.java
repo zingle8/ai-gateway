@@ -39,13 +39,26 @@ public class JwtUtil {
      *                     用于支持「退出登录后立即使已签发令牌失效」
      */
     public String createToken(Long userId, String username, Integer tokenVersion) {
+        return createToken(userId, username, tokenVersion, null);
+    }
+
+    /**
+     * 签发令牌（带会话 ID）
+     *
+     * @param sid 会话 ID：登录时登记到 Redis，强制下线时写吊销标记，
+     *            网关鉴权命中吊销标记即拒绝（支持单会话 / 按平台 / 按端精确踢人）
+     */
+    public String createToken(Long userId, String username, Integer tokenVersion, String sid) {
         Date now = new Date();
         Date expire = new Date(now.getTime() + expireHours * 3600_000L);
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(username)
                 .claim("userId", userId)
-                .claim("tv", tokenVersion == null ? 0 : tokenVersion)
-                .issuedAt(now)
+                .claim("tv", tokenVersion == null ? 0 : tokenVersion);
+        if (sid != null && !sid.isBlank()) {
+            builder.claim("sid", sid);
+        }
+        return builder.issuedAt(now)
                 .expiration(expire)
                 .signWith(key())
                 .compact();

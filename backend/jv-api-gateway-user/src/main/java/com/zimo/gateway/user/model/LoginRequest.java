@@ -14,4 +14,7 @@ public class LoginRequest {
 
     @NotBlank(message = "密码不能为空")
     private String password;
+
+    /** 归属平台：控制台登录留空（console），开放认证由接入方传入 appId */
+    private String appId;
 }

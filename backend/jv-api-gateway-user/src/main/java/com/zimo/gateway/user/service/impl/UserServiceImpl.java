@@ -11,6 +11,7 @@ import com.zimo.gateway.user.model.LoginVO;
 import com.zimo.gateway.user.model.RegisterRequest;
 import com.zimo.gateway.user.model.UserQuery;
 import com.zimo.gateway.user.model.UserSaveRequest;
+import com.zimo.gateway.user.service.SessionService;
 import com.zimo.gateway.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final SessionService sessionService;
 
     /**
      * Redis 模板（可选依赖）。
@@ -128,6 +130,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public LoginVO login(String username, String password, String ip) {
+        return login(username, password, ip, null, "console");
+    }
+
+    @Override
+    public LoginVO login(String username, String password, String ip, String ua, String appId) {
         if (currentFailCount(username) >= MAX_FAIL) {
             long remain = lockRemainSeconds(username);
             String tip = remain > 0
@@ -157,8 +164,11 @@ public class UserServiceImpl implements UserService {
         user.setUpdateTime(LocalDateTime.now());
         userMapper.update(user);
 
-        log.info("用户登录成功：{}（{}）", username, ip);
-        return LoginVO.of(jwtUtil.createToken(user.getId(), username, user.getTokenVersion()), user);
+        String sid = sessionService.newSid();
+        String token = jwtUtil.createToken(user.getId(), username, user.getTokenVersion(), sid);
+        sessionService.register(user, sid, ip, ua, appId);
+        log.info("用户登录成功：{}（{}，会话 {}，平台 {}）", username, ip, sid, appId);
+        return LoginVO.of(token, user);
     }
 
     @Override
@@ -172,7 +182,8 @@ public class UserServiceImpl implements UserService {
             update.setUpdateTime(LocalDateTime.now());
             userMapper.update(update);
         }
-        log.info("用户退出登录：userId={}", userId);
+        sessionService.clearByUser(userId, user == null ? null : user.getUsername());
+        log.info("用户退出登录：userId={}（全部会话已清理）", userId);
         UserContext.clear();
     }
 

@@ -1,8 +1,11 @@
 <template>
   <div class="page">
     <p class="demo-tip">
-      <el-tag size="small" type="info" effect="plain">设计稿</el-tag>
-      <span class="gw-sm gw-muted">会话数据为示例；后端 /auth/sessions 接口待接入。</span>
+      <el-tag size="small" type="success" effect="plain">已接真</el-tag>
+      <span class="gw-sm gw-muted">
+        登录即登记会话（Redis，含 IP / 设备 / 平台）；踢人支持单会话、按平台、按端、全端四种粒度，
+        被踢令牌在网关下一次校验即失效。
+      </span>
     </p>
 
     <!-- 概览指标对两个 Tab 都成立，放在 Tab 外 -->
@@ -24,46 +27,69 @@
           <div class="gw-card-hd">
             <span>在线会话</span>
             <div class="hd-actions">
-              <el-input v-model="keyword" placeholder="账号 / IP" clearable size="small" style="width: 170px" />
-              <el-button size="small" @click="revokeAll">全部强制下线</el-button>
+              <el-input
+                v-model="keyword"
+                placeholder="账号 / IP / 设备"
+                clearable
+                size="small"
+                style="width: 200px"
+              />
+              <el-button size="small" :loading="loading" @click="load">刷新</el-button>
             </div>
           </div>
           <div class="gw-card-bd no-pad">
-            <el-table :data="pagedSessions" size="small" style="width: 100%">
-              <el-table-column prop="account" label="账号" width="130" />
-              <el-table-column label="类型" width="100">
+            <el-table v-loading="loading" :data="pagedSessions" size="small" style="width: 100%">
+              <el-table-column label="账号" width="150">
                 <template #default="{ row }">
-                  <el-tag size="small" effect="plain" :type="row.userType === 'CONSUMER' ? 'warning' : 'info'">
-                    {{ row.userType === 'CONSUMER' ? 'C 端' : '控制台' }}
+                  <span class="acct">{{ row.username }}</span>
+                  <span v-if="row.nickname" class="gw-sm gw-muted"> {{ row.nickname }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="平台" width="120">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="plain" :type="row.appId === 'console' ? 'info' : 'warning'">
+                    {{ row.appId }}
                   </el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="method" label="登录方式" width="130">
-                <template #default="{ row }">
-                  <span class="gw-sm">{{ row.method }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column prop="device" label="设备 / 浏览器" min-width="170" show-overflow-tooltip />
+              <el-table-column prop="device" label="设备 / 浏览器" min-width="160" show-overflow-tooltip />
               <el-table-column prop="ip" label="IP" width="130">
                 <template #default="{ row }">
-                  <span class="gw-mono gw-sm">{{ row.ip }}</span>
+                  <span class="gw-mono gw-sm">{{ row.ip || '-' }}</span>
                 </template>
               </el-table-column>
-              <el-table-column prop="loginAt" label="登录时间" width="160" />
-              <el-table-column label="Access 到期" width="150">
+              <el-table-column label="登录时间" width="160">
                 <template #default="{ row }">
-                  <span class="gw-sm" :class="row.expiringSoon ? 'warn' : 'gw-muted'">{{ row.accessExpire }}</span>
+                  <span class="gw-sm">{{ fmtTime(row.loginTime) }}</span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="110" fixed="right">
+              <el-table-column label="在线时长" width="110">
                 <template #default="{ row }">
-                  <el-button link type="danger" @click="revoke(row)">强制下线</el-button>
+                  <span class="gw-sm gw-muted">{{ onlineText(row.onlineSec) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="190" fixed="right">
+                <template #default="{ row }">
+                  <el-button link type="danger" @click="kick(row, 'SESSION')">踢下线</el-button>
+                  <el-dropdown trigger="click" @command="(cmd) => kick(row, cmd)">
+                    <el-button link type="primary">
+                      更多<el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                    </el-button>
+                    <template #dropdown>
+                      <el-dropdown-menu>
+                        <el-dropdown-item command="DEVICE">踢该端（{{ row.device }}）</el-dropdown-item>
+                        <el-dropdown-item command="PLATFORM">踢该平台（{{ row.appId }}）</el-dropdown-item>
+                        <el-dropdown-item command="ALL" divided>全端踢（{{ row.username }}）</el-dropdown-item>
+                      </el-dropdown-menu>
+                    </template>
+                  </el-dropdown>
                 </template>
               </el-table-column>
             </el-table>
+            <el-empty v-if="!loading && filteredSessions.length === 0" description="当前没有在线会话" :image-size="70" />
           </div>
           <div class="gw-card-ft">
-            <span class="gw-sm gw-muted">共 {{ filteredSessions.length }} 个在线会话 · 强制下线 = 令牌版本 +1，access 立即失效</span>
+            <span class="gw-sm gw-muted">共 {{ filteredSessions.length }} 个在线会话 · 单会话 / 按平台 / 按端踢 = 吊销该会话；全端踢 = 令牌版本 +1</span>
             <GwPager
               :total="filteredSessions.length"
               :current="sessionPage"
@@ -79,21 +105,27 @@
         <section class="gw-card">
           <div class="gw-card-hd">
             <span>令牌吊销记录</span>
-            <span class="gw-sm gw-muted">最近 {{ revokes.length }} 条</span>
+            <div class="hd-actions">
+              <span class="gw-sm gw-muted">最近 {{ revokes.length }} 条</span>
+              <el-button size="small" :loading="loading" @click="load">刷新</el-button>
+            </div>
           </div>
           <div class="gw-card-bd no-pad">
-            <el-table :data="pagedRevokes" size="small" style="width: 100%" max-height="420">
-              <el-table-column prop="time" label="时间" width="170" />
-              <el-table-column prop="account" label="账号" width="140" />
-              <el-table-column prop="scope" label="吊销范围" width="160">
+            <el-table v-loading="loading" :data="pagedRevokes" size="small" style="width: 100%" max-height="420">
+              <el-table-column label="时间" width="170">
+                <template #default="{ row }">{{ fmtTime(row.revokeTime) }}</template>
+              </el-table-column>
+              <el-table-column prop="username" label="账号" width="140" />
+              <el-table-column label="平台" width="110">
                 <template #default="{ row }">
-                  <el-tag size="small" effect="plain" :type="row.scope === '全部会话' ? 'danger' : 'info'">
-                    {{ row.scope }}
-                  </el-tag>
+                  <el-tag size="small" effect="plain" type="info">{{ row.appId }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column prop="reason" label="原因" min-width="200" show-overflow-tooltip />
-              <el-table-column prop="operator" label="操作人" width="130" />
+              <el-table-column prop="device" label="设备" width="150" show-overflow-tooltip />
+              <el-table-column prop="reason" label="原因" min-width="220" show-overflow-tooltip />
+              <el-table-column prop="operator" label="操作人" width="130">
+                <template #default="{ row }">{{ row.operator || 'system' }}</template>
+              </el-table-column>
             </el-table>
           </div>
           <div class="gw-card-ft">
@@ -113,31 +145,34 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { GwPager, PaneTabs } from '@zimo/ui'
+import { fetchSessions, fetchSessionRevokes, kickSessions } from '../api'
 
-const stats = [
-  { label: '在线会话', value: '12', hint: 'access 未过期的活跃会话', icon: 'User', tone: 'info' },
-  { label: '今日签发 Access', value: '86', hint: '登录 + 静默刷新合计', icon: 'Timer', tone: 'success' },
-  { label: '活跃 Refresh 家族', value: '9', hint: '每条会话一个家族', icon: 'Link', tone: 'purple' },
-  { label: '30 天内吊销', value: '3', hint: '主动下线 / 泄露处置', icon: 'Lock', tone: 'warning' }
-]
-
+const loading = ref(false)
 const keyword = ref('')
+const sessions = ref([])
+const revokes = ref([])
 
-const sessions = ref([
-  { id: 1, account: 'admin', userType: 'CONSOLE', method: '密码 + 动态码', device: 'Chrome 130 / macOS', ip: '10.12.3.45', loginAt: '2026-11-05 09:02:11', accessExpire: '11:02 过期', expiringSoon: true },
-  { id: 2, account: 'zhangsan', userType: 'CONSOLE', method: '企业微信 SSO', device: 'Edge 129 / Windows', ip: '10.12.3.77', loginAt: '2026-11-05 09:42:18', accessExpire: '11:42 过期', expiringSoon: true },
-  { id: 3, account: 'lisi', userType: 'CONSOLE', method: '密码', device: 'Safari 18 / macOS', ip: '10.12.4.12', loginAt: '2026-11-05 08:15:40', accessExpire: '10:15 过期', expiringSoon: false },
-  { id: 4, account: 'user_1024', userType: 'CONSUMER', method: '手机验证码', device: 'iOS App 3.2.1', ip: '203.0.113.25', loginAt: '2026-11-05 07:58:02', accessExpire: '09:58 过期', expiringSoon: false },
-  { id: 5, account: 'wangwu', userType: 'CONSOLE', method: '邮箱验证码', device: 'Chrome 130 / Windows', ip: '10.12.4.90', loginAt: '2026-11-04 18:20:31', accessExpire: '20:20 过期', expiringSoon: false }
-])
-
-const revokes = ref([
-  { time: '2026-11-04 16:22:10', account: 'zhaoliu', scope: '全部会话', reason: '疑似密码泄露，管理员主动处置', operator: 'admin' },
-  { time: '2026-11-03 11:05:44', account: 'wangwu', scope: '单个会话', reason: '用户主动退出（删除 refresh 家族）', operator: 'wangwu' },
-  { time: '2026-11-01 09:31:02', account: 'user_1024', scope: '单个会话', reason: '更换手机，旧设备下线', operator: 'system' }
+const stats = computed(() => [
+  { label: '在线会话', value: String(sessions.value.length), hint: '登录登记且未下线的会话', icon: 'User', tone: 'info' },
+  {
+    label: '在线账号',
+    value: String(new Set(sessions.value.map((s) => s.userId)).size),
+    hint: '当前有活跃会话的账号数',
+    icon: 'UserFilled',
+    tone: 'success'
+  },
+  {
+    label: '接入平台',
+    value: String(new Set(sessions.value.map((s) => s.appId)).size),
+    hint: '控制台 + 开放认证各接入方',
+    icon: 'Link',
+    tone: 'purple'
+  },
+  { label: '吊销记录', value: String(revokes.value.length), hint: '最近 200 条内的下线操作', icon: 'Lock', tone: 'warning' }
 ])
 
 /** 页内 Tab：在线会话 / 吊销记录，badge 跟随实际条数 */
@@ -148,9 +183,12 @@ const tabs = computed(() => [
 ])
 
 const filteredSessions = computed(() => {
-  const k = keyword.value.trim()
+  const k = keyword.value.trim().toLowerCase()
   if (!k) return sessions.value
-  return sessions.value.filter((s) => s.account.includes(k) || s.ip.includes(k))
+  return sessions.value.filter((s) =>
+    [s.username, s.nickname, s.ip, s.device, s.appId]
+      .some((f) => String(f ?? '').toLowerCase().includes(k))
+  )
 })
 
 /** 分页：在线会话 / 吊销记录各自独立 */
@@ -177,23 +215,72 @@ const onRevokeSize = (s) => {
 }
 
 /** 关键词筛选后回到第 1 页，避免停在越界页码 */
-watch(keyword, () => { sessionPage.value = 1 })
+watch(keyword, () => {
+  sessionPage.value = 1
+})
 
-const revoke = async (row) => {
-  await ElMessageBox.confirm(
-    `确认强制下线「${row.account}」在 ${row.device} 上的会话？该设备的 access 会立即失效。`,
-    '强制下线',
-    { type: 'warning' }
-  )
-  sessions.value = sessions.value.filter((s) => s.id !== row.id)
-  ElMessage.success('已下线（设计稿，未调用后端）')
+const fmtTime = (ms) => {
+  if (!ms) return '-'
+  const d = new Date(Number(ms))
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
 }
 
-const revokeAll = async () => {
-  await ElMessageBox.confirm('确认强制下线当前全部会话？所有用户需要重新登录。', '批量下线', { type: 'warning' })
-  sessions.value = []
-  ElMessage.success('已全部下线（设计稿，未调用后端）')
+const onlineText = (sec) => {
+  const s = Number(sec) || 0
+  if (s < 60) return `${s} 秒`
+  if (s < 3600) return `${Math.floor(s / 60)} 分钟`
+  const h = Math.floor(s / 3600)
+  const m = Math.floor((s % 3600) / 60)
+  return m ? `${h} 小时 ${m} 分` : `${h} 小时`
 }
+
+const load = async () => {
+  loading.value = true
+  try {
+    const [list, logs] = await Promise.all([fetchSessions(), fetchSessionRevokes(100)])
+    sessions.value = list || []
+    revokes.value = logs || []
+    if (sessionPage.value > Math.ceil(filteredSessions.value.length / sessionSize.value) && sessionPage.value > 1) {
+      sessionPage.value = 1
+    }
+  } catch (e) {
+    sessions.value = []
+    revokes.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+const SCOPE_TEXT = {
+  SESSION: '单会话',
+  PLATFORM: '按平台',
+  DEVICE: '按端',
+  ALL: '全端'
+}
+
+const kick = async (row, scope) => {
+  const tip = scope === 'SESSION'
+    ? `确认让「${row.username}」在 ${row.device}（${row.ip}）上的本次登录立即失效？`
+    : scope === 'DEVICE'
+      ? `确认踢掉「${row.username}」所有 ${row.device} 设备上的会话？`
+      : scope === 'PLATFORM'
+        ? `确认踢掉「${row.username}」在平台 ${row.appId} 的全部会话（其他平台不受影响）？`
+        : `确认全端踢下线「${row.username}」？该账号所有令牌立即失效，需要重新登录。`
+  await ElMessageBox.confirm(tip, `${SCOPE_TEXT[scope]}下线`, { type: 'warning' })
+  const res = await kickSessions({
+    scope,
+    sid: scope === 'SESSION' ? row.sid : undefined,
+    userId: row.userId,
+    appId: scope === 'PLATFORM' ? row.appId : undefined,
+    device: scope === 'DEVICE' ? row.device : undefined,
+    reason: `控制台手动${SCOPE_TEXT[scope]}踢下线`
+  })
+  ElMessage.success(`已下线 ${res?.affected ?? 0} 个会话`)
+  await load()
+}
+
+onMounted(load)
 </script>
 
 <style scoped>
@@ -210,5 +297,7 @@ const revokeAll = async () => {
   gap: 8px;
 }
 
-.warn { color: var(--gw-warning); }
+.acct {
+  font-weight: 500;
+}
 </style>

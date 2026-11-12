@@ -55,7 +55,9 @@ public class OpenAuthService {
 
     public LoginVO login(LoginRequest request, String ip) {
         requireEnabled();
-        return userService.login(request.getUsername(), request.getPassword(), ip);
+        String appId = request.getAppId() == null || request.getAppId().isBlank()
+                ? "open" : request.getAppId().trim();
+        return userService.login(request.getUsername(), request.getPassword(), ip, null, appId);
     }
 
     /**

@@ -58,6 +58,21 @@ WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.open.
 
 INSERT INTO tb_sys_config
   (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.session.mode', 'MULTI', 'STRING', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       '多端登录策略：SINGLE=单端互踢（新登录踢掉旧会话）/ MULTI=多端共存（默认），登录时校验，10 秒内生效'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.session.mode');
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.session.max', '5', 'INTEGER', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       'MULTI 模式下的并发会话上限（1~50）：超限自动踢最早会话；SINGLE 模式忽略本项'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.session.max');
+
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
 SELECT 'platform.ui.refresh.interval', '10', 'INTEGER', 'DB', NULL,
        'API网关平台', 'jv-api-gateway', '*',
        '控制台数据自动刷新间隔（秒）：网关总览 / 数据统计 / 服务发现的轮询频率（含服务健康状态：健康/异常/离线），2~300，30 秒内生效'

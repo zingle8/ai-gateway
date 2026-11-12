@@ -3,6 +3,8 @@ package com.zimo.gateway.proxy.auth;
 import com.zimo.gateway.proxy.mapper.AuthQueryMapper;
 import io.jsonwebtoken.Claims;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -33,14 +35,18 @@ public class AuthVerifier {
     private final ProxyJwtParser jwtParser;
     private final AuthQueryMapper authQueryMapper;
     private final AuthCacheStore cacheStore;
+    /** Redis 可选：存放会话吊销标记 gw:sess:revoked:{sid} */
+    private final ObjectProvider<StringRedisTemplate> redisProvider;
 
     /** keyId → 上次记录 last_used_at 的时间，60 秒内不重复写库 */
     private final Map<String, Long> lastTouch = new ConcurrentHashMap<>();
 
-    public AuthVerifier(ProxyJwtParser jwtParser, AuthQueryMapper authQueryMapper, AuthCacheStore cacheStore) {
+    public AuthVerifier(ProxyJwtParser jwtParser, AuthQueryMapper authQueryMapper, AuthCacheStore cacheStore,
+                        ObjectProvider<StringRedisTemplate> redisProvider) {
         this.jwtParser = jwtParser;
         this.authQueryMapper = authQueryMapper;
         this.cacheStore = cacheStore;
+        this.redisProvider = redisProvider;
     }
 
     /** 判定结果；userId / keyId 用于通过后向下游透传身份 */
@@ -73,6 +79,10 @@ public class AuthVerifier {
         int dbVersion = ((Number) state.getOrDefault("token_version", 0)).intValue();
         if (tokenVersion != dbVersion) {
             return Decision.deny("账号已退出登录，请重新登录");
+        }
+        // 会话级吊销：单会话 / 按平台 / 按端踢人后，该 sid 的令牌立即失效
+        if (sessionRevoked(claims.get("sid"))) {
+            return Decision.deny("该会话已被强制下线，请重新登录");
         }
         return new Decision(true, null, userId, null);
     }
@@ -119,6 +129,26 @@ public class AuthVerifier {
             authQueryMapper.touchLastUsed(keyId, LocalDateTime.now());
         } catch (Exception e) {
             log.debug("[鉴权] 更新 Key 最近使用时间失败：{}", e.getMessage());
+        }
+    }
+
+    /**
+     * 会话吊销校验：读 gw:sess:revoked:{sid}。
+     * Redis 不可用时返回 false（放行），与鉴权缓存的容错策略一致。
+     */
+    private boolean sessionRevoked(Object sid) {
+        if (sid == null || String.valueOf(sid).isBlank()) {
+            return false;
+        }
+        StringRedisTemplate redis = redisProvider.getIfAvailable();
+        if (redis == null) {
+            return false;
+        }
+        try {
+            return Boolean.TRUE.equals(redis.hasKey("gw:sess:revoked:" + sid));
+        } catch (Exception e) {
+            log.warn("[鉴权] 会话吊销状态查询失败，本次放行：{}", e.getMessage());
+            return false;
         }
     }
 
