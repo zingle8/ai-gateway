@@ -10,6 +10,9 @@
 -- =============================================================================
 USE api_gateway;
 
+-- 安全策略 / 登录方式为 JSON 长文本，扩容 config_value
+ALTER TABLE tb_sys_config MODIFY COLUMN config_value TEXT NOT NULL;
+
 CREATE TABLE IF NOT EXISTS tb_sys_config (
   id            BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
   config_key    VARCHAR(128) NOT NULL                COMMENT '配置键，如 platform.auth.cache.mode',
@@ -69,6 +72,21 @@ SELECT 'platform.session.max', '5', 'INTEGER', 'DB', NULL,
        'API网关平台', 'jv-api-gateway', '*',
        'MULTI 模式下的并发会话上限（1~50）：超限自动踢最早会话；SINGLE 模式忽略本项'
 WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.session.max');
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.security.policy', '{"lockThreshold":5,"lockMinutes":30,"captchaTrigger":"FAIL2","maxSessions":3,"otpTtl":5,"otpInterval":60,"otpDailyLimit":10,"otpMaxAttempts":5,"pwdMinLength":8,"pwdUpper":true,"pwdDigit":true,"pwdSymbol":false,"pwdExpireDays":90,"pwdHistory":true,"pwdHistoryCount":5,"mfaScope":"NONE","stepUp":true,"totpDrift":1,"backupCodes":true,"accessConsole":20,"accessApi":60,"refreshDays":7,"refreshIdleDays":30,"refreshRotate":true}', 'JSON', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       '平台安全策略（登录保护/验证码/密码/MFA/令牌有效期），控制台「安全策略」页维护，登录流程实时读取'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.security.policy');
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.login.methods', '{"factors":[{"key":"username","name":"用户名 + 密码","tier":"主因子","enabled":true},{"key":"email","name":"邮箱 + 密码","tier":"主因子","enabled":true},{"key":"phone","name":"手机号 + 密码","tier":"主因子","enabled":true},{"key":"emailOtp","name":"邮箱验证码免密登录","tier":"主因子","enabled":true},{"key":"smsOtp","name":"短信验证码免密登录","tier":"主因子","enabled":false},{"key":"qrcode","name":"扫码登录","tier":"主因子","enabled":false},{"key":"sso","name":"单点登录 SSO","tier":"主因子","enabled":true},{"key":"totp","name":"动态码二次验证（TOTP）","tier":"二次验证","enabled":true}],"mail":{"enabled":true,"host":"","port":465,"ssl":"SSL","from":"","secret":""},"sms":{"enabled":false,"provider":"ALIYUN","sign":"","template":"","keyId":""}}', 'JSON', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       '登录方式配置（因子开关 + 邮件/短信通道），控制台「登录方式」页维护；username 因子关闭时密码登录被拒'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.login.methods');
+
 
 
 INSERT INTO tb_sys_config

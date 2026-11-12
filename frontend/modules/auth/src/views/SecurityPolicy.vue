@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <p class="demo-tip">
-      <el-tag size="small" type="info" effect="plain">设计稿</el-tag>
-      <span class="gw-sm gw-muted">策略表单可编辑，暂不落库；后端 /auth/policy 接口待接入。</span>
+      <el-tag size="small" type="success" effect="plain">已接真</el-tag>
+      <span class="gw-sm gw-muted">策略落库 tb_sys_config，登录流程实时读取：失败锁定阈值 / 密码通道 / MFA 范围修改后立即生效。</span>
     </p>
 
     <!-- 五组策略按 Tab 分开，单屏只呈现一类配置 -->
@@ -175,7 +175,7 @@
     </PaneTabs>
 
     <div class="actions">
-      <el-button type="primary" @click="save">保存策略</el-button>
+      <el-button type="primary" :loading="saving" @click="save">保存策略</el-button>
       <el-button @click="resetAll">重置</el-button>
       <span class="gw-sm gw-muted" style="margin-left: 8px">策略变更对新建会话生效，存量会话在下次刷新时应用</span>
     </div>
@@ -183,9 +183,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { PaneTabs } from '@zimo/ui'
+import { fetchSecurityPolicy, saveSecurityPolicy } from '../api'
 
 /** 页内 Tab：五组策略 */
 const TABS = [
@@ -232,10 +233,28 @@ const defaults = () => ({
 const policy = reactive(defaults())
 const snapshot = ref(JSON.stringify(policy))
 
-const save = () => {
-  snapshot.value = JSON.stringify(policy)
-  ElMessage.success('策略已保存（设计稿，未落库）')
+const saving = ref(false)
+const save = async () => {
+  saving.value = true
+  try {
+    const data = await saveSecurityPolicy({ ...policy })
+    Object.assign(policy, defaults(), data || {})
+    snapshot.value = JSON.stringify(policy)
+    ElMessage.success('策略已保存，登录流程实时生效')
+  } finally {
+    saving.value = false
+  }
 }
+
+onMounted(async () => {
+  try {
+    const data = await fetchSecurityPolicy()
+    Object.assign(policy, defaults(), data || {})
+    snapshot.value = JSON.stringify(policy)
+  } catch (e) {
+    /* 读取失败保持默认值 */
+  }
+})
 
 const resetAll = () => {
   Object.assign(policy, JSON.parse(snapshot.value))

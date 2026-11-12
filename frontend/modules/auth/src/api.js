@@ -125,3 +125,23 @@ export function fetchSessionRevokes(limit = 100) {
 export function kickSessions(data) {
   return request.post('/auth/sessions/kick', data)
 }
+
+/* ---------------------------------------------------------- 安全策略 / 登录方式（tb_sys_config JSON） */
+
+/** 平台安全策略（登录保护 / 验证码 / 密码 / MFA / 令牌有效期） */
+export function fetchSecurityPolicy() {
+  return request.get('/policies/security')
+}
+
+export function saveSecurityPolicy(data) {
+  return request.put('/policies/security', data)
+}
+
+/** 登录方式（因子开关 + 邮件/短信通道） */
+export function fetchLoginMethods() {
+  return request.get('/policies/login-methods')
+}
+
+export function saveLoginMethods(data) {
+  return request.put('/policies/login-methods', data)
+}

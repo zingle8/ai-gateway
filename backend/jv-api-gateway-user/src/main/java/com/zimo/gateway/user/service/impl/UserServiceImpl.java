@@ -11,6 +11,7 @@ import com.zimo.gateway.user.model.LoginVO;
 import com.zimo.gateway.user.model.RegisterRequest;
 import com.zimo.gateway.user.model.UserQuery;
 import com.zimo.gateway.user.model.UserSaveRequest;
+import com.zimo.gateway.user.service.LoginPolicyService;
 import com.zimo.gateway.user.service.SessionService;
 import com.zimo.gateway.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +41,7 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final SessionService sessionService;
+    private final LoginPolicyService loginPolicyService;
 
     /**
      * Redis 模板（可选依赖）。
@@ -53,10 +55,8 @@ public class UserServiceImpl implements UserService {
     private final Map<String, Integer> failCount = new ConcurrentHashMap<>();
 
     /** 连续失败达到该次数即锁定账号 */
-    private static final int MAX_FAIL = 5;
 
     /** 失败计数在 Redis 中的存活时间：到期自动解锁 */
-    private static final Duration LOCK_TTL = Duration.ofMinutes(30);
 
     private static final String FAIL_KEY_PREFIX = "gw:login:fail:";
 
@@ -83,7 +83,7 @@ public class UserServiceImpl implements UserService {
             try {
                 Long n = redisTemplate.opsForValue().increment(failKey(username));
                 if (n != null && n == 1L) {
-                    redisTemplate.expire(failKey(username), LOCK_TTL);
+                    redisTemplate.expire(failKey(username), Duration.ofMinutes(loginPolicyService.lockMinutes()));
                 }
                 return n == null ? 1 : n.intValue();
             } catch (Exception e) {
@@ -135,13 +135,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public LoginVO login(String username, String password, String ip, String ua, String appId) {
-        if (currentFailCount(username) >= MAX_FAIL) {
+        if (!loginPolicyService.passwordChannelEnabled()) {
+            throw new BizException(ResultCode.BAD_REQUEST.getCode(), "密码登录通道已关闭，请使用其他登录方式");
+        }
+        if (currentFailCount(username) >= loginPolicyService.lockThreshold()) {
             long remain = lockRemainSeconds(username);
             String tip = remain > 0
                     ? "请 " + (remain / 60 + 1) + " 分钟后重试"
                     : "请稍后重试或联系管理员解锁";
             throw new BizException(ResultCode.FORBIDDEN.getCode(),
-                    "连续输错 " + MAX_FAIL + " 次，账号已锁定，" + tip);
+                    "连续输错 " + loginPolicyService.lockThreshold() + " 次，账号已锁定，" + tip);
         }
 
         UserEntity user = userMapper.selectByUsername(username);
@@ -155,7 +158,7 @@ public class UserServiceImpl implements UserService {
             int count = incrFailCount(username);
             log.warn("用户登录失败：{}（{}），连续失败 {} 次", username, ip, count);
             throw new BizException(ResultCode.UNAUTHORIZED.getCode(),
-                    "账号或密码错误，还可尝试 " + Math.max(0, MAX_FAIL - count) + " 次");
+                    "账号或密码错误，还可尝试 " + Math.max(0, loginPolicyService.lockThreshold() - count) + " 次");
         }
 
         clearFailCount(username);
@@ -168,7 +171,7 @@ public class UserServiceImpl implements UserService {
         String token = jwtUtil.createToken(user.getId(), username, user.getTokenVersion(), sid);
         sessionService.register(user, sid, ip, ua, appId);
         log.info("用户登录成功：{}（{}，会话 {}，平台 {}）", username, ip, sid, appId);
-        return LoginVO.of(token, user);
+        return LoginVO.of(token, user, loginPolicyService.mfaRequiredFor(user.getRole()));
     }
 
     @Override

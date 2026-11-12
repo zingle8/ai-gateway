@@ -73,3 +73,7 @@ WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/open/**');
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
 SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-config', '/api/rate-limits/**', 'http://127.0.0.1:28085', NULL, 0, 1, '平台自身：网关限流策略'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/rate-limits/**');
+
+INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-config', '/api/policies/**', 'http://127.0.0.1:28085', NULL, 0, 1, '平台自身：安全策略 / 登录方式配置'
+WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/policies/**');

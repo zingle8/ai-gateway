@@ -1,8 +1,8 @@
 <template>
   <div class="page">
     <p class="demo-tip">
-      <el-tag size="small" type="info" effect="plain">设计稿</el-tag>
-      <span class="gw-sm gw-muted">配置可交互，暂不落库；后端 /auth/login-methods 接口待接入。</span>
+      <el-tag size="small" type="success" effect="plain">已接真</el-tag>
+      <span class="gw-sm gw-muted">配置落库 tb_sys_config；关闭「用户名 + 密码」因子后密码登录立即被拒，其他因子随 v0.3 通道就绪生效。</span>
     </p>
 
     <!-- 页内两个内容块按 Tab 切换，避免整页纵向堆叠 -->
@@ -106,7 +106,7 @@
     </PaneTabs>
 
     <div class="actions">
-      <el-button type="primary" @click="save">保存配置</el-button>
+      <el-button type="primary" :loading="saving" @click="save">保存配置</el-button>
       <el-button @click="resetAll">重置</el-button>
       <span class="gw-sm gw-muted" style="margin-left: 8px">保存会同时提交登录因子与验证码通道</span>
     </div>
@@ -114,9 +114,10 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { PaneTabs } from '@zimo/ui'
+import { fetchLoginMethods, saveLoginMethods } from '../api'
 
 /** 页内 Tab：登录因子 / 验证码通道 */
 const TABS = [
@@ -161,10 +162,36 @@ const testChannel = (name) => {
   ElMessage.info(`${name}通道测试：后端接口待接入，当前仅演示交互`)
 }
 
-const save = () => {
-  snapshot.value = JSON.stringify({ factors, mail, sms })
-  ElMessage.success('配置已保存（设计稿，未落库）')
+const saving = ref(false)
+const save = async () => {
+  saving.value = true
+  try {
+    const data = await saveLoginMethods({ factors: [...factors], mail: { ...mail }, sms: { ...sms } })
+    if (data && Array.isArray(data.factors)) {
+      factors.splice(0, factors.length, ...data.factors)
+    }
+    if (data && data.mail) Object.assign(mail, data.mail)
+    if (data && data.sms) Object.assign(sms, data.sms)
+    snapshot.value = JSON.stringify({ factors, mail, sms })
+    ElMessage.success('配置已保存，登录流程实时生效')
+  } finally {
+    saving.value = false
+  }
 }
+
+onMounted(async () => {
+  try {
+    const data = await fetchLoginMethods()
+    if (data && Array.isArray(data.factors)) {
+      factors.splice(0, factors.length, ...data.factors)
+    }
+    if (data && data.mail) Object.assign(mail, data.mail)
+    if (data && data.sms) Object.assign(sms, data.sms)
+    snapshot.value = JSON.stringify({ factors, mail, sms })
+  } catch (e) {
+    /* 读取失败保持默认 */
+  }
+})
 
 const resetAll = () => {
   const s = JSON.parse(snapshot.value)
