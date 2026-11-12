@@ -109,6 +109,8 @@ INSERT IGNORE INTO tb_perm_item (menu_id, func_name, code, name, type, api, enab
   ('m-onboard-system', '接入列表', 'onboard.system.edit',       '编辑接入应用',       'BUTTON',  'PUT /api/onboard/apps',             1),
   ('m-onboard-route',  '路由表',   'onboard.route.view',        '查看路由',           'DISPLAY', 'GET /api/onboard/routes',           1),
   ('m-onboard-route',  '路由表',   'onboard.route.edit',        '新增/编辑路由',      'BUTTON',  'POST|PUT /api/onboard/routes',      1),
+  ('m-onboard-ratelimit','限流策略','onboard.ratelimit.view',  '查看限流策略',       'DISPLAY', 'GET /api/rate-limits',              1),
+  ('m-onboard-ratelimit','限流策略','onboard.ratelimit.edit',  '编辑限流策略',       'BUTTON',  'POST|PUT|DELETE /api/rate-limits',  1),
   ('m-onboard-release','发布单',   'onboard.release.view',      '查看发布单',         'DISPLAY', 'GET /api/onboard/releases',         1),
   ('m-onboard-release','发布单',   'onboard.release.publish',   '执行发布',           'BUTTON',  'POST /api/onboard/releases/publish',1),
   ('m-onboard-open',   '开放认证', 'open.auth.verify',          '验证用户令牌',       'API',     'POST /api/open/auth/token/verify',  1),
@@ -158,7 +160,8 @@ INSERT IGNORE INTO tb_perm_group (id, name, code, type, parent_id, data_scope, l
 INSERT IGNORE INTO tb_perm_group_perm (group_id, perm_code)
 SELECT 102, code FROM tb_perm_item
 WHERE code IN ('overview.view','stats.view','discovery.view','trace.view','trace.detail',
-               'onboard.route.view','onboard.route.edit','onboard.release.view','onboard.release.publish');
+               'onboard.route.view','onboard.route.edit','onboard.release.view','onboard.release.publish',
+               'onboard.ratelimit.view','onboard.ratelimit.edit');
 
 -- 只读观察者：仅浏览
 INSERT IGNORE INTO tb_perm_group_perm (group_id, perm_code)

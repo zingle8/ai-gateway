@@ -41,3 +41,30 @@ export function deleteRoute(id) {
 export function toggleRoute(id) {
   return request.post(`/discovery/routes/${id}/toggle`)
 }
+
+/* ---------------------------------------------------------- 网关限流（tb_gw_rate_limit） */
+
+/** 限流规则清单 */
+export function fetchRateLimits() {
+  return request.get('/rate-limits')
+}
+
+/** 新增限流规则 */
+export function createRateLimit(data) {
+  return request.post('/rate-limits', data)
+}
+
+/** 修改限流规则 */
+export function updateRateLimit(id, data) {
+  return request.put(`/rate-limits/${id}`, data)
+}
+
+/** 启停限流规则 */
+export function updateRateLimitStatus(id, status) {
+  return request.put(`/rate-limits/${id}/status`, { status })
+}
+
+/** 删除限流规则 */
+export function deleteRateLimit(id) {
+  return request.delete(`/rate-limits/${id}`)
+}

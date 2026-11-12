@@ -30,6 +30,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/configs/**")
+                .addPathPatterns("/rate-limits/**")
                 .excludePathPatterns("/configs/public");
     }
 }

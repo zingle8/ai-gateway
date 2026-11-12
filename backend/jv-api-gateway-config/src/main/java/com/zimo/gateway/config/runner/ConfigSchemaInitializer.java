@@ -59,10 +59,12 @@ public class ConfigSchemaInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         try (Connection connection = dataSource.getConnection()) {
             migrateColumns(connection);
-            ScriptUtils.executeSqlScript(connection, new EncodedResource(
-                    new ClassPathResource("db/jv-api-gateway-config-config-tb_sys_config.sql"),
-                    StandardCharsets.UTF_8));
-            log.info("[初始化] 系统配置表与默认配置就绪");
+            for (String script : new String[]{"db/jv-api-gateway-config-config-tb_sys_config.sql",
+                    "db/jv-api-gateway-config-ratelimit-tb_gw_rate_limit.sql"}) {
+                ScriptUtils.executeSqlScript(connection, new EncodedResource(
+                        new ClassPathResource(script), StandardCharsets.UTF_8));
+            }
+            log.info("[初始化] 系统配置表、默认配置与限流规则表就绪");
         } catch (Exception e) {
             log.warn("[初始化] 系统配置脚本执行失败（请手工执行 backend/sql 下脚本）：{}", e.getMessage());
         }

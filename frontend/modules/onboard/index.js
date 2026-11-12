@@ -5,6 +5,7 @@ import AutoOnboardView from './src/views/AutoOnboard.vue'
 import SystemOnboardView from './src/views/SystemOnboard.vue'
 import RouteConfigView from './src/views/RouteConfig.vue'
 import OpenAuthView from './src/views/OpenAuth.vue'
+import RateLimitView from './src/views/RateLimit.vue'
 import { Placeholder } from '@zimo/ui'
 
 export const menu = [
@@ -15,6 +16,7 @@ export const menu = [
       { path: '/system-onboard', title: '系统接入', icon: 'Promotion', perm: 'onboard.system.view' },
       { path: '/auto-onboard', title: '自动接入', icon: 'MagicStick' },
       { path: '/route-config', title: '路由配置', icon: 'Share', perm: 'onboard.route.view' },
+      { path: '/rate-limit', title: '限流策略', icon: 'Odometer', perm: 'onboard.ratelimit.view' },
       { path: '/go-live', title: '上线发布', icon: 'Upload', perm: 'onboard.release.view' },
       { path: '/open-auth', title: '开放认证', icon: 'Document' }
     ]
@@ -39,6 +41,12 @@ export const routes = [
     name: 'RouteConfig',
     component: RouteConfigView,
     meta: { title: '路由配置', subtitle: '配置转发规则，业务方零改代码接入网关' }
+  },
+  {
+    path: 'rate-limit',
+    name: 'RateLimit',
+    component: RateLimitView,
+    meta: { title: '限流策略', subtitle: '令牌桶限流：全局 / 路由 / API Key / IP 四维配置' }
   },
   {
     path: 'go-live',
