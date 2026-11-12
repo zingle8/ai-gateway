@@ -127,6 +127,72 @@
       </section>
     </div>
 
+    <!-- 主机资源（v0.2 第 10 项：SDK 每 60 秒上报） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>主机资源</span>
+        <div class="host-actions">
+          <el-select v-model="hostMinutes" size="small" style="width: 110px" @change="loadHosts">
+            <el-option label="近 15 分钟" :value="15" />
+            <el-option label="近 1 小时" :value="60" />
+            <el-option label="近 6 小时" :value="360" />
+            <el-option label="近 24 小时" :value="1440" />
+          </el-select>
+          <el-select v-model="hostname" size="small" style="width: 220px" placeholder="选择主机" @change="loadHostTrend">
+            <el-option v-for="h in hostnames" :key="h" :label="h" :value="h" />
+          </el-select>
+          <el-button size="small" plain :loading="hostLoading" @click="loadHosts">刷新</el-button>
+        </div>
+      </div>
+      <div class="gw-card-bd no-pad">
+        <el-table :data="hosts" v-loading="hostLoading" size="small" style="width: 100%">
+          <el-table-column prop="hostname" label="主机" min-width="200" />
+          <el-table-column prop="appId" label="应用" width="140" />
+          <el-table-column label="CPU 均值 / 峰值" width="150">
+            <template #default="{ row }">{{ row.cpuAvg ?? '-' }}% / {{ row.cpuMax ?? '-' }}%</template>
+          </el-table-column>
+          <el-table-column label="内存" width="110">
+            <template #default="{ row }">{{ row.memAvg ?? '-' }}%</template>
+          </el-table-column>
+          <el-table-column label="堆" width="100">
+            <template #default="{ row }">{{ row.heapAvg ?? '-' }}%</template>
+          </el-table-column>
+          <el-table-column label="磁盘" width="100">
+            <template #default="{ row }">{{ row.diskUsedPct ?? '-' }}%</template>
+          </el-table-column>
+          <el-table-column label="网络 入 / 出" width="190">
+            <template #default="{ row }">
+              {{ fmtBps(row.netRxAvg) }} / {{ fmtBps(row.netTxAvg) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="GPU" width="110">
+            <template #default="{ row }">
+              <span v-if="row.gpuCount > 0">{{ row.gpuUtil }}% × {{ row.gpuCount }}</span>
+              <span v-else class="gw-muted">-</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="lastReportTime" label="最近上报" width="170" />
+        </el-table>
+        <div v-if="!hostLoading && hosts.length === 0" class="host-empty gw-sm gw-muted">
+          暂无主机指标：接入方引入 SDK 后每 60 秒自动上报（zimo.gateway.client.metrics.enabled 默认开启）
+        </div>
+      </div>
+      <div class="gw-card-bd host-trend" v-if="hostname">
+        <div class="gw-sm gw-muted host-trend-title">资源使用率趋势（{{ hostname }}）</div>
+        <TrendChart :times="hostTrend.times" :values="hostTrendMetricValues" :unit="' %'"
+                    :series-name="hostMetricLabel" :height="150" />
+        <div class="gw-sm gw-muted host-trend-title">网络速率（入 / 出）</div>
+        <TrendChart :times="hostTrend.times" :values="hostTrend.rxKb" :values2="hostTrend.txKb"
+                    unit=" KB/s" series-name="入站" series-name2="出站" scale-second :height="150" />
+        <el-radio-group v-model="hostMetric" size="small" class="host-metric-pick">
+          <el-radio-button label="cpu">CPU</el-radio-button>
+          <el-radio-button label="mem">内存</el-radio-button>
+          <el-radio-button label="heap">堆</el-radio-button>
+          <el-radio-button label="disk">磁盘</el-radio-button>
+        </el-radio-group>
+      </div>
+    </section>
+
     <!-- Top 服务 -->
     <section class="gw-card">
       <div class="gw-card-hd"><span>Top 服务</span></div>
@@ -183,7 +249,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { TrendChart, TimeRangePicker } from '@zimo/ui'
 import { DEFAULT_TIME_RANGE, timeRangeLabel, timeRangeOf, useAutoRefresh } from '@zimo/shared'
-import { fetchStatsFilters, fetchStatsSummary, fetchStatsTrend } from '../api'
+import { fetchStatsFilters, fetchStatsSummary, fetchStatsTrend, fetchHostMetrics, fetchHostnames, fetchHostMetricTrend } from '../api'
 import {
   DataAnalysis, TrendCharts, Timer, Warning, Download, Upload, CircleCheck, User, Document, Files
 } from '@element-plus/icons-vue'
@@ -309,7 +375,67 @@ const reset = () => {
   load()
 }
 
+/* ---------------- 主机资源（v0.2 第 10 项） ---------------- */
+const hosts = ref([])
+const hostnames = ref([])
+const hostLoading = ref(false)
+const hostMinutes = ref(60)
+const hostname = ref('')
+const hostMetric = ref('cpu')
+const hostTrend = ref({ times: [], cpu: [], mem: [], heap: [], disk: [], rxKb: [], txKb: [] })
+
+const METRIC_LABELS = { cpu: 'CPU 使用率', mem: '内存使用率', heap: '堆使用率', disk: '磁盘使用率' }
+const hostMetricLabel = computed(() => METRIC_LABELS[hostMetric.value] || '使用率')
+const hostTrendMetricValues = computed(() => {
+  const key = hostMetric.value
+  return (hostTrend.value[key] || []).map((v) => (v == null ? 0 : v))
+})
+
+const fmtBps = (bps) => {
+  const value = Number(bps || 0)
+  if (value >= 1024 * 1024) return (value / 1024 / 1024).toFixed(1) + ' MB/s'
+  if (value >= 1024) return (value / 1024).toFixed(1) + ' KB/s'
+  return value + ' B/s'
+}
+
+const loadHostTrend = async () => {
+  if (!hostname.value) return
+  try {
+    const vo = await fetchHostMetricTrend(hostname.value, hostMinutes.value)
+    hostTrend.value = {
+      times: vo?.times || [],
+      cpu: vo?.cpu || [],
+      mem: vo?.mem || [],
+      heap: vo?.heap || [],
+      disk: vo?.disk || [],
+      rxKb: (vo?.rx || []).map((v) => Math.round((v / 1024) * 10) / 10),
+      txKb: (vo?.tx || []).map((v) => Math.round((v / 1024) * 10) / 10)
+    }
+  } catch (e) {
+    hostTrend.value = { times: [], cpu: [], mem: [], heap: [], disk: [], rxKb: [], txKb: [] }
+  }
+}
+
+const loadHosts = async () => {
+  hostLoading.value = true
+  try {
+    const [list, names] = await Promise.all([
+      fetchHostMetrics(hostMinutes.value).catch(() => []),
+      fetchHostnames().catch(() => [])
+    ])
+    hosts.value = list || []
+    hostnames.value = names || []
+    if (!hostname.value && hostnames.value.length) {
+      hostname.value = hostnames.value[0]
+    }
+    await loadHostTrend()
+  } finally {
+    hostLoading.value = false
+  }
+}
+
 onMounted(async () => {
+  await loadHosts()
   await loadFilters()
   // 数据自动刷新：频率来自系统设置 platform.ui.refresh.interval（30 秒内生效）
   useAutoRefresh(load)
@@ -376,4 +502,18 @@ onMounted(async () => {
   text-align: right;
   color: var(--gw-text);
 }
+
+.host-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.host-empty { padding: 18px 16px; }
+
+.host-trend { border-top: 1px solid var(--gw-border, #ebeef5); }
+
+.host-trend-title { margin: 6px 0; }
+
+.host-metric-pick { margin-top: 10px; }
 </style>

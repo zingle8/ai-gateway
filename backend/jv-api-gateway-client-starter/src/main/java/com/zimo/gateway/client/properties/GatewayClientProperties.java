@@ -90,6 +90,25 @@ public class GatewayClientProperties {
 
     private final Registry registry = new Registry();
 
+    private final Metrics metrics = new Metrics();
+
+    /**
+     * 主机运行指标上报（v0.2 第 10 项）：每 60 秒采集一次 CPU / 内存 / JVM / 磁盘 / 网络，
+     * 有 NVIDIA GPU 时附带 GPU 指标，POST 到 {server-addr}/discovery/metrics/batch。
+     */
+    @Data
+    public static class Metrics {
+
+        /** 关闭开关：zimo.gateway.client.metrics.enabled=false */
+        private boolean enabled = true;
+
+        /** 采集间隔（ms），最小 10 秒 */
+        private long interval = 60_000L;
+
+        /** 是否尝试采集 GPU（调用 nvidia-smi，无 GPU 自动跳过） */
+        private boolean gpuEnabled = true;
+    }
+
     @Data
     public static class Trace {
 
@@ -102,7 +121,7 @@ public class GatewayClientProperties {
                 "/actuator/**", "/error", "/favicon.ico", "/webjars/**",
                 "/api/trace/logs/batch", "/api/trace/spans/batch",
                 "/api/discovery/services/register", "/api/discovery/services/heartbeat",
-                "/api/discovery/services/deregister"));
+                "/api/discovery/services/deregister", "/api/discovery/metrics/batch"));
 
         /** 单条报文体最大采集长度，超出截断 */
         private int maxBodySize = 8192;

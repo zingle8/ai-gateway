@@ -100,6 +100,7 @@ gateway:
         - /api/discovery/services/register
         - /api/discovery/services/heartbeat
         - /api/discovery/services/deregister
+        - /api/discovery/metrics/batch
         - /api/trace/logs/batch
         - /api/trace/spans/batch
         # 业务系统 app-regtech（自带 JWT 鉴权，由 jv-regtech-* 各服务的

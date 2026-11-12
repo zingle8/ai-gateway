@@ -4,6 +4,7 @@ import com.zimo.gateway.client.client.GatewayPlatformClient;
 import com.zimo.gateway.client.client.TracePropagationInterceptor;
 import com.zimo.gateway.client.properties.GatewayClientProperties;
 import com.zimo.gateway.client.registry.ServiceRegistrar;
+import com.zimo.gateway.client.report.MetricsReporter;
 import com.zimo.gateway.client.report.TraceReporter;
 import com.zimo.gateway.client.web.GatewayTraceFilter;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -41,6 +42,17 @@ public class GatewayClientAutoConfiguration {
     @ConditionalOnMissingBean
     public TraceReporter traceReporter(GatewayClientProperties properties) {
         return new TraceReporter(properties);
+    }
+
+    /**
+     * 主机运行指标上报（v0.2 第 10 项）：每 60 秒采集一次，独立线程，不影响业务
+     */
+    @Bean(destroyMethod = "destroy")
+    @ConditionalOnMissingBean
+    @ConditionalOnProperty(prefix = GatewayClientProperties.PREFIX + ".metrics", name = "enabled",
+            havingValue = "true", matchIfMissing = true)
+    public MetricsReporter metricsReporter(GatewayClientProperties properties) {
+        return new MetricsReporter(properties);
     }
 
     /**
