@@ -115,7 +115,8 @@ public class ConfigServiceImpl implements ConfigService {
         if (mapper.updateValue(key, value) == 0) {
             throw new BizException(ResultCode.ERROR.getCode(), "配置更新失败：" + key);
         }
-        log.info("配置已更新：{} = {} @ {}", key, value, source);
+        // 敏感配置（密码 / 密钥 / 令牌）打印时脱敏（v0.2 第 14 项）
+        log.info("配置已更新：{} = {} @ {}", key, com.zimo.gateway.common.log.LogMask.configValue(key, value), source);
     }
 
     @Override

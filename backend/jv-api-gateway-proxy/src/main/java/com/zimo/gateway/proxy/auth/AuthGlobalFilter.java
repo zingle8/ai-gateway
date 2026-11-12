@@ -88,7 +88,12 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                         ServerWebExchange mutated = injectIdentity(exchange, decision);
                         return chain.filter(mutated);
                     }
-                    log.info("[鉴权] 拦截 {} {}：{}", exchange.getRequest().getMethod(), path, decision.message());
+                    // 拦截日志按路径限速，避免被撞库 / 扫描流量刷屏（v0.2 第 14 项）
+                    if (com.zimo.gateway.proxy.log.LogThrottle.allow("auth.deny:" + path, 5)) {
+                        log.info("[鉴权] 拦截 {} {}（traceId={}）：{}", exchange.getRequest().getMethod(), path,
+                                exchange.getAttributes().get(com.zimo.gateway.proxy.log.TraceIdWebFilter.ATTR),
+                                decision.message());
+                    }
                     return deny(exchange, decision.status(), decision.message());
                 });
     }

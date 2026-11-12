@@ -92,7 +92,8 @@ export const MENU_FEATURE_STATUS = {
   '/perm/org': true,
   '/perm/menu': true,
   '/system/role': false,
-  '/system/settings': true
+  '/system/settings': true,
+  '/system/logs': true
 }
 
 export const MENU_SERVICES = {
@@ -120,7 +121,8 @@ export const MENU_SERVICES = {
   '/perm/org': 'jv-api-gateway-user',
   '/perm/menu': 'jv-api-gateway-user',
   '/system/role': 'jv-api-gateway-user',
-  '/system/settings': 'jv-api-gateway-config'
+  '/system/settings': 'jv-api-gateway-config',
+  '/system/logs': 'jv-api-gateway-config'
 }
 
 /**

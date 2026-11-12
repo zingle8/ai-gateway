@@ -40,7 +40,8 @@ public class AdminAccountInitializer implements ApplicationRunner {
 
         log.info("==================================================");
         log.info("  网关平台账号已初始化");
-        log.info("  超级管理员：{} / {}", adminUsername, adminPassword);
+        // 初始密码脱敏打印（v0.2 第 14 项）：避免明文密码落到日志文件
+        log.info("  超级管理员：{} / {}", adminUsername, com.zimo.gateway.common.log.LogMask.token(adminPassword));
         log.info("  演示账号：dev / Dev@123、ops / Ops@123、viewer / View@123");
         log.info("==================================================");
     }

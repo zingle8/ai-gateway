@@ -4,7 +4,7 @@
 <configuration>
   <property name="LOG_HOME" value="logs/app"/>
   <property name="MODULE" value="jv-api-gateway-discovery"/>
-  <property name="PAT" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"/>
+  <property name="PAT" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{traceId:-}] %-5level %logger{40} - %msg%n"/>
 
   <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
     <encoder><pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern></encoder>

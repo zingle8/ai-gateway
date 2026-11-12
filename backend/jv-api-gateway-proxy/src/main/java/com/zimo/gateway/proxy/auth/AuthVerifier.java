@@ -138,7 +138,9 @@ public class AuthVerifier {
         }
         String allowedIps = key.get("allowed_ips") == null ? null : String.valueOf(key.get("allowed_ips"));
         if (!IpWhitelist.matches(allowedIps, clientIp)) {
-            log.info("[鉴权] API Key {} 调用方 IP {} 不在白名单 [{}] 内，拒绝访问", keyId, clientIp, allowedIps);
+            if (com.zimo.gateway.proxy.log.LogThrottle.allow("auth.ip.deny:" + keyId, 3)) {
+                log.info("[鉴权] API Key {} 调用方 IP {} 不在白名单内，拒绝访问", keyId, clientIp);
+            }
             return Decision.forbidden("调用方 IP " + clientIp + " 不在该 API Key 的 IP 白名单内");
         }
         touchLastUsed(keyId);

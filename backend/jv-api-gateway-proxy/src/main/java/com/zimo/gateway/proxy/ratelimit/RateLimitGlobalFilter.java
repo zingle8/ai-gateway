@@ -80,8 +80,11 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
                         writeHeaders(exchange, outcome);
                         return chain.filter(exchange);
                     }
-                    log.info("[限流] 拒绝 {} {}：规则「{}」，剩余 {}/{}",
-                            request.getMethod(), path, outcome.ruleName(), outcome.remaining(), outcome.limit());
+                    // 拒绝日志按路径限速（v0.2 第 14 项），避免 429 刷屏写爆磁盘
+                    if (com.zimo.gateway.proxy.log.LogThrottle.allow("rate.deny:" + path, 3)) {
+                        log.info("[限流] 拒绝 {} {}：规则「{}」，剩余 {}/{}",
+                                request.getMethod(), path, outcome.ruleName(), outcome.remaining(), outcome.limit());
+                    }
                     return deny(exchange, outcome);
                 });
     }

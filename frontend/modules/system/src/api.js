@@ -1,6 +1,19 @@
 import request from '@zimo/shared/request'
 
 /* ==========================================================================
+ * 日志管控（v0.2 第 14 项，后端 jv-api-gateway-config /policies 接口）
+ * ========================================================================== */
+
+/** 动态日志级别：{ logger: LEVEL } */
+export const fetchLogLevels = () => request.get('/policies/log-levels')
+
+/** 全量覆盖动态级别，各服务 10 秒内应用（免重启） */
+export const saveLogLevels = (levels) => request.put('/policies/log-levels', levels)
+
+/** 日志文件概览：按模块聚合大小 / 文件数 / ERROR 文件 + 滚动保留策略 */
+export const fetchLogFiles = () => request.get('/policies/log-files')
+
+/* ==========================================================================
  * 系统配置（后端 jv-api-gateway-config /configs 接口，经网关 28090）
  * ========================================================================== */
 

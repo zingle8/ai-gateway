@@ -68,6 +68,13 @@ WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.open.
 
 INSERT INTO tb_sys_config
   (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.log.levels', '{}', 'JSON', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       '动态日志级别（logger → 级别，各服务 10 秒内应用，免重启）'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.log.levels');
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
 SELECT 'platform.session.mode', 'MULTI', 'STRING', 'DB', NULL,
        'API网关平台', 'jv-api-gateway', '*',
        '多端登录策略：SINGLE=单端互踢（新登录踢掉旧会话）/ MULTI=多端共存（默认），登录时校验，10 秒内生效'
