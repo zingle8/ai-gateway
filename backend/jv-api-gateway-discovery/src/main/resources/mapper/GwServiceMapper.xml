@@ -3,7 +3,7 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.zimo.gateway.discovery.mapper.GwServiceMapper">
 
-    <sql id="cols">id, app_id, app_name, service_id, service_name, ip, port, language, version,
+    <sql id="cols">id, app_id, app_name, service_id, service_name, ip, hostname, port, language, version,
         qps, avg_rt, status, in_flow, out_flow, instances, register_time,
         last_heartbeat_time, create_time, update_time, deleted</sql>
 
@@ -106,10 +106,10 @@
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO tb_gw_service (app_id, app_name, service_id, service_name, ip, port, language, version,
+        INSERT INTO tb_gw_service (app_id, app_name, service_id, service_name, ip, hostname, port, language, version,
                                    qps, avg_rt, status, in_flow, out_flow, instances, register_time,
                                    last_heartbeat_time, create_time, update_time, deleted)
-        VALUES (#{appId}, #{appName}, #{serviceId}, #{serviceName}, #{ip}, #{port}, #{language}, #{version},
+        VALUES (#{appId}, #{appName}, #{serviceId}, #{serviceName}, #{ip}, #{hostname}, #{port}, #{language}, #{version},
                 #{qps}, #{avgRt}, #{status}, #{inFlow}, #{outFlow}, #{instances}, #{registerTime},
                 #{lastHeartbeatTime}, #{createTime}, #{updateTime}, #{deleted})
     </insert>
@@ -122,6 +122,7 @@
             <if test="appName != null">app_name = #{appName},</if>
             <if test="serviceName != null">service_name = #{serviceName},</if>
             <if test="ip != null">ip = #{ip},</if>
+            <if test="hostname != null">hostname = #{hostname},</if>
             <if test="port != null">port = #{port},</if>
             <if test="language != null">language = #{language},</if>
             <if test="version != null">version = #{version},</if>

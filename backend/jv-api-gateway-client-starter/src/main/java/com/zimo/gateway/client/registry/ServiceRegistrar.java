@@ -13,6 +13,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
+import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -148,10 +149,22 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
         instance.setIp(properties.getIp() != null && !properties.getIp().isEmpty()
                 ? properties.getIp() : LocalIps.get());
         instance.setPort(resolvePort());
+        // 部署关联（v0.2 第 11 项）：上报主机名 / pod name，平台按 hostname 聚合部署清单
+        instance.setHostname(localHostname());
         instance.setLanguage(properties.getLanguage());
         instance.setVersion(properties.getVersion());
         instance.setRegisterTime(LocalDateTime.now());
         return instance;
+    }
+
+    /** 主机名：优先环境变量 HOSTNAME（K8s 下即 pod name），失败回退 unknown-host */
+    private String localHostname() {
+        try {
+            return InetAddress.getLocalHost().getHostName();
+        } catch (Exception e) {
+            String env = System.getenv("HOSTNAME");
+            return env == null || env.isBlank() ? "unknown-host" : env;
+        }
     }
 
     private static String normalize(String serverAddr) {

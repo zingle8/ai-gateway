@@ -19,3 +19,22 @@ export function fetchServiceFilters() {
 export function fetchDiscoveryTrend(params) {
   return request.get('/discovery/trend', { params })
 }
+
+/* ==========================================================================
+ * 部署关联与跨主机调用（v0.2 第 11 项）
+ * ========================================================================== */
+
+/** 部署清单：主机 / pod → 实例 + 资源水位 */
+export function fetchDeployments(minutes = 60) {
+  return request.get('/discovery/deployments', { params: { minutes } })
+}
+
+/** 跨主机调用：源 IP → 目标 IP 调用量 / 耗时 / 错误率 */
+export function fetchCrossHost(minutes = 60) {
+  return request.get('/discovery/cross-host', { params: { minutes } })
+}
+
+/** 单点影响面：主机故障时受影响的实例与服务调用占比 */
+export function fetchImpact(hostname, minutes = 60) {
+  return request.get('/discovery/impact', { params: { hostname, minutes } })
+}

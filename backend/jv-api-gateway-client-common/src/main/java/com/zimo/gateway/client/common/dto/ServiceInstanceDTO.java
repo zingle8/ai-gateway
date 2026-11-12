@@ -25,6 +25,9 @@ public class ServiceInstanceDTO {
     /** 实例 IP */
     private String ip;
 
+    /** 主机名 / K8s pod name（v0.2 第 11 项部署关联用，空则由服务端用 IP 兜底） */
+    private String hostname;
+
     /** 服务端口 */
     private Integer port;
 

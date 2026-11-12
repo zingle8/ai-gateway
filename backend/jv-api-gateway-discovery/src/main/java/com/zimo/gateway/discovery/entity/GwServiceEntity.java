@@ -27,6 +27,9 @@ public class GwServiceEntity {
     /** 实例 IP，由 SDK 心跳上报（多网卡机器建议在 SDK 侧显式配置） */
     private String ip;
 
+    /** 主机名 / pod name（v0.2 第 11 项，SDK 注册时上报） */
+    private String hostname;
+
     /** 服务端口 */
     private Integer port;
 

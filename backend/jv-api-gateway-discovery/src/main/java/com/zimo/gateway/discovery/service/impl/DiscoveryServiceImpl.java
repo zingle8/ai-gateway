@@ -169,6 +169,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
             service.setServiceId(serviceId);
             service.setServiceName(serviceName);
             service.setIp(instance.getIp());
+            service.setHostname(instance.getHostname());
             service.setPort(instance.getPort());
             service.setLanguage(instance.getLanguage());
             service.setVersion(instance.getVersion());
@@ -191,6 +192,7 @@ public class DiscoveryServiceImpl implements DiscoveryService {
         service.setAppName(instance.getAppName());
         service.setServiceName(serviceName);
         service.setIp(instance.getIp());
+        service.setHostname(instance.getHostname());
         service.setPort(instance.getPort());
         service.setLanguage(instance.getLanguage());
         service.setVersion(instance.getVersion());
