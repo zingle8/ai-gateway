@@ -22,6 +22,40 @@ export const modules = [overview, stats, discovery, trace, auth, onboard, perm, 
 export const menuRoutes = modules.flatMap((m) => m.menu)
 
 /**
+ * 菜单 → 权限点映射：来自各模块 menu 声明的 perm 字段，与 tb_perm_item 的 DISPLAY 权限码一致。
+ * 未声明 perm 的菜单（如拓扑、自动接入、调度计划、个人中心）不参与权限过滤，默认可见。
+ */
+export const MENU_PERM_MAP = (() => {
+  const map = {}
+  for (const group of menuRoutes) {
+    if (group.perm) map[group.path] = group.perm
+    for (const child of group.children || []) {
+      if (child.perm) map[child.path] = child.perm
+    }
+  }
+  return map
+})()
+
+/**
+ * 按权限点过滤菜单：
+ *  - 菜单项声明了 perm 而用户权限点不含它 → 剔除；
+ *  - 分组下可见子项为空 → 整组剔除；
+ *  - permCodes 未加载（首次导航守卫正在拉取）时返回全量，加载完成后响应式重渲染。
+ */
+export function filterMenusByPerms(menus, codes) {
+  const has = (code) => !codes || codes.includes(code)
+  return menus
+    .map((group) => {
+      if (!group.children) {
+        return group.perm && !has(group.perm) ? null : group
+      }
+      const children = group.children.filter((c) => !c.perm || has(c.perm))
+      return children.length ? { ...group, children } : null
+    })
+    .filter(Boolean)
+}
+
+/**
  * 菜单 → 后端服务映射：侧边栏状态点与悬浮信息用。
  * 每个一级菜单对应一个后端微服务；接入中心 / 认证 / 分组权限的控制台接口
  * 都落在 jv-api-gateway-user，系统设置落在 jv-api-gateway-config。
@@ -91,12 +125,19 @@ export const MENU_SERVICES = {
  */
 const Layout = {
   name: 'AppLayout',
-  render: () => h(Shell, {
-    menus: menuRoutes,
+  render: () => {
+    const userStore = useUserStore()
+    // 权限点已加载则按权限过滤；未加载先给全量，loadPerms 完成后响应式重渲染
+    const menus = userStore.permsLoaded
+      ? filterMenusByPerms(menuRoutes, userStore.permCodes)
+      : menuRoutes
+    return h(Shell, {
+    menus,
     brand: 'API网关平台',
     services: MENU_SERVICES,
     featureStatus: MENU_FEATURE_STATUS
-  })
+    })
+  }
 }
 
 export const routes = [
@@ -130,7 +171,7 @@ setUnauthorizedHandler(() => {
   router.replace(redirect ? { name: 'Login', query: { redirect } } : { name: 'Login' })
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const store = useUserStore()
   if (!to.meta.public) {
     if (!store.token) {
@@ -140,6 +181,16 @@ router.beforeEach((to) => {
     if (store.expired) {
       store.forceLogout()
       return { name: 'Login', query: { redirect: to.fullPath } }
+    }
+    // 登录会话内拉一次权限点（失败不置位，下次导航重试）
+    await store.loadPerms()
+    // 菜单级权限拦截：目标页声明了 perm 且用户无该权限点 → 落到首个有权限的菜单
+    const need = MENU_PERM_MAP[to.path]
+    if (need && store.permsLoaded && !store.permCodes.includes(need)) {
+      const fallback = menuRoutes
+        .flatMap((g) => [g, ...(g.children || [])])
+        .find((m) => !m.perm || store.permCodes.includes(m.perm))
+      return fallback ? fallback.path : { name: 'Login' }
     }
   }
   return true

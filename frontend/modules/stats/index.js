@@ -5,7 +5,7 @@
 import IndexView from './src/views/Index.vue'
 
 export const menu = [
-  { path: '/stats', title: '数据统计', icon: 'DataAnalysis' }
+  { path: '/stats', title: '数据统计', icon: 'DataAnalysis', perm: 'stats.view' }
 ]
 
 export const routes = [

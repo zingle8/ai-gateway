@@ -5,7 +5,7 @@ import IndexView from './src/views/Index.vue'
 import TopologyView from './src/views/Topology.vue'
 
 export const menu = [
-  { path: '/trace', title: '日志追踪', icon: 'Tickets' },
+  { path: '/trace', title: '日志追踪', icon: 'Tickets', perm: 'trace.view' },
   { path: '/topology', title: '服务拓扑', icon: 'Share' }
 ]
 

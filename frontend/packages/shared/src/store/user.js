@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import request from '../request'
 
 const TOKEN_KEY = 'gw_token'
 const USER_KEY = 'gw_user'
@@ -33,7 +34,11 @@ export function parseJwtPayload(token) {
 export const useUserStore = defineStore('user', {
   state: () => ({
     token: readPersisted(TOKEN_KEY),
-    userInfo: JSON.parse(readPersisted(USER_KEY) || 'null')
+    userInfo: JSON.parse(readPersisted(USER_KEY) || 'null'),
+    /** 当前用户有效权限点（所属分组并集，登录会话内缓存） */
+    permCodes: [],
+    /** 权限点是否已加载（失败不置位，下次导航重试） */
+    permsLoaded: false
   }),
   getters: {
     isLogin: (state) => !!state.token,
@@ -44,7 +49,9 @@ export const useUserStore = defineStore('user', {
       const payload = parseJwtPayload(state.token)
       if (!payload || !payload.exp) return false
       return payload.exp * 1000 <= Date.now()
-    }
+    },
+    /** 是否拥有指定权限点 */
+    hasPerm: (state) => (code) => state.permCodes.includes(code)
   },
   actions: {
     /**
@@ -66,10 +73,23 @@ export const useUserStore = defineStore('user', {
     clearSession() {
       this.token = ''
       this.userInfo = null
+      this.permCodes = []
+      this.permsLoaded = false
       ;[localStorage, sessionStorage].forEach((s) => {
         s.removeItem(TOKEN_KEY)
         s.removeItem(USER_KEY)
       })
+    },
+    /** 拉取当前用户权限点（登录会话内只拉一次，供菜单过滤 / 路由守卫使用） */
+    async loadPerms() {
+      if (this.permsLoaded || !this.token) return
+      try {
+        const codes = await request.get('/auth/my-perms')
+        this.permCodes = Array.isArray(codes) ? codes : []
+        this.permsLoaded = true
+      } catch (e) {
+        // 拉取失败保持未加载：下次导航重试，本次放行避免误伤
+      }
     },
     /** 登录失效：清理会话（是否跳转由主应用注册的回调决定） */
     forceLogout() {

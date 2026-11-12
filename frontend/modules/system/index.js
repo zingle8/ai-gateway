@@ -13,8 +13,8 @@ export const menu = [
     title: '系统管理',
     icon: 'Setting',
     children: [
-      { path: '/system/role', title: '角色管理', icon: 'Avatar' },
-      { path: '/system/settings', title: '系统设置', icon: 'Tools' },
+      { path: '/system/role', title: '角色管理', icon: 'Avatar', perm: 'system.role.view' },
+      { path: '/system/settings', title: '系统设置', icon: 'Tools', perm: 'system.setting.view' },
       { path: '/system/scheduler', title: '调度计划', icon: 'Timer' }
     ]
   }

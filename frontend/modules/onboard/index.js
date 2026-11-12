@@ -12,10 +12,10 @@ export const menu = [
     title: '接入中心',
     icon: 'Connection',
     children: [
-      { path: '/system-onboard', title: '系统接入', icon: 'Promotion' },
+      { path: '/system-onboard', title: '系统接入', icon: 'Promotion', perm: 'onboard.system.view' },
       { path: '/auto-onboard', title: '自动接入', icon: 'MagicStick' },
-      { path: '/route-config', title: '路由配置', icon: 'Share' },
-      { path: '/go-live', title: '上线发布', icon: 'Upload' },
+      { path: '/route-config', title: '路由配置', icon: 'Share', perm: 'onboard.route.view' },
+      { path: '/go-live', title: '上线发布', icon: 'Upload', perm: 'onboard.release.view' },
       { path: '/open-auth', title: '开放认证', icon: 'Document' }
     ]
   }

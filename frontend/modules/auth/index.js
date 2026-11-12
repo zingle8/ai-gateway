@@ -19,12 +19,12 @@ export const menu = [
     title: '认证与安全',
     icon: 'Lock',
     children: [
-      { path: '/auth/user', title: '用户管理', icon: 'User' },
-      { path: '/auth/login-methods', title: '登录方式', icon: 'Key' },
-      { path: '/auth/sso', title: '单点登录', icon: 'Link' },
-      { path: '/auth/sessions', title: '令牌与会话', icon: 'Timer' },
-      { path: '/auth/policy', title: '安全策略', icon: 'SetUp' },
-      { path: '/auth/api-keys', title: 'API Key', icon: 'Tools' }
+      { path: '/auth/user', title: '用户管理', icon: 'User', perm: 'auth.user.view' },
+      { path: '/auth/login-methods', title: '登录方式', icon: 'Key', perm: 'auth.login.view' },
+      { path: '/auth/sso', title: '单点登录', icon: 'Link', perm: 'auth.sso.view' },
+      { path: '/auth/sessions', title: '令牌与会话', icon: 'Timer', perm: 'auth.session.view' },
+      { path: '/auth/policy', title: '安全策略', icon: 'SetUp', perm: 'auth.policy.view' },
+      { path: '/auth/api-keys', title: 'API Key', icon: 'Tools', perm: 'open.key.view' }
     ]
   }
 ]

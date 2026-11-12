@@ -22,9 +22,9 @@ export const menu = [
     title: '分组与权限',
     icon: 'Management',
     children: [
-      { path: '/perm/group', title: '分组管理', icon: 'Collection' },
-      { path: '/perm/org', title: '部门组织', icon: 'OfficeBuilding' },
-      { path: '/perm/menu', title: '平台功能与菜单', icon: 'Menu' }
+      { path: '/perm/group', title: '分组管理', icon: 'Collection', perm: 'perm.group.view' },
+      { path: '/perm/org', title: '部门组织', icon: 'OfficeBuilding', perm: 'perm.org.view' },
+      { path: '/perm/menu', title: '平台功能与菜单', icon: 'Menu', perm: 'perm.menu.view' }
     ]
   }
 ]
