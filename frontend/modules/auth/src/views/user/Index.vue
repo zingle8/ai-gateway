@@ -66,9 +66,10 @@
           <el-table-column label="最后登录" width="170">
             <template #default="{ row }">{{ fmtTime(row.lastLoginTime) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="150" fixed="right">
+          <el-table-column label="操作" width="230" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="openEdit(row)">编辑</el-button>
+              <el-button link type="primary" @click="openPlatforms(row)">平台授权</el-button>
               <el-button link :type="row.status === 1 ? 'warning' : 'success'" @click="toggleStatus(row)">
                 {{ row.status === 1 ? '禁用' : '启用' }}
               </el-button>
@@ -126,6 +127,32 @@
         <el-button type="primary" :loading="submitting" @click="submit">确 定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 平台授权弹窗：账号可访问的开放平台（认证了 ≠ 能用） -->
+    <el-dialog v-model="platformVisible" title="平台授权" width="520px">
+      <div class="platform-tip">
+        账号 <b>{{ platformUser.username }}</b>（{{ platformUser.nickname || '—' }}）可访问的开放平台。
+        未授权的平台在开放认证换 token（带 appId 校验）时会被拒绝。
+      </div>
+      <el-checkbox-group v-model="platformChecked" class="platform-list">
+        <el-checkbox
+          v-for="p in platforms"
+          :key="p.appId"
+          :value="p.appId"
+          :disabled="p.status === 0"
+          class="platform-item"
+        >
+          <span class="platform-name">{{ p.appName }}</span>
+          <span class="gw-sm gw-muted">{{ p.appId }}</span>
+          <el-tag v-if="p.status === 0" size="small" type="info">已停用</el-tag>
+        </el-checkbox>
+      </el-checkbox-group>
+      <el-empty v-if="!platforms.length" description="暂无开放平台" :image-size="60" />
+      <template #footer>
+        <el-button @click="platformVisible = false">取 消</el-button>
+        <el-button type="primary" :loading="platformSaving" @click="submitPlatforms">确 定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -133,7 +160,16 @@
 import { GwPager } from '@zimo/ui'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { fetchUsers, createUser, updateUser, deleteUser, updateUserStatus } from '../../api'
+import {
+  fetchUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  updateUserStatus,
+  fetchOpenPlatforms,
+  fetchUserPlatforms,
+  saveUserPlatforms
+} from '../../api'
 import { fmtTime } from '@zimo/shared'
 
 const rows = ref([])
@@ -201,6 +237,38 @@ const onSizeChange = (s) => {
   query.current = 1
   load()
 }
+/* ---------- 平台授权 ---------- */
+const platformVisible = ref(false)
+const platformSaving = ref(false)
+const platforms = ref([])
+const platformChecked = ref([])
+const platformUser = ref({})
+
+const openPlatforms = async (row) => {
+  platformUser.value = row
+  platforms.value = []
+  platformChecked.value = []
+  platformVisible.value = true
+  try {
+    const [list, granted] = await Promise.all([fetchOpenPlatforms(), fetchUserPlatforms(row.id)])
+    platforms.value = list || []
+    platformChecked.value = granted || []
+  } catch (e) {
+    platforms.value = []
+  }
+}
+
+const submitPlatforms = async () => {
+  platformSaving.value = true
+  try {
+    await saveUserPlatforms(platformUser.value.id, platformChecked.value)
+    ElMessage.success('平台授权已保存')
+    platformVisible.value = false
+  } finally {
+    platformSaving.value = false
+  }
+}
+
 const openCreate = () => {
   Object.assign(form, emptyForm())
   formVisible.value = true
@@ -295,6 +363,10 @@ onMounted(load)
 </script>
 
 <style scoped>
+.platform-tip { font-size: 12px; color: var(--gw-text-3); margin-bottom: 12px; line-height: 1.7; }
+.platform-list { display: flex; flex-direction: column; gap: 6px; }
+.platform-item { display: flex; align-items: center; gap: 8px; height: 28px; }
+.platform-name { min-width: 96px; font-weight: 500; }
 .hd-actions {
   display: flex;
   align-items: center;

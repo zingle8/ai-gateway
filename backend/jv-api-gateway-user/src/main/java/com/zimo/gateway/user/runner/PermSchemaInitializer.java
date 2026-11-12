@@ -32,7 +32,8 @@ public class PermSchemaInitializer implements ApplicationRunner {
     private static final List<String> SCRIPTS = List.of(
             "db/jv-api-gateway-user-perm-tb_perm_group.sql",
             "db/jv-api-gateway-user-apikey-tb_gw_api_key.sql",
-            "db/jv-api-gateway-user-apikey-log-tb_gw_api_key_log.sql"
+            "db/jv-api-gateway-user-apikey-log-tb_gw_api_key_log.sql",
+            "db/jv-api-gateway-user-platform-tb_gw_open_platform.sql"
     );
 
     private final DataSource dataSource;
@@ -44,7 +45,7 @@ public class PermSchemaInitializer implements ApplicationRunner {
                 ScriptUtils.executeSqlScript(connection, new EncodedResource(
                         new ClassPathResource(script), StandardCharsets.UTF_8));
             }
-            log.info("[初始化] 分组权限 / API Key 表结构与种子数据就绪");
+            log.info("[初始化] 分组权限 / API Key / 账号平台授权表结构与种子数据就绪");
         } catch (Exception e) {
             log.warn("[初始化] 分组权限脚本执行失败（不影响既有功能，请手工执行 backend/sql 下脚本）：{}", e.getMessage());
         }

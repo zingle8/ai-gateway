@@ -87,3 +87,22 @@ export function fetchApiKeyStats() {
 export function fetchApiKeyLogs(limit = 20) {
   return request.get('/keys/logs', { params: { limit } })
 }
+
+/* ==========================================================================
+ * 账号-平台授权（v0.2 第 7 项后半）：开放平台清单 + 账号授权读写
+ * ========================================================================== */
+
+/** 开放平台清单（含停用，停用项前端置灰） */
+export function fetchOpenPlatforms() {
+  return request.get('/open/platforms')
+}
+
+/** 某账号已授权的平台 appId 列表 */
+export function fetchUserPlatforms(userId) {
+  return request.get(`/open/accounts/${userId}/platforms`)
+}
+
+/** 保存某账号的平台授权（全量覆盖，空数组 = 清空） */
+export function saveUserPlatforms(userId, appIds) {
+  return request.put(`/open/accounts/${userId}/platforms`, { appIds })
+}

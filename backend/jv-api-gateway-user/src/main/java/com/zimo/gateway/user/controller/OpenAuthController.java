@@ -55,6 +55,6 @@ public class OpenAuthController {
      */
     @PostMapping("/token/verify")
     public R<OpenVerifyVO> verify(@Valid @RequestBody OpenVerifyRequest request) {
-        return R.ok(openAuthService.verify(request.token(), request.type()));
+        return R.ok(openAuthService.verify(request.token(), request.type(), request.appId()));
     }
 }

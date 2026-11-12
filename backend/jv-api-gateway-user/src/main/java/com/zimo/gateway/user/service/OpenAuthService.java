@@ -5,6 +5,7 @@ import com.zimo.gateway.common.exception.BizException;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.common.util.JwtUtil;
 import com.zimo.gateway.user.entity.ApiKeyEntity;
+import com.zimo.gateway.user.entity.OpenPlatformEntity;
 import com.zimo.gateway.user.entity.UserEntity;
 import com.zimo.gateway.user.mapper.ApiKeyMapper;
 import com.zimo.gateway.user.model.LoginRequest;
@@ -45,6 +46,7 @@ public class OpenAuthService {
     private final PlatformConfigReader configReader;
     private final JwtUtil jwtUtil;
     private final ApiKeyMapper apiKeyMapper;
+    private final OpenPlatformService openPlatformService;
 
     public LoginVO register(RegisterRequest request, String ip) {
         requireEnabled();
@@ -84,14 +86,17 @@ public class OpenAuthService {
     /**
      * 令牌校验：按 type 或前缀自动识别用户 JWT / API Key。
      * 返回 valid=false 而不是抛 401，方便第三方按业务自行处理。
+     *
+     * @param appId 目标平台标识（可选）：传入时校验账号-平台授权，
+     *              未授权返回 valid=false（reason 指明未授权平台）
      */
-    public OpenVerifyVO verify(String token, String type) {
+    public OpenVerifyVO verify(String token, String type, String appId) {
         requireEnabled();
         if (token == null || token.isBlank()) {
             return OpenVerifyVO.invalid(resolveType(token, type), "token 为空");
         }
         String tokenType = resolveType(token, type);
-        return "API_KEY".equals(tokenType) ? verifyApiKey(token) : verifyUserToken(token);
+        return "API_KEY".equals(tokenType) ? verifyApiKey(token) : verifyUserToken(token, appId);
     }
 
     private String resolveType(String token, String type) {
@@ -102,7 +107,7 @@ public class OpenAuthService {
         return token != null && token.startsWith(API_KEY_PREFIX) ? "API_KEY" : "USER";
     }
 
-    private OpenVerifyVO verifyUserToken(String token) {
+    private OpenVerifyVO verifyUserToken(String token, String appId) {
         Claims claims = jwtUtil.parseToken(token);
         if (claims == null) {
             return OpenVerifyVO.invalid("USER", "令牌无效或已过期");
@@ -119,6 +124,14 @@ public class OpenAuthService {
         int current = user.getTokenVersion() == null ? 0 : user.getTokenVersion();
         if (tokenVersion == null || tokenVersion != current) {
             return OpenVerifyVO.invalid("USER", "账号已退出登录，令牌已失效");
+        }
+        // 账号-平台授权校验：认证了 ≠ 能用（指定 appId 时生效）
+        if (appId != null && !appId.isBlank()) {
+            OpenPlatformEntity platform = openPlatformService.enabledPlatform(appId.trim());
+            if (!openPlatformService.isAuthorized(userId, platform.getAppId())) {
+                log.info("[开放认证] 账号 {} 未授权平台 {}，拒绝校验", userId, platform.getAppId());
+                return OpenVerifyVO.invalid("USER", "账号未授权访问平台「" + platform.getAppName() + "」");
+            }
         }
         UserContext.clear();
         return OpenVerifyVO.validUser(user, claims.getExpiration(), permService.permsOfUser(userId));
