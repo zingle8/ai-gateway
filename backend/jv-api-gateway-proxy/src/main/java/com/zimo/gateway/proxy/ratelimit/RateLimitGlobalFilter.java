@@ -70,7 +70,10 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
             return chain.filter(exchange);
         }
         // 规则加载与 Redis 令牌桶均为阻塞调用，移出 Netty 事件线程
-        return Mono.fromCallable(() -> check(request, path))
+        com.zimo.gateway.proxy.auth.ApiKeyScope keyScope =
+                (com.zimo.gateway.proxy.auth.ApiKeyScope) exchange.getAttributes()
+                        .get(com.zimo.gateway.proxy.auth.ApiKeyScope.ATTR);
+        return Mono.fromCallable(() -> check(request, path, keyScope))
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMap(outcome -> {
                     if (outcome.allowed()) {
@@ -83,12 +86,10 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
                 });
     }
 
-    /** 逐条匹配并扣令牌：任一规则不足即拒绝 */
-    private Outcome check(ServerHttpRequest request, String path) {
+    /** 逐条匹配并扣令牌：任一规则不足即拒绝；最后叠加 API Key 自带的每分钟限流 */
+    private Outcome check(ServerHttpRequest request, String path,
+                          com.zimo.gateway.proxy.auth.ApiKeyScope keyScope) {
         List<RateLimitRule> rules = ruleRepository.enabledRules();
-        if (rules.isEmpty()) {
-            return Outcome.pass();
-        }
         String keyId = resolveKeyId(request);
         String ip = resolveIp(request);
         Outcome last = Outcome.pass();
@@ -103,7 +104,34 @@ public class RateLimitGlobalFilter implements GlobalFilter, Ordered {
             }
             last = Outcome.pass(decision.limit(), decision.remaining());
         }
+        if (keyScope != null && keyScope.hasRateLimit()) {
+            RateLimitRule keyRule = keyRule(keyScope);
+            TokenBucketLimiter.Decision decision = limiter.tryAcquire(keyRule, "key:" + keyScope.keyId());
+            if (!decision.allowed()) {
+                return Outcome.reject(keyRule.getName(), decision.limit(), decision.remaining());
+            }
+            last = Outcome.pass(decision.limit(), decision.remaining());
+        }
         return last;
+    }
+
+    /**
+     * Key 自带限流合成规则（不入库，id = -1）：
+     * 桶容量 = 每分钟上限，每秒补充 ≈ 每分钟上限 / 60（至少 1），
+     * 即「允许每分钟 N 次」的近似令牌桶（长期速率严格为 N/分，允许短时突发到 N）。
+     */
+    private RateLimitRule keyRule(com.zimo.gateway.proxy.auth.ApiKeyScope scope) {
+        int perMinute = scope.rateLimitPerMinute();
+        RateLimitRule rule = new RateLimitRule();
+        rule.setId(-1L);
+        rule.setName("API Key 限流（" + perMinute + " 次/分）");
+        rule.setDimension("API_KEY");
+        rule.setTarget(scope.keyId());
+        rule.setReplenishRate(Math.max(1, (int) Math.ceil(perMinute / 60.0)));
+        rule.setBurstCapacity(perMinute);
+        rule.setRequestedTokens(1);
+        rule.setStatus(1);
+        return rule;
     }
 
     /**

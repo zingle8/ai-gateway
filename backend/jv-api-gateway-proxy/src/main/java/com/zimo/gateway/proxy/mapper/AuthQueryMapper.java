@@ -15,7 +15,8 @@ import java.util.Map;
 @Mapper
 public interface AuthQueryMapper {
 
-    @Select("SELECT key_id, secret_hash, status, expire_at FROM tb_gw_api_key WHERE key_id = #{keyId}")
+    @Select("SELECT key_id, secret_hash, status, expire_at, allowed_ips, allowed_services, "
+            + "allowed_platforms, rate_limit_per_minute FROM tb_gw_api_key WHERE key_id = #{keyId}")
     Map<String, Object> selectApiKey(@Param("keyId") String keyId);
 
     @Select("SELECT token_version, status FROM tb_sys_user WHERE id = #{userId} AND deleted = 0")

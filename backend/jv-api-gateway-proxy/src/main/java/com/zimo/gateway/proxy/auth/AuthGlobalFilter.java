@@ -46,6 +46,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     private final GatewayAuthProperties properties;
     private final AuthVerifier verifier;
     private final AuthExemptRepository exemptRepository;
+    private final OpenApiKeyPolicy openApiKeyPolicy;
 
     @Override
     public int getOrder() {
@@ -59,21 +60,28 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         }
 
         String path = exchange.getRequest().getPath().value();
-        if ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())
+        /*
+         * 开放接口开启「调用方约束」后，即使命中白名单也必须校验 API Key（v0.2 第 6 项）。
+         * 例外：平台内部服务（SDK 的 GatewayAuthFilter）用共享密钥头调用 /open/auth/token/verify 验签，
+         * 它们没有 API Key；携带正确 X-Gateway-Client-Token 的请求按内部调用放行。
+         */
+        boolean internalCall = clientTokenConfigured() && tokenMatches(exchange.getRequest().getHeaders());
+        boolean openGuarded = path.startsWith("/api/open/") && openApiKeyPolicy.required() && !internalCall;
+        if (!openGuarded && ("OPTIONS".equalsIgnoreCase(exchange.getRequest().getMethod().name())
                 || properties.getSkipPaths().stream().anyMatch(p -> PATH_MATCHER.match(p, path))
                 // 控制台「鉴权豁免」配置的追加放行（5 秒生效，yml 白名单仍然有效）
-                || exemptRepository.isExempt(path, exchange.getRequest().getMethod().name(), "LOGIN")) {
+                || exemptRepository.isExempt(path, exchange.getRequest().getMethod().name(), "LOGIN"))) {
             // 上报通道虽在白名单，但配置了共享密钥时必须校验头，防止内网伪造注册与上报
             if (clientTokenConfigured() && isReportPath(path)
                     && !tokenMatches(exchange.getRequest().getHeaders())) {
                 log.warn("[鉴权] 上报通道共享密钥校验失败：{}", path);
-                return deny(exchange, "上报通道共享密钥无效");
+                return deny(exchange, 401, "上报通道共享密钥无效");
             }
             return chain.filter(exchange);
         }
 
         // 校验涉及阻塞 JDBC（缓存未命中时），移出 Netty 事件线程
-        return Mono.fromCallable(() -> doVerify(exchange))
+        return Mono.fromCallable(() -> doVerify(exchange, openGuarded))
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMap(decision -> {
                     if (decision.allow()) {
@@ -81,7 +89,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                         return chain.filter(mutated);
                     }
                     log.info("[鉴权] 拦截 {} {}：{}", exchange.getRequest().getMethod(), path, decision.message());
-                    return deny(exchange, decision.message());
+                    return deny(exchange, decision.status(), decision.message());
                 });
     }
 
@@ -98,11 +106,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         return properties.getClientToken().equals(headers.getFirst(HEADER_CLIENT_TOKEN));
     }
 
-    private AuthVerifier.Decision doVerify(ServerWebExchange exchange) {
+    private AuthVerifier.Decision doVerify(ServerWebExchange exchange, boolean apiKeyOnly) {
         HttpHeaders headers = exchange.getRequest().getHeaders();
         String apiKey = headers.getFirst("X-Api-Key");
         if (apiKey != null && !apiKey.isBlank()) {
-            return verifier.verifyApiKey(apiKey.trim());
+            return verifier.verifyApiKey(apiKey.trim(), clientIp(exchange));
+        }
+        if (apiKeyOnly) {
+            return AuthVerifier.Decision.deny("该开放接口已开启调用方约束，请携带 X-Api-Key（不接受用户令牌）");
         }
         String authorization = headers.getFirst(HttpHeaders.AUTHORIZATION);
         if (authorization != null && authorization.startsWith("Bearer ")) {
@@ -111,7 +122,21 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         return AuthVerifier.Decision.deny("未提供访问凭证");
     }
 
-    /** 身份透传：下游服务可从 X-Auth-UserEntity-Id / X-Auth-Key-Id 识别调用方 */
+    /** 调用方 IP：优先 X-Forwarded-For 首个地址（经过前置代理时），否则取 TCP 远端地址 */
+    private String clientIp(ServerWebExchange exchange) {
+        String forwarded = exchange.getRequest().getHeaders().getFirst("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        var remote = exchange.getRequest().getRemoteAddress();
+        return remote == null || remote.getAddress() == null
+                ? "unknown" : remote.getAddress().getHostAddress();
+    }
+
+    /**
+     * 身份透传：下游服务可从 X-Auth-UserEntity-Id / X-Auth-Key-Id 识别调用方；
+     * API Key 的作用域放进 exchange 属性，供后续作用域 / 限流过滤器复用（不再重复查库）。
+     */
     private ServerWebExchange injectIdentity(ServerWebExchange exchange, AuthVerifier.Decision decision) {
         var builder = exchange.getRequest().mutate();
         if (decision.userId() != null) {
@@ -120,14 +145,17 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         if (decision.apiKeyId() != null) {
             builder.header("X-Auth-Key-Id", decision.apiKeyId());
         }
+        if (decision.scope() != null) {
+            exchange.getAttributes().put(ApiKeyScope.ATTR, decision.scope());
+        }
         return exchange.mutate().request(builder.build()).build();
     }
 
-    private Mono<Void> deny(ServerWebExchange exchange, String message) {
+    private Mono<Void> deny(ServerWebExchange exchange, int status, String message) {
         ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        response.setStatusCode(HttpStatus.valueOf(status));
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-        String body = "{\"code\":401,\"message\":\"" + message + "\",\"data\":null}";
+        String body = "{\"code\":" + status + ",\"message\":\"" + message + "\",\"data\":null}";
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes(StandardCharsets.UTF_8));
         return response.writeWith(Mono.just(buffer));
     }

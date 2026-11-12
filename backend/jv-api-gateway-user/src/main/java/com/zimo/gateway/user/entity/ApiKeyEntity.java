@@ -32,6 +32,18 @@ public class ApiKeyEntity {
 
     private String lastUsedIp;
 
+    /** 调用方 IP 白名单（逗号分隔，支持 10.20.3.* 前缀通配；空 = 不限） */
+    private String allowedIps;
+
+    /** 可用服务白名单（tb_gw_route.service_name，逗号分隔；空 = 不限） */
+    private String allowedServices;
+
+    /** 可用平台白名单（tb_gw_open_platform.app_id，逗号分隔；空 = 不限） */
+    private String allowedPlatforms;
+
+    /** 该 Key 单独的每分钟调用上限（0 = 不单独限流） */
+    private Integer rateLimitPerMinute;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

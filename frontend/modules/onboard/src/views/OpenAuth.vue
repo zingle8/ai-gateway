@@ -60,6 +60,69 @@
       </div>
     </section>
 
+    <!-- 调用方约束（v0.2 第 6 项，已接真） -->
+    <section class="gw-card">
+      <div class="gw-card-hd">
+        <span>调用方约束</span>
+        <div class="hd-actions">
+          <el-tag size="small" type="success" effect="plain">已接真</el-tag>
+          <span class="gw-sm gw-muted">开放接口必须携带 API Key</span>
+          <el-switch v-model="requireKey" :loading="policySaving" size="small" @change="toggleRequireKey" />
+        </div>
+      </div>
+      <div class="gw-card-bd">
+        <ul class="steps">
+          <li>
+            开关关闭（默认）：<span class="gw-mono">/api/open/**</span> 按白名单放行，行为与旧版本一致。
+          </li>
+          <li>
+            开关开启：必须携带 <span class="gw-mono">X-Api-Key: gwak-&lt;keyId&gt;-&lt;secret&gt;</span>，
+            不接受用户令牌；Key 的状态 / 有效期 / IP 白名单 / 服务与平台作用域全部生效；
+            凭证无效 401、越界 403。
+          </li>
+          <li>
+            每个 Key 的约束在「认证与安全 → API Key → 约束」维护（网关 30 秒内生效）；
+            <span class="gw-mono">每分钟限流</span> 复用网关令牌桶，与「限流策略」中 API_KEY 维度规则叠加生效。
+          </li>
+        </ul>
+
+        <el-table :data="keys" v-loading="keysLoading" size="small" style="width: 100%">
+          <el-table-column prop="name" label="Key 名称" min-width="150" />
+          <el-table-column label="keyId" width="120">
+            <template #default="{ row }">
+              <span class="gw-mono gw-sm">{{ row.keyId }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="IP 白名单" min-width="170">
+            <template #default="{ row }">
+              <span v-if="row.allowedIps" class="gw-mono gw-sm">{{ row.allowedIps }}</span>
+              <span v-else class="gw-muted">不限</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="服务 / 平台白名单" min-width="200">
+            <template #default="{ row }">
+              <span v-if="row.allowedServices" class="gw-sm">服务：{{ row.allowedServices }}</span>
+              <span v-if="row.allowedPlatforms" class="gw-sm scope-line">平台：{{ row.allowedPlatforms }}</span>
+              <span v-if="!row.allowedServices && !row.allowedPlatforms" class="gw-muted">不限</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="每分钟限流" width="110">
+            <template #default="{ row }">
+              <span v-if="row.rateLimitPerMinute > 0">{{ row.rateLimitPerMinute }} 次/分</span>
+              <span v-else class="gw-muted">不限</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="状态" width="90">
+            <template #default="{ row }">
+              <el-tag size="small" :type="row.status === 1 ? 'success' : 'info'" effect="plain">
+                {{ row.status === 1 ? '启用' : '停用' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </section>
+
     <!-- 示例 -->
     <section class="gw-card">
       <div class="gw-card-hd">
@@ -83,8 +146,39 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { fetchApiKeyList, fetchOpenAuthPolicy, saveOpenAuthPolicy } from '../api.js'
 
 const enabled = ref(true)
+/* 调用方约束：开关 + Key 约束清单（已接真） */
+const requireKey = ref(false)
+const policySaving = ref(false)
+const keys = ref([])
+const keysLoading = ref(false)
+
+const loadKeys = async () => {
+  keysLoading.value = true
+  try {
+    keys.value = await fetchApiKeyList()
+  } catch (e) {
+    keys.value = []
+  } finally {
+    keysLoading.value = false
+  }
+}
+
+const toggleRequireKey = async (value) => {
+  policySaving.value = true
+  try {
+    await saveOpenAuthPolicy(value)
+    ElMessage.success(value ? '已开启调用方约束：开放接口必须携带 API Key（10 秒内生效）'
+      : '已关闭调用方约束：开放接口恢复白名单放行（10 秒内生效）')
+  } catch (e) {
+    requireKey.value = !value
+  } finally {
+    policySaving.value = false
+  }
+}
+
 const active = ref('登录')
 const apis = [
   { method: 'POST', path: '/api/open/auth/register', desc: '注册账号（默认 VIEWER），成功直接返回令牌，免二次登录' },
@@ -185,6 +279,10 @@ const copy = async () => {
 onMounted(async () => {
   const flags = await fetch('/api/configs/public').then((r) => (r.ok ? r.json() : null)).catch(() => null)
   enabled.value = flags?.data?.['platform.open.auth.enabled'] !== 'false'
+  await Promise.all([
+    fetchOpenAuthPolicy().then((vo) => (requireKey.value = !!vo?.requireKey)).catch(() => {}),
+    loadKeys()
+  ])
 })
 </script>
 
@@ -203,6 +301,8 @@ onMounted(async () => {
 }
 
 .ml4 { margin: 0 4px; }
+
+.scope-line { display: block; }
 
 .steps {
   margin: 0 0 14px;

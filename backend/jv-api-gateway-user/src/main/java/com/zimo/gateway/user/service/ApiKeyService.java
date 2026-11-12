@@ -3,6 +3,7 @@ package com.zimo.gateway.user.service;
 import com.zimo.gateway.user.entity.ApiKeyLogEntity;
 import com.zimo.gateway.user.model.ApiKeyCreatedVO;
 import com.zimo.gateway.user.model.ApiKeySaveRequest;
+import com.zimo.gateway.user.model.ApiKeyScopeRequest;
 import com.zimo.gateway.user.model.ApiKeyStatsVO;
 import com.zimo.gateway.user.model.ApiKeyVO;
 
@@ -19,6 +20,12 @@ public interface ApiKeyService {
     ApiKeyCreatedVO create(ApiKeySaveRequest request, Long ownerUserId);
 
     void updateStatus(Long id, Integer status);
+
+    /**
+     * 保存调用方约束（v0.2 第 6 项）：IP / 服务 / 平台白名单 + 每分钟限流，全量覆盖。
+     * 网关侧缓存 30 秒，保存后最迟 30 秒生效；变更写一条审计（action = SCOPE）。
+     */
+    ApiKeyVO updateScope(Long id, ApiKeyScopeRequest request);
 
     /** 轮换：keyId 不变、换新密钥，旧 Key 立即失效 */
     ApiKeyCreatedVO rotate(Long id);

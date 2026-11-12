@@ -68,3 +68,20 @@ export function updateRateLimitStatus(id, status) {
 export function deleteRateLimit(id) {
   return request.delete(`/rate-limits/${id}`)
 }
+/* ==========================================================================
+ * 开放认证调用方约束（v0.2 第 6 项）：开关 + Key 约束清单
+ * ========================================================================== */
+
+/** 开放接口调用方约束开关（platform.open.auth.require-key） */
+export function fetchOpenAuthPolicy() {
+  return request.get('/policies/open-auth')
+}
+
+export function saveOpenAuthPolicy(requireKey) {
+  return request.put('/policies/open-auth', { requireKey })
+}
+
+/** API Key 清单（含调用方约束字段，供约束表格展示） */
+export function fetchApiKeyList() {
+  return request.get('/keys')
+}

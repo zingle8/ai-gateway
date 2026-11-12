@@ -9,6 +9,7 @@ import com.zimo.gateway.user.mapper.ApiKeyLogMapper;
 import com.zimo.gateway.user.mapper.ApiKeyMapper;
 import com.zimo.gateway.user.model.ApiKeyCreatedVO;
 import com.zimo.gateway.user.model.ApiKeySaveRequest;
+import com.zimo.gateway.user.model.ApiKeyScopeRequest;
 import com.zimo.gateway.user.model.ApiKeyStatsVO;
 import com.zimo.gateway.user.model.ApiKeyVO;
 import com.zimo.gateway.user.service.ApiKeyService;
@@ -46,10 +47,7 @@ public class ApiKeyServiceImpl implements ApiKeyService {
 
     @Override
     public List<ApiKeyVO> list() {
-        return apiKeyMapper.selectAll().stream()
-                .map(k -> new ApiKeyVO(k.getId(), k.getKeyId(), k.getName(), k.getStatus(),
-                        k.getExpireAt(), k.getLastUsedAt(), k.getLastUsedIp(), k.getCreateTime()))
-                .toList();
+        return apiKeyMapper.selectAll().stream().map(this::toVO).toList();
     }
 
     @Override
@@ -60,9 +58,75 @@ public class ApiKeyServiceImpl implements ApiKeyService {
         key.setOwnerUserId(ownerUserId);
         key.setStatus(1);
         key.setExpireAt(expireAt(request.expireDays()));
+        key.setAllowedIps(normalize(request.allowedIps()));
+        key.setAllowedServices(normalize(request.allowedServices()));
+        key.setAllowedPlatforms(normalize(request.allowedPlatforms()));
+        key.setRateLimitPerMinute(rateLimit(request.rateLimitPerMinute()));
         ApiKeyCreatedVO created = issue(key);
-        audit(key, "CREATE", "签发");
+        audit(key, "CREATE", "签发" + scopeSuffix(key));
         return created;
+    }
+
+    @Override
+    public ApiKeyVO updateScope(Long id, ApiKeyScopeRequest request) {
+        ApiKeyEntity key = requireKey(id);
+        String ips = normalize(request.allowedIps());
+        String services = normalize(request.allowedServices());
+        String platforms = normalize(request.allowedPlatforms());
+        int perMinute = rateLimit(request.rateLimitPerMinute());
+        apiKeyMapper.updateScope(id, ips, services, platforms, perMinute);
+        key.setAllowedIps(ips);
+        key.setAllowedServices(services);
+        key.setAllowedPlatforms(platforms);
+        key.setRateLimitPerMinute(perMinute);
+        audit(key, "SCOPE", "调整调用方约束" + scopeSuffix(key));
+        log.info("API Key 调用方约束更新：keyId={} ips={} services={} platforms={} perMinute={}",
+                key.getKeyId(), ips, services, platforms, perMinute);
+        return toVO(key);
+    }
+
+    private ApiKeyVO toVO(ApiKeyEntity k) {
+        return new ApiKeyVO(k.getId(), k.getKeyId(), k.getName(), k.getStatus(),
+                k.getExpireAt(), k.getLastUsedAt(), k.getLastUsedIp(),
+                k.getAllowedIps(), k.getAllowedServices(), k.getAllowedPlatforms(),
+                k.getRateLimitPerMinute(), k.getCreateTime());
+    }
+
+    /** 逗号分隔白名单规范化：去空格、去空项、去重（保持输入顺序） */
+    private String normalize(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        return java.util.Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    /** 每分钟限流：负数按 0（不限）处理，上限 100 万次/分防止误填 */
+    private int rateLimit(Integer perMinute) {
+        if (perMinute == null || perMinute <= 0) {
+            return 0;
+        }
+        return Math.min(perMinute, 1_000_000);
+    }
+
+    private String scopeSuffix(ApiKeyEntity key) {
+        StringBuilder sb = new StringBuilder();
+        if (key.getAllowedIps() != null && !key.getAllowedIps().isBlank()) {
+            sb.append("，IP 白名单 ").append(key.getAllowedIps());
+        }
+        if (key.getAllowedServices() != null && !key.getAllowedServices().isBlank()) {
+            sb.append("，服务白名单 ").append(key.getAllowedServices());
+        }
+        if (key.getAllowedPlatforms() != null && !key.getAllowedPlatforms().isBlank()) {
+            sb.append("，平台白名单 ").append(key.getAllowedPlatforms());
+        }
+        if (key.getRateLimitPerMinute() != null && key.getRateLimitPerMinute() > 0) {
+            sb.append("，限流 ").append(key.getRateLimitPerMinute()).append(" 次/分");
+        }
+        return sb.isEmpty() ? "（无约束）" : sb.toString();
     }
 
     private ApiKeyCreatedVO issue(ApiKeyEntity key) {
@@ -108,7 +172,9 @@ public class ApiKeyServiceImpl implements ApiKeyService {
                 fmt(current), expired ? "，已过期从当前时间起算" : "", fmt(next)));
         log.info("API Key 续期：keyId={} +{} 天，{} -> {}", key.getKeyId(), renewDays, fmt(current), fmt(next));
         return new ApiKeyVO(key.getId(), key.getKeyId(), key.getName(), key.getStatus(),
-                next, key.getLastUsedAt(), key.getLastUsedIp(), key.getCreateTime());
+                next, key.getLastUsedAt(), key.getLastUsedIp(),
+                key.getAllowedIps(), key.getAllowedServices(), key.getAllowedPlatforms(),
+                key.getRateLimitPerMinute(), key.getCreateTime());
     }
 
     @Override

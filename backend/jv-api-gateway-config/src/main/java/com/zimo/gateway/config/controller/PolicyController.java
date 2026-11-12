@@ -36,6 +36,8 @@ public class PolicyController {
 
     public static final String POLICY_KEY = "platform.security.policy";
     public static final String METHODS_KEY = "platform.login.methods";
+    /** 开放接口调用方约束开关（v0.2 第 6 项）：true = /api/open/** 必须携带 API Key */
+    public static final String OPEN_AUTH_REQUIRE_KEY = "platform.open.auth.require-key";
 
     private final SysConfigMapper mapper;
     private final ObjectMapper objectMapper;
@@ -58,6 +60,42 @@ public class PolicyController {
     @PutMapping("/login-methods")
     public R<Map<String, Object>> saveLoginMethods(@RequestBody Map<String, Object> body) {
         return R.ok(write(METHODS_KEY, body, "登录方式"));
+    }
+
+    /**
+     * 开放接口调用方约束开关（v0.2 第 6 项）。
+     * 存储为纯字符串（true / false），网关侧直接读取原值，10 秒内生效。
+     */
+    @GetMapping("/open-auth")
+    public R<Map<String, Object>> openAuth() {
+        SysConfigEntity entity = mapper.selectByKey(OPEN_AUTH_REQUIRE_KEY);
+        boolean requireKey = entity != null && "true".equalsIgnoreCase(
+                entity.getConfigValue() == null ? "" : entity.getConfigValue().trim());
+        return R.ok(Map.of("requireKey", requireKey));
+    }
+
+    @PutMapping("/open-auth")
+    public R<Map<String, Object>> saveOpenAuth(@RequestBody Map<String, Object> body) {
+        boolean requireKey = Boolean.TRUE.equals(body.get("requireKey"))
+                || "true".equalsIgnoreCase(String.valueOf(body.get("requireKey")));
+        String value = requireKey ? "true" : "false";
+        SysConfigEntity entity = mapper.selectByKey(OPEN_AUTH_REQUIRE_KEY);
+        if (entity == null) {
+            entity = new SysConfigEntity();
+            entity.setConfigKey(OPEN_AUTH_REQUIRE_KEY);
+            entity.setConfigValue(value);
+            entity.setValueType("STRING");
+            entity.setConfigSource("DB");
+            entity.setPlatformName("API网关平台");
+            entity.setAppName("jv-api-gateway");
+            entity.setServiceName("*");
+            entity.setRemark("开放接口调用方约束（控制台「开放认证」页维护）");
+            mapper.insert(entity);
+        } else {
+            mapper.updateValue(OPEN_AUTH_REQUIRE_KEY, value);
+        }
+        log.info("[策略] 开放接口调用方约束已更新：requireKey={}", requireKey);
+        return R.ok(Map.of("requireKey", requireKey));
     }
 
     private Map<String, Object> read(String key) {

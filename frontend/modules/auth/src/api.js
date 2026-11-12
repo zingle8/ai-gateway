@@ -78,6 +78,23 @@ export function revokeApiKey(id) {
   return request.delete(`/keys/${id}`)
 }
 
+/**
+ * 调用方约束（v0.2 第 6 项）：IP / 服务 / 平台白名单 + 每分钟限流，全量覆盖。
+ * 空串表示不限，rateLimitPerMinute 为 0 表示不单独限流；网关 30 秒内生效。
+ */
+export function saveApiKeyScope(id, data) {
+  return request.put(`/keys/${id}/scope`, data)
+}
+
+/** 开放接口调用方约束开关（platform.open.auth.require-key，10 秒内生效） */
+export function fetchOpenAuthPolicy() {
+  return request.get('/policies/open-auth')
+}
+
+export function saveOpenAuthPolicy(requireKey) {
+  return request.put('/policies/open-auth', { requireKey })
+}
+
 /** 统计看板：总数 / 今日新增·轮换·续期·吊销·删除·启用 / 7 日内到期 */
 export function fetchApiKeyStats() {
   return request.get('/keys/stats')

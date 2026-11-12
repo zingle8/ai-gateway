@@ -6,6 +6,7 @@ import com.zimo.gateway.user.entity.ApiKeyLogEntity;
 import com.zimo.gateway.user.model.ApiKeyCreatedVO;
 import com.zimo.gateway.user.model.ApiKeyRenewRequest;
 import com.zimo.gateway.user.model.ApiKeySaveRequest;
+import com.zimo.gateway.user.model.ApiKeyScopeRequest;
 import com.zimo.gateway.user.model.ApiKeyStatsVO;
 import com.zimo.gateway.user.model.ApiKeyVO;
 import com.zimo.gateway.user.service.ApiKeyService;
@@ -53,6 +54,15 @@ public class ApiKeyController {
     @PostMapping
     public R<ApiKeyCreatedVO> create(@Valid @RequestBody ApiKeySaveRequest request) {
         return R.ok(apiKeyService.create(request, UserContext.getUserId()));
+    }
+
+    /**
+     * 调用方约束：IP / 服务 / 平台白名单 + 每分钟限流（v0.2 第 6 项）。
+     * 全量覆盖，空值表示不限；网关 30 秒内生效（鉴权缓存 TTL）。
+     */
+    @PutMapping("/{id}/scope")
+    public R<ApiKeyVO> updateScope(@PathVariable Long id, @RequestBody ApiKeyScopeRequest request) {
+        return R.ok(apiKeyService.updateScope(id, request));
     }
 
     @PutMapping("/{id}/status")

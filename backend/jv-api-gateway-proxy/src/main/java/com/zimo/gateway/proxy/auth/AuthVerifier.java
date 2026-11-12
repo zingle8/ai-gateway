@@ -49,11 +49,30 @@ public class AuthVerifier {
         this.redisProvider = redisProvider;
     }
 
-    /** 判定结果；userId / keyId 用于通过后向下游透传身份 */
-    public record Decision(boolean allow, String message, Long userId, String apiKeyId) {
+    /**
+     * 判定结果；userId / keyId 用于通过后向下游透传身份。
+     *
+     * <p>status 决定拒绝时的 HTTP 状态码：凭证无效 / 缺失 → 401，
+     * 凭证有效但越界（IP 不在白名单、Key 未授权该服务或平台）→ 403。
+     * scope 仅在 API Key 通道返回，供后续过滤器做作用域与限流校验。
+     */
+    public record Decision(boolean allow, String message, Long userId, String apiKeyId,
+                           int status, ApiKeyScope scope) {
 
         public static Decision deny(String message) {
-            return new Decision(false, message, null, null);
+            return new Decision(false, message, null, null, 401, null);
+        }
+
+        public static Decision forbidden(String message) {
+            return new Decision(false, message, null, null, 403, null);
+        }
+
+        public static Decision allowUser(Long userId) {
+            return new Decision(true, null, userId, null, 200, null);
+        }
+
+        public static Decision allowKey(String keyId, ApiKeyScope scope) {
+            return new Decision(true, null, null, keyId, 200, scope);
         }
     }
 
@@ -84,10 +103,14 @@ public class AuthVerifier {
         if (sessionRevoked(claims.get("sid"))) {
             return Decision.deny("该会话已被强制下线，请重新登录");
         }
-        return new Decision(true, null, userId, null);
+        return Decision.allowUser(userId);
     }
 
-    public Decision verifyApiKey(String header) {
+    /**
+     * API Key 通道校验：格式 → 状态 → 有效期 → 密钥哈希 → 调用方 IP 白名单。
+     * IP 不在白名单时返回 403（凭证本身有效，属于越界访问）。
+     */
+    public Decision verifyApiKey(String header, String clientIp) {
         if (!header.startsWith(KEY_PREFIX)) {
             return Decision.deny("API Key 格式不正确");
         }
@@ -113,8 +136,38 @@ public class AuthVerifier {
         if (!sha256Hex(secret).equals(String.valueOf(key.get("secret_hash")))) {
             return Decision.deny("API Key 校验失败");
         }
+        String allowedIps = key.get("allowed_ips") == null ? null : String.valueOf(key.get("allowed_ips"));
+        if (!IpWhitelist.matches(allowedIps, clientIp)) {
+            log.info("[鉴权] API Key {} 调用方 IP {} 不在白名单 [{}] 内，拒绝访问", keyId, clientIp, allowedIps);
+            return Decision.forbidden("调用方 IP " + clientIp + " 不在该 API Key 的 IP 白名单内");
+        }
         touchLastUsed(keyId);
-        return new Decision(true, null, null, keyId);
+        return Decision.allowKey(keyId, new ApiKeyScope(keyId,
+                splitCsv(key.get("allowed_services")),
+                splitCsv(key.get("allowed_platforms")),
+                intValue(key.get("rate_limit_per_minute"))));
+    }
+
+    private static java.util.List<String> splitCsv(Object raw) {
+        if (raw == null) {
+            return java.util.List.of();
+        }
+        String text = String.valueOf(raw).trim();
+        if (text.isEmpty()) {
+            return java.util.List.of();
+        }
+        java.util.List<String> items = new java.util.ArrayList<>();
+        for (String part : text.split(",")) {
+            String item = part.trim();
+            if (!item.isEmpty()) {
+                items.add(item);
+            }
+        }
+        return items;
+    }
+
+    private static int intValue(Object raw) {
+        return raw instanceof Number number ? number.intValue() : 0;
     }
 
     /** 最近使用时间回写：60 秒内不重复写库，失败不影响放行 */

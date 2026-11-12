@@ -61,6 +61,13 @@ WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.open.
 
 INSERT INTO tb_sys_config
   (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
+SELECT 'platform.open.auth.require-key', 'false', 'BOOLEAN', 'DB', NULL,
+       'API网关平台', 'jv-api-gateway', '*',
+       '开放接口调用方约束开关（true 时 /api/open/** 必须携带 X-Api-Key 并通过 IP / 服务 / 平台白名单校验）'
+WHERE NOT EXISTS (SELECT 1 FROM tb_sys_config WHERE config_key = 'platform.open.auth.require-key');
+
+INSERT INTO tb_sys_config
+  (config_key, config_value, value_type, config_source, source_ref, platform_name, app_name, service_name, remark)
 SELECT 'platform.session.mode', 'MULTI', 'STRING', 'DB', NULL,
        'API网关平台', 'jv-api-gateway', '*',
        '多端登录策略：SINGLE=单端互踢（新登录踢掉旧会话）/ MULTI=多端共存（默认），登录时校验，10 秒内生效'

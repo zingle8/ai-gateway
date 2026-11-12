@@ -54,9 +54,27 @@
               <span>{{ row.lastUsedAt || '从未使用' }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="createTime" label="创建时间" width="170" />
-          <el-table-column label="操作" width="230" fixed="right">
+          <el-table-column label="调用方约束" min-width="200">
             <template #default="{ row }">
+              <span v-if="!hasScope(row)" class="gw-sm gw-muted">不限</span>
+              <span v-else class="scope-chips">
+                <el-tag v-if="row.allowedIps" size="small" effect="plain">IP {{ row.allowedIps.split(',').length }}</el-tag>
+                <el-tag v-if="row.allowedServices" size="small" effect="plain" type="success">
+                  服务 {{ row.allowedServices.split(',').length }}
+                </el-tag>
+                <el-tag v-if="row.allowedPlatforms" size="small" effect="plain" type="warning">
+                  平台 {{ row.allowedPlatforms.split(',').length }}
+                </el-tag>
+                <el-tag v-if="row.rateLimitPerMinute > 0" size="small" effect="plain" type="danger">
+                  {{ row.rateLimitPerMinute }} 次/分
+                </el-tag>
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createTime" label="创建时间" width="170" />
+          <el-table-column label="操作" width="290" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openScope(row)">约束</el-button>
               <el-button link type="primary" @click="rotate(row)">轮换密钥</el-button>
               <el-button link type="primary" :disabled="!row.expireAt" @click="openRenew(row)">续期</el-button>
               <el-button link type="danger" @click="remove(row)">吊销</el-button>
@@ -94,6 +112,39 @@
       <template #footer>
         <el-button @click="issueDialog = false">取消</el-button>
         <el-button type="primary" :loading="saving" @click="issue">签发</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 调用方约束（v0.2 第 6 项） -->
+    <el-dialog v-model="scopeDialog" title="调用方约束" width="540px">
+      <el-alert
+        type="info"
+        :closable="false"
+        show-icon
+        title="空白表示不限；网关 30 秒内生效。越界访问返回 403，凭证本身无效仍返回 401"
+        class="secret-alert"
+      />
+      <el-form :model="scopeForm" label-width="110px" size="small" class="scope-form">
+        <el-form-item label="Key">
+          <span class="gw-mono">{{ scopeRow?.name }}（gwak-{{ scopeRow?.keyId }}）</span>
+        </el-form-item>
+        <el-form-item label="IP 白名单">
+          <el-input v-model="scopeForm.allowedIps" placeholder="逗号分隔，如 10.20.3.11,10.20.0.0/16,10.20.4.*" />
+        </el-form-item>
+        <el-form-item label="服务白名单">
+          <el-input v-model="scopeForm.allowedServices" placeholder="service_name，逗号分隔，如 jv-api-gateway-user" />
+        </el-form-item>
+        <el-form-item label="平台白名单">
+          <el-input v-model="scopeForm.allowedPlatforms" placeholder="app_id，逗号分隔，如 app-api-gateway" />
+        </el-form-item>
+        <el-form-item label="每分钟限流">
+          <el-input-number v-model="scopeForm.rateLimitPerMinute" :min="0" :max="100000" size="small" />
+          <span class="gw-sm gw-muted scope-hint">0 = 不单独限流（仍受全局 / 路由 / Key 维度规则约束）</span>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="scopeDialog = false">取消</el-button>
+        <el-button type="primary" :loading="scopeSaving" @click="submitScope">保存约束</el-button>
       </template>
     </el-dialog>
 
@@ -152,7 +203,8 @@ import { GwPager } from '@zimo/ui'
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
-  fetchApiKeys, fetchApiKeyStats, issueApiKey, setApiKeyStatus, rotateApiKey, renewApiKey, revokeApiKey
+  fetchApiKeys, fetchApiKeyStats, issueApiKey, setApiKeyStatus, rotateApiKey, renewApiKey, revokeApiKey,
+  saveApiKeyScope
 } from '../api.js'
 
 const loading = ref(false)
@@ -179,6 +231,36 @@ const secretDialog = ref(false)
 const secretTitle = ref('API Key 签发成功')
 const created = ref(null)
 const form = reactive({ name: '', expireDays: 90 })
+
+/* 调用方约束：IP / 服务 / 平台白名单 + 每分钟限流（全量覆盖） */
+const scopeDialog = ref(false)
+const scopeRow = ref(null)
+const scopeSaving = ref(false)
+const scopeForm = reactive({ allowedIps: '', allowedServices: '', allowedPlatforms: '', rateLimitPerMinute: 0 })
+
+const hasScope = (row) =>
+  !!(row?.allowedIps || row?.allowedServices || row?.allowedPlatforms || row?.rateLimitPerMinute > 0)
+
+const openScope = (row) => {
+  scopeRow.value = row
+  scopeForm.allowedIps = row.allowedIps || ''
+  scopeForm.allowedServices = row.allowedServices || ''
+  scopeForm.allowedPlatforms = row.allowedPlatforms || ''
+  scopeForm.rateLimitPerMinute = row.rateLimitPerMinute || 0
+  scopeDialog.value = true
+}
+
+const submitScope = async () => {
+  scopeSaving.value = true
+  try {
+    await saveApiKeyScope(scopeRow.value.id, { ...scopeForm })
+    scopeDialog.value = false
+    ElMessage.success('约束已保存，网关 30 秒内生效')
+    await load()
+  } finally {
+    scopeSaving.value = false
+  }
+}
 
 /* 续期：只改到期时间，密钥不变 */
 const renewDialog = ref(false)
@@ -408,4 +490,15 @@ onMounted(load)
 }
 
 .secret-box .gw-mono { flex: 1; }
+
+/* 调用方约束 */
+.scope-chips {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.scope-form { margin-top: 16px; }
+
+.scope-hint { margin-left: 10px; }
 </style>

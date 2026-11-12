@@ -27,10 +27,22 @@ public interface ApiKeyMapper {
     @Select("SELECT * FROM tb_gw_api_key WHERE id = #{id}")
     ApiKeyEntity selectById(@Param("id") Long id);
 
-    @Insert("INSERT INTO tb_gw_api_key (key_id, secret_hash, name, owner_user_id, status, expire_at) "
-            + "VALUES (#{keyId}, #{secretHash}, #{name}, #{ownerUserId}, #{status}, #{expireAt})")
+    @Insert("INSERT INTO tb_gw_api_key (key_id, secret_hash, name, owner_user_id, status, expire_at, "
+            + "allowed_ips, allowed_services, allowed_platforms, rate_limit_per_minute) "
+            + "VALUES (#{keyId}, #{secretHash}, #{name}, #{ownerUserId}, #{status}, #{expireAt}, "
+            + "#{allowedIps}, #{allowedServices}, #{allowedPlatforms}, #{rateLimitPerMinute})")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(ApiKeyEntity key);
+
+    /** 调用方约束：IP / 服务 / 平台白名单 + 每分钟限流（不含密钥，可随时调整） */
+    @Update("UPDATE tb_gw_api_key SET allowed_ips = #{allowedIps}, allowed_services = #{allowedServices}, "
+            + "allowed_platforms = #{allowedPlatforms}, rate_limit_per_minute = #{rateLimitPerMinute} "
+            + "WHERE id = #{id}")
+    int updateScope(@Param("id") Long id,
+                    @Param("allowedIps") String allowedIps,
+                    @Param("allowedServices") String allowedServices,
+                    @Param("allowedPlatforms") String allowedPlatforms,
+                    @Param("rateLimitPerMinute") Integer rateLimitPerMinute);
 
     @Update("UPDATE tb_gw_api_key SET status = #{status} WHERE id = #{id}")
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
