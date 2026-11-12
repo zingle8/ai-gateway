@@ -49,6 +49,7 @@
           </el-select>
           <el-button type="primary" @click="load">查询</el-button>
           <el-button @click="reset">重置</el-button>
+          <el-button @click="exportCsv">下载 CSV</el-button>
         </div>
       </div>
 
@@ -215,6 +216,7 @@
 
 <script setup>
 import { GwPager } from '@zimo/ui'
+import { ElMessage } from 'element-plus'
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import WsSessions from './WsSessions.vue'
@@ -293,6 +295,30 @@ const loadFilters = async () => {
     if (d.resFormats?.length) resFormatOptions.value = d.resFormats
     if (d.statusCodes?.length) statusOptions.value = d.statusCodes
   } catch (e) { /* 字典不可用不阻塞查询 */ }
+}
+
+const exportCsv = async () => {
+  const params = new URLSearchParams()
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== '' && v !== null && v !== undefined) params.append(k, v)
+  })
+  if (typeof range !== 'undefined' && range && range.value) params.set('range', range.value)
+  const token = localStorage.getItem('gw_token') || ''
+  const currentUser = JSON.parse(localStorage.getItem('gw_user') || '{}')
+  const res = await fetch(`/api/trace/logs/export?${params.toString()}`, {
+    headers: { Authorization: `Bearer ${token}`, 'X-Username': currentUser.username || '' }
+  })
+  if (!res.ok) {
+    ElMessage.error('导出失败，请重新登录后重试')
+    return
+  }
+  const blob = await res.blob()
+  const a = document.createElement('a')
+  a.href = URL.createObjectURL(blob)
+  a.download = `调用日志_${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(a.href)
+  ElMessage.success('已导出当前筛选结果（最多 10000 行）')
 }
 
 const load = async () => {

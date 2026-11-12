@@ -63,6 +63,83 @@ public class TraceController {
     }
 
     /**
+     * 导出当前筛选结果（CSV，最多 10000 行；带操作人与导出时间列）
+     */
+    @GetMapping("/logs/export")
+    public org.springframework.http.ResponseEntity<byte[]> export(
+            @RequestParam(required = false) String traceId,
+            @RequestParam(required = false) String appId,
+            @RequestParam(required = false) String service,
+            @RequestParam(required = false) String api,
+            @RequestParam(required = false) String params,
+            @RequestParam(required = false) String method,
+            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String errType,
+            @RequestParam(required = false) String protocol,
+            @RequestParam(required = false) String reqFormat,
+            @RequestParam(required = false) String resFormat,
+            @RequestParam(required = false) String startTime,
+            @RequestParam(required = false) Integer costMin,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        TraceQuery query = new TraceQuery();
+        query.setTraceId(traceId);
+        query.setAppId(appId);
+        query.setService(service);
+        query.setApi(api);
+        query.setParams(params);
+        query.setMethod(method);
+        query.setStatus(status);
+        query.setErrType(errType);
+        query.setProtocol(protocol);
+        query.setReqFormat(reqFormat);
+        query.setResFormat(resFormat);
+        query.setStartTime(startTime);
+        query.setCostMin(costMin);
+        query.setCurrent(1);
+        query.setSize(10000);
+        com.zimo.gateway.common.result.Page<GwTraceLogEntity> result = traceService.pageTraces(query);
+        // 导出留痕：优先取控制台传入的操作人（网关鉴权后前端携带），否则回落上下文
+        String operator = httpRequest.getHeader("X-Username");
+        if (operator == null || operator.isBlank()) {
+            operator = com.zimo.gateway.common.context.UserContext.getUsername();
+        }
+        if (operator == null || operator.isBlank()) {
+            Long uid = com.zimo.gateway.common.context.UserContext.getUserId();
+            operator = uid == null ? "system" : "uid:" + uid;
+        }
+        String exportTime = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        StringBuilder csv = new StringBuilder("调用时间,应用,服务,接口,状态码,耗时(ms),协议,错误类型,操作人,导出时间\n");
+        for (GwTraceLogEntity e : result.getRecords()) {
+            csv.append(csvCell(e.getReqTime())).append(',')
+                    .append(csvCell(e.getAppName())).append(',')
+                    .append(csvCell(e.getServiceName())).append(',')
+                    .append(csvCell(e.getApi())).append(',')
+                    .append(csvCell(e.getStatusCode())).append(',')
+                    .append(csvCell(e.getCost())).append(',')
+                    .append(csvCell(e.getProtocol())).append(',')
+                    .append(csvCell(e.getErrType())).append(',')
+                    .append(csvCell(operator)).append(',')
+                    .append(csvCell(exportTime)).append('\n');
+        }
+        byte[] bytes = ("\ufeff" + csv).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"trace-logs.csv\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .body(bytes);
+    }
+
+    private static String csvCell(Object value) {
+        if (value == null) {
+            return "";
+        }
+        String text = String.valueOf(value).replace("\"", "\"\"");
+        return text.contains(",") || text.contains("\"") || text.contains("\n")
+                ? "\"" + text + "\"" : text;
+    }
+
+    /**
      * 日志详情
      */
     @GetMapping("/logs/{id}")

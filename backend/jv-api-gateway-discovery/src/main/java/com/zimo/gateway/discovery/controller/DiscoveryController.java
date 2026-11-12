@@ -50,6 +50,74 @@ public class DiscoveryController {
     }
 
     /**
+     * 导出当前筛选结果（CSV，最多 10000 行；带操作人与导出时间列）
+     */
+    @GetMapping("/services/export")
+    public org.springframework.http.ResponseEntity<byte[]> export(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String appId,
+            @RequestParam(required = false) String serviceId,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String language,
+            @RequestParam(defaultValue = "24h") String range,
+            jakarta.servlet.http.HttpServletRequest httpRequest) {
+        ServiceQuery query = new ServiceQuery();
+        query.setKeyword(keyword);
+        query.setAppId(appId);
+        query.setServiceId(serviceId);
+        query.setStatus(status);
+        query.setLanguage(language);
+        query.setWindowSeconds((int) Math.min(Integer.MAX_VALUE, TimeRange.of(range).getWindowSeconds()));
+        query.setCurrent(1);
+        query.setSize(10000);
+        var result = discoveryService.pageServices(query);
+        // 导出留痕：优先取控制台传入的操作人（网关鉴权后前端携带），否则回落上下文
+        String operator = httpRequest.getHeader("X-Username");
+        if (operator == null || operator.isBlank()) {
+            operator = com.zimo.gateway.common.context.UserContext.getUsername();
+        }
+        if (operator == null || operator.isBlank()) {
+            Long uid = com.zimo.gateway.common.context.UserContext.getUserId();
+            operator = uid == null ? "system" : "uid:" + uid;
+        }
+        String exportTime = java.time.LocalDateTime.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        StringBuilder csv = new StringBuilder("服务名,应用,实例IP,端口,语言,版本,状态,QPS,平均耗时(ms),调用量,接口数,实例数,注册时间,操作人,导出时间\n");
+        for (GwServiceEntity e : result.getRecords()) {
+            csv.append(csvCell(e.getServiceName())).append(',')
+                    .append(csvCell(e.getAppName())).append(',')
+                    .append(csvCell(e.getIp())).append(',')
+                    .append(csvCell(e.getPort())).append(',')
+                    .append(csvCell(e.getLanguage())).append(',')
+                    .append(csvCell(e.getVersion())).append(',')
+                    .append(csvCell(e.getStatus())).append(',')
+                    .append(csvCell(e.getQps())).append(',')
+                    .append(csvCell(e.getAvgRt())).append(',')
+                    .append(csvCell(e.getCalls())).append(',')
+                    .append(csvCell(e.getApiCount())).append(',')
+                    .append(csvCell(e.getInstances())).append(',')
+                    .append(csvCell(e.getRegisterTime())).append(',')
+                    .append(csvCell(operator)).append(',')
+                    .append(csvCell(exportTime)).append('\n');
+        }
+        byte[] bytes = ("\ufeff" + csv).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return org.springframework.http.ResponseEntity.ok()
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"services.csv\"")
+                .contentType(org.springframework.http.MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .body(bytes);
+    }
+
+    private static String csvCell(Object value) {
+        if (value == null) {
+            return "";
+        }
+        String text = String.valueOf(value).replace("\"", "\"\"");
+        return text.contains(",") || text.contains("\"") || text.contains("\n")
+                ? "\"" + text + "\"" : text;
+    }
+
+    /**
      * 调用趋势：区间内请求量与 QPS 两条序列，支持按应用 / 服务过滤（默认全局）。
      * 与服务列表的区间选择器共用同一 range，口径一致。
      */
