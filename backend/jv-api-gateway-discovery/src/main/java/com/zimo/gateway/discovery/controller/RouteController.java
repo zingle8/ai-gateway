@@ -5,6 +5,7 @@ import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.discovery.entity.GwRouteEntity;
 import com.zimo.gateway.discovery.mapper.GwRouteMapper;
+import com.zimo.gateway.discovery.service.RouteAuditWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -32,6 +33,7 @@ import java.util.List;
 public class RouteController {
 
     private final GwRouteMapper routeMapper;
+    private final RouteAuditWriter auditWriter;
 
     @GetMapping("/routes")
     public R<List<GwRouteEntity>> list(@RequestParam(required = false) String keyword) {
@@ -60,6 +62,8 @@ public class RouteController {
         route.setUpdateTime(now);
         route.setDeleted(0);
         routeMapper.insert(route);
+        // 变更审计（v0.2 第 8 项）
+        auditWriter.created(route);
         return R.ok(route);
     }
 
@@ -75,12 +79,15 @@ public class RouteController {
         route.setUpstreamUrl(route.getUpstreamUrl().trim());
         route.setUpdateTime(LocalDateTime.now());
         routeMapper.update(route);
+        auditWriter.updated(exist, route);
         return R.ok();
     }
 
     @DeleteMapping("/routes/{id}")
     public R<Void> delete(@PathVariable Long id) {
+        GwRouteEntity exist = routeMapper.selectById(id);
         routeMapper.deleteById(id, LocalDateTime.now());
+        auditWriter.deleted(exist);
         return R.ok();
     }
 
@@ -95,6 +102,14 @@ public class RouteController {
         update.setId(id);
         update.setStatus(exist.getStatus() != null && exist.getStatus() == 1 ? 0 : 1);
         routeMapper.update(update);
+        // 启停也是一次变更：before 保留旧状态，after 用合并后的完整状态
+        GwRouteEntity after = new GwRouteEntity();
+        after.setAppId(exist.getAppId());
+        after.setPathPrefix(exist.getPathPrefix());
+        after.setUpstreamUrl(exist.getUpstreamUrl());
+        after.setStripPrefix(exist.getStripPrefix());
+        after.setStatus(update.getStatus());
+        auditWriter.updated(exist, after);
         return R.ok();
     }
 

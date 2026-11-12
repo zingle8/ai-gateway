@@ -32,5 +32,14 @@ export const updateConfig = (key, value) => request.put(`/configs/${key}`, { val
 /** 公开开关（免登录） */
 export const fetchPublicFlags = () => request.get('/configs/public')
 
+/* ==========================================================================
+ * 变更审计（v0.2 第 8 项）：配置 / 策略 / 路由的增删改留痕
+ * ========================================================================== */
+
+/** 变更记录（bizType: CONFIG / POLICY / ROUTE；bizKey 为空表示不限） */
+export function fetchChangeLogs(params) {
+  return request.get('/change-logs', { params })
+}
+
 /** 网关健康快照：各后端服务状态 + 鉴权缓存实际生效模式 */
 export const fetchMenuHealth = () => fetch('/health/menu-services').then((r) => (r.ok ? r.json() : null))

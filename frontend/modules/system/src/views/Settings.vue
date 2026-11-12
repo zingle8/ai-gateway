@@ -131,6 +131,7 @@
             </div>
 
             <span class="config-time gw-sm gw-muted">{{ item.updateTime || '—' }}</span>
+            <el-button link type="primary" size="small" @click="openHistory(item)">变更记录</el-button>
             <el-button link type="danger" size="small" @click="remove(item)">删除</el-button>
           </div>
         </div>
@@ -153,6 +154,31 @@
         />
       </div>
     </section>
+
+    <!-- 变更记录（v0.2 第 8 项） -->
+    <el-dialog v-model="historyDialog" :title="`变更记录 · ${historyKey}`" width="760px">
+      <el-table :data="historyRows" v-loading="historyLoading" size="small" max-height="440">
+        <el-table-column prop="createTime" label="时间" width="165" />
+        <el-table-column label="动作" width="90">
+          <template #default="{ row }">
+            <el-tag size="small" :type="row.action === 'DELETE' ? 'danger' : row.action === 'CREATE' ? 'success' : 'warning'" effect="plain">
+              {{ row.action }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="operator" label="操作人" width="110" />
+        <el-table-column prop="requestIp" label="来源 IP" width="130" />
+        <el-table-column label="改前 → 改后" min-width="320">
+          <template #default="{ row }">
+            <div class="history-diff">
+              <span class="gw-sm gw-muted">{{ row.beforeValue || '（空）' }}</span>
+              <span class="gw-sm">→ {{ row.afterValue || '（空）' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="gw-sm gw-muted history-tip">仅保留最近 200 条变更，敏感配置值已脱敏</div>
+    </el-dialog>
 
     <!-- 新增配置 -->
     <el-dialog v-model="createDialog" title="新增配置" width="560px">
@@ -208,7 +234,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { GwPager } from '@zimo/ui'
 import { request } from '@zimo/shared'
-import { fetchConfigs, createConfig, deleteConfig, updateConfig, fetchMenuHealth } from '../api.js'
+import { fetchConfigs, createConfig, deleteConfig, updateConfig, fetchMenuHealth, fetchChangeLogs } from '../api.js'
 
 const loading = ref(false)
 const saving = ref('')
@@ -342,6 +368,26 @@ const submitCreate = async () => {
     await load()
   } finally {
     creating.value = false
+  }
+}
+
+/* 变更记录（v0.2 第 8 项） */
+const historyDialog = ref(false)
+const historyKey = ref('')
+const historyRows = ref([])
+const historyLoading = ref(false)
+
+const openHistory = async (item) => {
+  historyKey.value = item.key
+  historyDialog.value = true
+  historyLoading.value = true
+  try {
+    const page = await fetchChangeLogs({ bizType: 'CONFIG', bizKey: item.key, page: 1, size: 50 })
+    historyRows.value = page?.records || []
+  } catch (e) {
+    historyRows.value = []
+  } finally {
+    historyLoading.value = false
   }
 }
 
@@ -508,4 +554,13 @@ onMounted(load)
 }
 
 .form-hint { line-height: 1.5; margin-top: 2px; }
+
+.history-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  word-break: break-all;
+}
+
+.history-tip { margin-top: 8px; }
 </style>

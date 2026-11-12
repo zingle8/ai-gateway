@@ -78,6 +78,12 @@ INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_u
 SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-config', '/api/policies/**', 'http://127.0.0.1:28085', NULL, 0, 1, '平台自身：安全策略 / 登录方式配置'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/policies/**');
 
+-- 变更审计查询（v0.2 第 8 项）
+INSERT INTO tb_gw_route
+  (app_id, app_name, service_name, path_prefix, upstream_url, strip_prefix, deleted, status, remark)
+SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-config', '/api/change-logs/**', 'http://127.0.0.1:28085', 0, 0, 1, '平台自身：配置 / 策略 / 路由变更审计查询'
+WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/change-logs/**');
+
 INSERT INTO tb_gw_route (app_id, app_name, service_name, path_prefix, upstream_url, prefix_path, strip_prefix, status, remark)
 SELECT 'app-api-gateway', 'API网关平台', 'jv-api-gateway-config', '/api/auth-exempts/**', 'http://127.0.0.1:28085', NULL, 0, 1, '平台自身：鉴权精细豁免'
 WHERE NOT EXISTS (SELECT 1 FROM tb_gw_route WHERE path_prefix = '/api/auth-exempts/**');

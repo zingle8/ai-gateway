@@ -6,6 +6,7 @@ import com.zimo.gateway.config.entity.SysConfigEntity;
 import com.zimo.gateway.config.mapper.SysConfigMapper;
 import com.zimo.gateway.config.model.ConfigCreateRequest;
 import com.zimo.gateway.config.model.ConfigVO;
+import com.zimo.gateway.config.service.ChangeLogService;
 import com.zimo.gateway.config.service.ConfigService;
 import com.zimo.gateway.config.store.ConfigStore;
 import com.zimo.gateway.config.store.ConfigStoreException;
@@ -38,6 +39,7 @@ public class ConfigServiceImpl implements ConfigService {
 
     private final SysConfigMapper mapper;
     private final ConfigStoreRegistry stores;
+    private final ChangeLogService changeLogService;
 
     @Override
     public List<ConfigVO> listAll() {
@@ -98,6 +100,8 @@ public class ConfigServiceImpl implements ConfigService {
             throw new BizException(ResultCode.ERROR.getCode(), "配置保存失败：" + e.getMessage());
         }
         log.info("配置已创建：{} @ {}（{}）", key, source, store.label(entity.getSourceRef()));
+        // 变更审计（v0.2 第 8 项）：记录谁在何时创建了什么值
+        changeLogService.record("CONFIG", key, "CREATE", null, request.value());
         return toVO(mapper.selectByKey(key));
     }
 
@@ -117,6 +121,7 @@ public class ConfigServiceImpl implements ConfigService {
         }
         // 敏感配置（密码 / 密钥 / 令牌）打印时脱敏（v0.2 第 14 项）
         log.info("配置已更新：{} = {} @ {}", key, com.zimo.gateway.common.log.LogMask.configValue(key, value), source);
+        changeLogService.record("CONFIG", key, "UPDATE", config.getConfigValue(), value);
     }
 
     @Override
@@ -132,6 +137,7 @@ public class ConfigServiceImpl implements ConfigService {
         }
         mapper.deleteByKey(key);
         log.info("配置已删除：{} @ {}", key, source);
+        changeLogService.record("CONFIG", key, "DELETE", config.getConfigValue(), null);
     }
 
     // ------------------------------------------------------------------ 内部

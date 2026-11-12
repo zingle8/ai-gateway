@@ -48,10 +48,11 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="170" fixed="right">
+          <el-table-column label="操作" width="250" fixed="right">
             <template #default="{ row }">
               <el-button link type="primary" @click="openDialog(row)">编辑</el-button>
               <el-button link @click="toggle(row)">{{ row.status === 1 ? '停用' : '启用' }}</el-button>
+              <el-button link type="primary" @click="openHistory(row)">变更记录</el-button>
               <el-button link type="danger" @click="remove(row)">删除</el-button>
             </template>
           </el-table-column>
@@ -116,6 +117,23 @@
         <el-button type="primary" :loading="saving" @click="save">保存</el-button>
       </template>
     </el-dialog>
+    <!-- 变更记录（v0.2 第 8 项） -->
+    <el-dialog v-model="historyDialog" :title="`变更记录 · ${historyKey}`" width="720px">
+      <el-table :data="historyRows" v-loading="historyLoading" size="small" max-height="420">
+        <el-table-column prop="createTime" label="时间" width="165" />
+        <el-table-column prop="action" label="动作" width="90" />
+        <el-table-column prop="operator" label="操作人" width="110" />
+        <el-table-column label="改前 → 改后" min-width="320">
+          <template #default="{ row }">
+            <div class="history-diff">
+              <span class="gw-sm gw-muted">{{ row.beforeValue || '（空）' }}</span>
+              <span class="gw-sm">→ {{ row.afterValue || '（空）' }}</span>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -123,12 +141,32 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { GwPager } from '@zimo/ui'
-import { createRoute, deleteRoute, fetchRoutes, toggleRoute, updateRoute } from '../api'
+import { createRoute, deleteRoute, fetchRoutes, toggleRoute, updateRoute, fetchChangeLogs } from '../api'
 
 const rows = ref([])
 const keyword = ref('')
 const loading = ref(false)
 const saving = ref(false)
+/* 变更记录（v0.2 第 8 项） */
+const historyDialog = ref(false)
+const historyKey = ref('')
+const historyRows = ref([])
+const historyLoading = ref(false)
+
+const openHistory = async (row) => {
+  historyKey.value = row.pathPrefix
+  historyDialog.value = true
+  historyLoading.value = true
+  try {
+    const page = await fetchChangeLogs({ bizType: 'ROUTE', bizKey: row.pathPrefix, page: 1, size: 50 })
+    historyRows.value = page?.records || []
+  } catch (e) {
+    historyRows.value = []
+  } finally {
+    historyLoading.value = false
+  }
+}
+
 const dialogVisible = ref(false)
 
 const emptyForm = () => ({
@@ -268,6 +306,13 @@ onMounted(load)
   line-height: 1.75;
   color: var(--gw-text-secondary);
   white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.history-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   word-break: break-all;
 }
 </style>

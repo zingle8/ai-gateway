@@ -31,6 +31,12 @@ request.interceptors.request.use((config) => {
   if (store.token) {
     config.headers.Authorization = `Bearer ${store.token}`
   }
+  // 变更审计留痕（v0.2 第 8 项）：trace / discovery 等无登录拦截器的模块
+  // 从该头取操作人；有登录态的服务仍以 UserContext 为准，不会被伪造头覆盖
+  const username = store.userInfo && store.userInfo.username
+  if (username) {
+    config.headers['X-Username'] = username
+  }
   return config
 })
 

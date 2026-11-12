@@ -7,6 +7,7 @@ import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.config.entity.SysConfigEntity;
 import com.zimo.gateway.config.mapper.SysConfigMapper;
+import com.zimo.gateway.config.service.ChangeLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,6 +42,7 @@ public class PolicyController {
 
     private final SysConfigMapper mapper;
     private final ObjectMapper objectMapper;
+    private final ChangeLogService changeLogService;
 
     @GetMapping("/security")
     public R<Map<String, Object>> security() {
@@ -94,6 +96,8 @@ public class PolicyController {
         } else {
             mapper.updateValue(OPEN_AUTH_REQUIRE_KEY, value);
         }
+        changeLogService.record("POLICY", OPEN_AUTH_REQUIRE_KEY, "UPDATE",
+                String.valueOf(!requireKey), String.valueOf(requireKey));
         log.info("[策略] 开放接口调用方约束已更新：requireKey={}", requireKey);
         return R.ok(Map.of("requireKey", requireKey));
     }
@@ -123,6 +127,7 @@ public class PolicyController {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), label + "不能为空");
         }
         SysConfigEntity entity = mapper.selectByKey(key);
+        String beforeJson = entity == null ? null : entity.getConfigValue();
         if (entity == null) {
             entity = new SysConfigEntity();
             entity.setConfigKey(key);
@@ -137,6 +142,7 @@ public class PolicyController {
         } else {
             mapper.updateValue(key, json);
         }
+        changeLogService.record("POLICY", key, beforeJson == null ? "CREATE" : "UPDATE", beforeJson, json);
         log.info("[策略] {} 已更新（{} 字节）", label, json.length());
         return read(key);
     }

@@ -7,6 +7,7 @@ import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.common.result.ResultCode;
 import com.zimo.gateway.config.entity.SysConfigEntity;
 import com.zimo.gateway.config.mapper.SysConfigMapper;
+import com.zimo.gateway.config.service.ChangeLogService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,7 @@ public class LogPolicyController {
 
     private final SysConfigMapper mapper;
     private final ObjectMapper objectMapper;
+    private final ChangeLogService changeLogService;
 
     @Value("${gateway.log.home:logs/app}")
     private String logHome;
@@ -93,6 +95,7 @@ public class LogPolicyController {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "级别配置序列化失败");
         }
         SysConfigEntity entity = mapper.selectByKey(LEVELS_KEY);
+        String beforeJson = entity == null ? null : entity.getConfigValue();
         if (entity == null) {
             entity = new SysConfigEntity();
             entity.setConfigKey(LEVELS_KEY);
@@ -107,6 +110,7 @@ public class LogPolicyController {
         } else {
             mapper.updateValue(LEVELS_KEY, json);
         }
+        changeLogService.record("POLICY", LEVELS_KEY, beforeJson == null ? "CREATE" : "UPDATE", beforeJson, json);
         log.info("[日志] 动态级别配置已更新：{}", json);
         return R.ok(clean);
     }
