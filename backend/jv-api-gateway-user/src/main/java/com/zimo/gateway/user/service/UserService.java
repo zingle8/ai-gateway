@@ -32,6 +32,14 @@ public interface UserService {
     LoginVO login(String username, String password, String ip, String ua, String appId);
 
     /**
+     * 非密码因子登录（v0.2 第 4 项）：短信 / 邮件动态码、扫码确认通过后，
+     * 因子校验已在 LoginFactorService 完成，这里只做状态校验 + 会话登记 + 签发令牌。
+     *
+     * @param factor PASSWORD / SMS / EMAIL / QR / QR_CONFIRM，仅用于登录历史标注
+     */
+    LoginVO loginByFactor(UserEntity user, String ip, String ua, String appId, String factor);
+
+    /**
      * 注册：校验账号格式与唯一性，默认 VIEWER 角色，成功即登录（返回 JWT）
      */
     LoginVO register(RegisterRequest request, String ip);

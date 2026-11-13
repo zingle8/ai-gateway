@@ -168,16 +168,30 @@ public class UserServiceImpl implements UserService {
         }
 
         clearFailCount(username);
+        return loginByFactor(user, ip, ua, appId, "PASSWORD");
+    }
+
+    @Override
+    public LoginVO loginByFactor(UserEntity user, String ip, String ua, String appId, String factor) {
+        if (user == null) {
+            throw new BizException(ResultCode.UNAUTHORIZED.getCode(), "账号不存在");
+        }
+        if (Objects.equals(user.getStatus(), 0)) {
+            riskService.recordLogin(user.getUsername(), user.getId(), ip, ua, appId, false, "账号已禁用", 0);
+            throw new BizException(ResultCode.FORBIDDEN.getCode(), "账号已禁用，请联系管理员");
+        }
         user.setLastLoginTime(LocalDateTime.now());
         user.setLastLoginIp(ip);
         user.setUpdateTime(LocalDateTime.now());
         userMapper.update(user);
 
         String sid = sessionService.newSid();
-        String token = jwtUtil.createToken(user.getId(), username, user.getTokenVersion(), sid);
+        String token = jwtUtil.createToken(user.getId(), user.getUsername(), user.getTokenVersion(), sid);
         sessionService.register(user, sid, ip, ua, appId);
-        riskService.recordLogin(username, user.getId(), ip, ua, appId, true, null, 0);
-        log.info("用户登录成功：{}（{}，会话 {}，平台 {}）", username, ip, sid, appId);
+        String note = "PASSWORD".equals(factor) ? null : "因子登录：" + factor;
+        riskService.recordLogin(user.getUsername(), user.getId(), ip, ua, appId, true, note, 0);
+        log.info("用户登录成功：{}（{}，会话 {}，平台 {}，因子 {}）",
+                user.getUsername(), ip, sid, appId, factor);
         return LoginVO.of(token, user, loginPolicyService.mfaRequiredFor(user.getRole()));
     }
 

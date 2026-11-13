@@ -93,6 +93,11 @@ gateway:
       skip-paths:
         - /api/auth/login
         - /api/auth/register
+        # 登录因子（v0.2 第 4 项）：验证码 / 动态码 / 短信·邮件码 / 扫码，均在登录前调用
+        - /api/auth/captcha/**
+        - /api/auth/otp/**
+        - /api/auth/qr/**
+        - /api/auth/login-methods
         - /api/oauth/**
         - /api/.well-known/**
         - /api/open/**

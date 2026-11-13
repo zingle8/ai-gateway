@@ -34,6 +34,11 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/login",
                         "/auth/register",
+                        // 登录因子（v0.2 第 4 项）：验证码 / 动态码 / 短信·邮件码 / 扫码，登录前匿名调用
+                        "/auth/captcha/**",
+                        "/auth/otp/**",
+                        "/auth/qr/**",
+                        "/auth/login-methods",
                         // 开放认证：给第三方平台对接，自身不带平台令牌（总开关由系统设置控制）
                         "/open/auth/**",
                         // SSO OIDC 协议端点（v0.2 第 15 项）：授权 / 换 token / userinfo / 元数据 / jwks

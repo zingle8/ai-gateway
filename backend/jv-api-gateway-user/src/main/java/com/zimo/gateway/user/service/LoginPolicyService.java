@@ -30,16 +30,63 @@ public class LoginPolicyService {
 
     /** 密码登录通道是否开启（登录因子 username.enabled，默认开启） */
     public boolean passwordChannelEnabled() {
-        Map<String, Object> methods = readMap(METHODS_KEY);
-        Object factors = methods.get("factors");
+        return factorEnabled("username");
+    }
+
+    /**
+     * 指定登录因子是否开启（factors[].key：username / emailOtp / smsOtp / qrcode / email / sso / totp）。
+     * 未声明该因子视为开启（兼容历史配置）。
+     */
+    public boolean factorEnabled(String key) {
+        Object factors = readMap(METHODS_KEY).get("factors");
         if (factors instanceof List<?> list) {
             for (Object item : list) {
-                if (item instanceof Map<?, ?> factor && "username".equals(factor.get("key"))) {
+                if (item instanceof Map<?, ?> factor && key.equals(factor.get("key"))) {
                     return !Boolean.FALSE.equals(factor.get("enabled"));
                 }
             }
         }
         return true;
+    }
+
+    /** 登录方式配置原文（控制台「登录方式」页整份 JSON） */
+    public Map<String, Object> methods() {
+        return readMap(METHODS_KEY);
+    }
+
+    /** 密码登录是否强制图形/动态验证码（methods.captcha.enabled，默认关闭） */
+    public boolean captchaEnabled() {
+        return subConfig("captcha", "enabled", false);
+    }
+
+    /** 密码验证码形态：image（图形）/ dynamic（弹框动态码） */
+    public String captchaMode() {
+        Map<String, Object> captcha = readMap(METHODS_KEY).get("captcha") instanceof Map<?, ?> m
+                ? castMap(m) : Map.of();
+        String mode = String.valueOf(captcha.getOrDefault("mode", "image"));
+        return "dynamic".equalsIgnoreCase(mode) ? "dynamic" : "image";
+    }
+
+    /** 扫码登录形态：confirm（演示确认流）/ code（扫码取码 + 手动输入） */
+    public String qrMode() {
+        Map<String, Object> qr = readMap(METHODS_KEY).get("qrcode") instanceof Map<?, ?> m
+                ? castMap(m) : Map.of();
+        String mode = String.valueOf(qr.getOrDefault("mode", "confirm"));
+        return "code".equalsIgnoreCase(mode) ? "code" : "confirm";
+    }
+
+    private boolean subConfig(String group, String field, boolean fallback) {
+        Object node = readMap(METHODS_KEY).get(group);
+        if (node instanceof Map<?, ?> map) {
+            Object value = map.get(field);
+            return value == null ? fallback : !Boolean.FALSE.equals(value);
+        }
+        return fallback;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castMap(Map<?, ?> raw) {
+        return (Map<String, Object>) raw;
     }
 
     /** 登录失败锁定阈值（次） */

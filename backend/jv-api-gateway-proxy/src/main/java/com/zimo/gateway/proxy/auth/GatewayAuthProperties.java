@@ -47,6 +47,9 @@ public class GatewayAuthProperties {
      */
     private List<String> skipPaths = new ArrayList<>(List.of(
             "/api/auth/login", "/api/auth/register",
+            // 登录因子（v0.2 第 4 项）：验证码 / 动态码 / 短信·邮件码 / 扫码，均在登录前调用
+            "/api/auth/captcha/**", "/api/auth/otp/**", "/api/auth/qr/**",
+            "/api/auth/login-methods",
             // SSO OIDC 协议端点（v0.2 第 15 项）：authorize/token/userinfo/元数据/jwks 匿名
             "/api/oauth/**", "/api/.well-known/**",
             "/api/open/**",

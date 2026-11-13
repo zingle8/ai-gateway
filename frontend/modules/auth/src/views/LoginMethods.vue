@@ -2,7 +2,7 @@
   <div class="page">
     <p class="demo-tip">
       <el-tag size="small" type="success" effect="plain">已接真</el-tag>
-      <span class="gw-sm gw-muted">配置落库 tb_sys_config；关闭「用户名 + 密码」因子后密码登录立即被拒，其他因子随 v0.3 通道就绪生效。</span>
+      <span class="gw-sm gw-muted">配置落库 tb_sys_config 实时生效：密码因子关闭即拒；验证码 / 扫码登录已完整实现（短信、邮件为模拟通道，验证码写服务日志）。</span>
     </p>
 
     <!-- 页内两个内容块按 Tab 切换，避免整页纵向堆叠 -->
@@ -28,6 +28,34 @@
                   </el-tag>
                   <span class="gw-sm gw-muted">{{ f.extra }}</span>
                 </div>
+              </div>
+            </div>
+
+            <!-- 密码验证码与扫码形态：登录页按此渲染 -->
+            <div class="mode-grid">
+              <div class="mode-card">
+                <div class="mode-hd">
+                  <span>密码登录验证码</span>
+                  <el-switch v-model="captcha.enabled" size="small" />
+                </div>
+                <el-radio-group v-model="captcha.mode" size="small" :disabled="!captcha.enabled">
+                  <el-radio-button value="image">随机图形验证码</el-radio-button>
+                  <el-radio-button value="dynamic">弹框动态码（30 秒换）</el-radio-button>
+                </el-radio-group>
+                <p class="mode-desc">开启后登录页密码表单出现验证码；图形码 120 秒有效，动态码 30 秒自动更换</p>
+              </div>
+              <div class="mode-card">
+                <div class="mode-hd">
+                  <span>扫码登录形态</span>
+                </div>
+                <el-radio-group v-model="qr.mode" size="small" :disabled="!factorEnabled('qrcode')">
+                  <el-radio-button value="confirm">演示确认流</el-radio-button>
+                  <el-radio-button value="code">扫码取码 + 手动输入</el-radio-button>
+                </el-radio-group>
+                <p class="mode-desc">
+                  确认流：二维码为确认链接，扫码后在确认页输账号密码授权；
+                  取码流：二维码内容即 6 位动态码（30 秒换），读码后手动输入
+                </p>
               </div>
             </div>
           </div>
@@ -66,10 +94,14 @@
                   <el-form-item label="授权码">
                     <el-input v-model="mail.secret" type="password" show-password placeholder="邮箱授权码 / 应用密码" />
                   </el-form-item>
-                  <el-form-item label=" ">
-                    <el-button size="small" @click="testChannel('邮件')">发送测试邮件</el-button>
-                  </el-form-item>
                 </el-form>
+                <!-- 测试按钮放在表单外：表单 disabled 时仍可点击并给出明确提示 -->
+                <div class="channel-actions">
+                  <el-button size="small" :loading="testing === 'EMAIL'" :disabled="!mail.enabled" @click="testChannel('EMAIL')">
+                    发送测试邮件
+                  </el-button>
+                  <span class="gw-sm gw-muted">模拟通道：验证码写 user 服务日志，不发真实邮件</span>
+                </div>
               </div>
 
               <div class="channel">
@@ -94,10 +126,13 @@
                   <el-form-item label="AccessKey">
                     <el-input v-model="sms.keyId" placeholder="AccessKeyId" />
                   </el-form-item>
-                  <el-form-item label=" ">
-                    <el-button size="small" @click="testChannel('短信')">发送测试短信</el-button>
-                  </el-form-item>
                 </el-form>
+                <div class="channel-actions">
+                  <el-button size="small" :loading="testing === 'SMS'" :disabled="!sms.enabled" @click="testChannel('SMS')">
+                    发送测试短信
+                  </el-button>
+                  <span class="gw-sm gw-muted">模拟通道：验证码写 user 服务日志，不发真实短信</span>
+                </div>
               </div>
             </div>
           </div>
@@ -117,6 +152,7 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { PaneTabs } from '@zimo/ui'
+import { request, useUserStore } from '@zimo/shared'
 import { fetchLoginMethods, saveLoginMethods } from '../api'
 
 /** 页内 Tab：登录因子 / 验证码通道 */
@@ -125,18 +161,30 @@ const TABS = [
   { name: 'channel', label: '验证码通道' }
 ]
 const tab = ref('factor')
+const userStore = useUserStore()
 
-/** 登录因子：tier 区分主认证因子与二次验证因子 */
-const factors = reactive([
+/** 登录因子默认描述：库里只存 key / enabled / name / tier，desc 与 extra 以本地为默认值 */
+const DEFAULT_FACTORS = [
   { key: 'username', name: '用户名 + 密码', desc: '传统账号密码登录，账号为后台分配的登录名', tier: '主因子', extra: '已开启', enabled: true },
   { key: 'email', name: '邮箱 + 密码', desc: '以已验证邮箱作为登录标识', tier: '主因子', extra: '需先完成邮箱验证', enabled: true },
   { key: 'phone', name: '手机号 + 密码', desc: '以已验证手机号作为登录标识', tier: '主因子', extra: '短信通道就绪后可用', enabled: true },
-  { key: 'emailOtp', name: '邮箱验证码免密登录', desc: '发送 6 位验证码，验证通过即登录', tier: '主因子', extra: '验证码有效期 5 分钟', enabled: true },
-  { key: 'smsOtp', name: '短信验证码免密登录', desc: '短信下发验证码，适合移动端快速登录', tier: '主因子', extra: '60 秒发送间隔', enabled: false },
-  { key: 'qrcode', name: '扫码登录', desc: 'PC 端展示二维码，已登录移动端确认后完成登录', tier: '主因子', extra: '二维码有效期 90 秒', enabled: false },
+  { key: 'emailOtp', name: '邮箱验证码免密登录', desc: '发送 6 位验证码，验证通过即登录', tier: '主因子', extra: '模拟通道：验证码写服务日志，有效期 5 分钟', enabled: false },
+  { key: 'smsOtp', name: '短信验证码免密登录', desc: '短信下发验证码，适合移动端快速登录', tier: '主因子', extra: '模拟通道：验证码写服务日志，60 秒发送间隔', enabled: false },
+  { key: 'qrcode', name: '扫码登录', desc: 'PC 端展示二维码，手机端确认 / 读码后完成登录', tier: '主因子', extra: '已实现：确认流 / 取码+输入流，180 秒有效', enabled: false },
   { key: 'sso', name: '单点登录 SSO', desc: '对接企业 IdP（企业微信 / 钉钉 / OIDC），在「单点登录」页配置', tier: '主因子', extra: '依赖 IdP 接入', enabled: true },
   { key: 'totp', name: '动态码二次验证（TOTP）', desc: '密码或验证码通过后，再输入 6 位动态码，30 秒刷新', tier: '二次验证', extra: '强制范围在「安全策略」配置', enabled: true }
-])
+]
+
+const factors = reactive(DEFAULT_FACTORS.map((f) => ({ ...f })))
+
+/** 密码验证码形态与扫码形态（登录页按此渲染） */
+const captcha = reactive({ enabled: false, mode: 'image' })
+const qr = reactive({ mode: 'confirm' })
+
+const factorEnabled = (key) => {
+  const f = factors.find((x) => x.key === key)
+  return !!f && f.enabled !== false
+}
 
 const mail = reactive({
   enabled: true,
@@ -155,47 +203,82 @@ const sms = reactive({
   keyId: ''
 })
 
-/** 上次保存的快照：重置时深拷贝还原（纯前端设计稿行为） */
-const snapshot = ref(JSON.stringify({ factors, mail, sms }))
+/** 上次保存的快照：重置时深拷贝还原 */
+const snapshot = ref('')
 
-const testChannel = (name) => {
-  ElMessage.info(`${name}通道测试：后端接口待接入，当前仅演示交互`)
+const snapshotNow = () => JSON.stringify({ factors, captcha, qr, mail, sms })
+
+/** 通道测试（接真）：调 /auth/otp/send 以当前账号为目标发一条动态码（模拟通道，写服务日志） */
+const testing = ref('')
+const testChannel = async (channel) => {
+  const username = userStore.userInfo?.username
+  if (!username) {
+    ElMessage.warning('当前无登录账号信息，无法测试')
+    return
+  }
+  testing.value = channel
+  try {
+    const data = await request.post('/auth/otp/send', { username, channel })
+    ElMessage.success(
+      `${channel === 'EMAIL' ? '邮件' : '短信'}测试已发出（模拟通道，接收方 ${data.target}），` +
+      '验证码见 user 服务日志（grep MAIL-MOCK / SMS-MOCK）'
+    )
+  } catch (e) {
+    ElMessage.error(e.message || '测试发送失败')
+  } finally {
+    testing.value = ''
+  }
 }
 
 const saving = ref(false)
 const save = async () => {
   saving.value = true
   try {
-    const data = await saveLoginMethods({ factors: [...factors], mail: { ...mail }, sms: { ...sms } })
-    if (data && Array.isArray(data.factors)) {
-      factors.splice(0, factors.length, ...data.factors)
-    }
-    if (data && data.mail) Object.assign(mail, data.mail)
-    if (data && data.sms) Object.assign(sms, data.sms)
-    snapshot.value = JSON.stringify({ factors, mail, sms })
+    const data = await saveLoginMethods({
+      factors: [...factors],
+      captcha: { ...captcha },
+      qrcode: { ...qr },
+      mail: { ...mail },
+      sms: { ...sms }
+    })
+    applyConfig(data)
+    snapshot.value = snapshotNow()
     ElMessage.success('配置已保存，登录流程实时生效')
   } finally {
     saving.value = false
   }
 }
 
+const applyConfig = (data) => {
+  if (data && Array.isArray(data.factors)) {
+    // 库中只保存开关键与名称：与本地默认描述合并，避免卡片描述被清空
+    const merged = data.factors.map((f) => {
+      const base = DEFAULT_FACTORS.find((d) => d.key === f.key) || {}
+      return { ...base, ...f }
+    })
+    factors.splice(0, factors.length, ...merged)
+  }
+  if (data && data.captcha) Object.assign(captcha, data.captcha)
+  if (data && data.qrcode) Object.assign(qr, data.qrcode)
+  if (data && data.mail) Object.assign(mail, data.mail)
+  if (data && data.sms) Object.assign(sms, data.sms)
+}
+
 onMounted(async () => {
   try {
     const data = await fetchLoginMethods()
-    if (data && Array.isArray(data.factors)) {
-      factors.splice(0, factors.length, ...data.factors)
-    }
-    if (data && data.mail) Object.assign(mail, data.mail)
-    if (data && data.sms) Object.assign(sms, data.sms)
-    snapshot.value = JSON.stringify({ factors, mail, sms })
+    applyConfig(data)
   } catch (e) {
     /* 读取失败保持默认 */
   }
+  snapshot.value = snapshotNow()
 })
 
 const resetAll = () => {
   const s = JSON.parse(snapshot.value)
   factors.splice(0, factors.length, ...s.factors)
+  Object.assign(captcha, s.captcha)
+  Object.assign(qr, s.qrcode)
   Object.assign(mail, s.mail)
   Object.assign(sms, s.sms)
   ElMessage.success('已还原为上次保存的配置')
@@ -251,6 +334,43 @@ const resetAll = () => {
   gap: 8px;
 }
 
+/* 密码验证码 / 扫码形态配置 */
+.mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--gw-border);
+}
+
+@media (max-width: 1200px) {
+  .mode-grid { grid-template-columns: 1fr; }
+}
+
+.mode-card {
+  border: 1px solid var(--gw-border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  background: var(--gw-card);
+}
+
+.mode-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.mode-desc {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  color: var(--gw-text-tertiary);
+  line-height: 1.5;
+}
+
 .channel-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -270,6 +390,13 @@ const resetAll = () => {
   padding-bottom: 8px;
   margin-bottom: 10px;
   border-bottom: 1px dashed var(--gw-border);
+}
+
+.channel-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 2px;
 }
 
 .actions {
