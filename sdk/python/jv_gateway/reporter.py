@@ -16,10 +16,11 @@ class TraceReporter:
     """内存队列 + 后台线程批量上报。start() 启动，stop() 刷出剩余并退出。"""
 
     def __init__(self, server_addr, client_token="", report_interval=3.0, queue_size=1024,
-                 batch_size=50, timeout=5.0):
+                 batch_size=50, timeout=5.0, app_id=""):
         self._url_log = server_addr.rstrip("/") + PATH_LOG_BATCH
         self._url_span = server_addr.rstrip("/") + PATH_SPAN_BATCH
         self._client_token = client_token
+        self._app_id = app_id
         self._interval = max(1.0, report_interval)
         self._batch_size = batch_size
         self._timeout = timeout
@@ -83,7 +84,7 @@ class TraceReporter:
 
     def _flush(self, url, items):
         try:
-            status, body = post_json(url, items, self._client_token, self._timeout)
+            status, body = post_json(url, items, self._client_token, self._timeout, self._app_id)
             if status >= 300:
                 log.warning("上报失败 %s: HTTP %s", url, status)
         except Exception as e:  # 网络/平台不可用：仅告警，下个周期重试

@@ -32,10 +32,12 @@ SQL_FILES=(
   "$SQL_DIR/jv-api-gateway-proxy-route-tb_gw_route.sql"
   "$SQL_DIR/jv-api-gateway-config-config-tb_sys_config.sql"
   "$SQL_DIR/jv-api-gateway-discovery-registry-tb_gw_service.sql"
+  "$SQL_DIR/jv-api-gateway-discovery-host-metrics.sql"
   "$SQL_DIR/jv-api-gateway-trace-log-tb_gw_trace_log.sql"
   "$SQL_DIR/jv-api-gateway-trace-span-tb_gw_trace_span.sql"
   "$SQL_DIR/jv-api-gateway-trace-span-tb_gw_trace_span-partition.sql"
   "$SQL_DIR/jv-api-gateway-trace-topology-tb_gw_service_edge.sql"
+  "$SQL_DIR/jv-api-gateway-scheduler-tables.sql"
 )
 
 if ! command -v mysql >/dev/null 2>&1; then

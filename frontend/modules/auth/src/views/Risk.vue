@@ -20,6 +20,7 @@
                          style="width: 120px" @change="loadEvents(1)">
                 <el-option label="用户" value="USER" />
                 <el-option label="API Key" value="API_KEY" />
+                <el-option label="IP" value="IP" />
               </el-select>
               <el-select v-model="eventFilter.status" placeholder="全部状态" clearable size="small"
                          style="width: 120px" @change="loadEvents(1)">
@@ -45,8 +46,9 @@
               </el-table-column>
               <el-table-column label="主体" min-width="160">
                 <template #default="{ row }">
-                  <el-tag size="small" effect="plain" :type="row.subjectType === 'USER' ? 'primary' : 'success'">
-                    {{ row.subjectType === 'USER' ? '用户' : 'Key' }}
+                  <el-tag size="small" effect="plain"
+                          :type="row.subjectType === 'USER' ? 'primary' : row.subjectType === 'IP' ? 'danger' : 'success'">
+                    {{ row.subjectType === 'USER' ? '用户' : row.subjectType === 'IP' ? 'IP' : 'Key' }}
                   </el-tag>
                   <span class="subject-name">{{ row.subjectName || row.subjectId }}</span>
                 </template>
@@ -193,14 +195,77 @@
           </div>
         </section>
       </template>
+      <!-- IP 封禁清单 -->
+      <template #bans>
+        <section class="gw-card">
+          <div class="gw-card-hd">
+            <span>IP 封禁清单</span>
+            <div class="hd-actions">
+              <el-button size="small" type="danger" @click="openBan">手动封禁 IP</el-button>
+              <el-button size="small" @click="loadBans">刷新</el-button>
+            </div>
+          </div>
+          <div class="gw-card-bd no-pad">
+            <el-table :data="banRows" size="small" v-loading="banLoading" style="width: 100%">
+              <el-table-column label="IP" width="170">
+                <template #default="{ row }">
+                  <span class="gw-mono">{{ row.ip }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column prop="reason" label="封禁原因" min-width="220" show-overflow-tooltip />
+              <el-table-column prop="operator" label="操作人" width="120" />
+              <el-table-column label="状态" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="row.status === 1 ? 'danger' : 'info'" effect="plain">
+                    {{ row.status === 1 ? '生效中' : '已解封' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="封禁时间" width="160">
+                <template #default="{ row }">{{ fmtTime(row.bannedAt) }}</template>
+              </el-table-column>
+              <el-table-column label="解封时间" width="160">
+                <template #default="{ row }">{{ fmtTime(row.unbannedAt) }}</template>
+              </el-table-column>
+              <el-table-column label="操作" width="100" fixed="right">
+                <template #default="{ row }">
+                  <el-button v-if="row.status === 1" link type="warning" @click="unban(row)">解封</el-button>
+                  <span v-else class="gw-sm gw-muted">—</span>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="gw-card-ft">
+            <span class="gw-sm gw-muted">
+              生效中 {{ activeBans }} 条 · 封禁后登录立即拒绝，网关层全量拦截（Redis 同步，约 10 秒内生效）；支持前缀通配（10.0.*）
+            </span>
+          </div>
+        </section>
+      </template>
     </PaneTabs>
+
+    <!-- 手动封禁弹窗 -->
+    <el-dialog v-model="banDialog" title="封禁 IP" width="460px">
+      <el-form label-width="90px" size="small">
+        <el-form-item label="IP">
+          <el-input v-model="banForm.ip" placeholder="精确 IP 或前缀通配：1.2.3.4 / 10.0.*" />
+        </el-form-item>
+        <el-form-item label="封禁原因">
+          <el-input v-model="banForm.reason" type="textarea" :rows="2" placeholder="落封禁记录留痕" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="banDialog = false">取消</el-button>
+        <el-button type="danger" :loading="banning" @click="submitBan">确认封禁</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 处置弹窗 -->
     <el-dialog v-model="handleDialog" title="处置风控事件" width="480px">
       <div v-if="current" class="handle-target">
         <div><b>{{ current.subjectName || current.subjectId }}</b>
           <el-tag size="small" effect="plain" style="margin-left: 6px">
-            {{ current.subjectType === 'USER' ? '用户' : 'API Key' }}
+            {{ current.subjectType === 'USER' ? '用户' : current.subjectType === 'IP' ? 'IP' : 'API Key' }}
           </el-tag>
         </div>
         <div class="gw-sm gw-muted">{{ typeLabel(current.riskType) }} · {{ current.detail }}</div>
@@ -225,17 +290,19 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { PaneTabs, GwPager } from '@zimo/ui'
 import {
-  fetchRiskSummary, fetchRiskEvents, handleRiskEvent, fetchLoginLogs, fetchKeyWarnings
+  fetchRiskSummary, fetchRiskEvents, handleRiskEvent, fetchLoginLogs, fetchKeyWarnings,
+  fetchIpBans, banIp, unbanIp
 } from '../api'
 
 const tab = ref('events')
 const tabs = computed(() => ([
   { name: 'events', label: '风险事件', badge: summary.openEvents > 0 ? summary.openEvents : null },
   { name: 'logins', label: '登录历史' },
-  { name: 'keys', label: 'Key 预警', badge: summary.keyWarnings > 0 ? summary.keyWarnings : null }
+  { name: 'keys', label: 'Key 预警', badge: summary.keyWarnings > 0 ? summary.keyWarnings : null },
+  { name: 'bans', label: 'IP 封禁', badge: activeBans.value > 0 ? activeBans.value : null }
 ]))
 
 const summary = reactive({
@@ -345,7 +412,57 @@ const loadSummary = async () => {
 watch(tab, (v) => {
   if (v === 'logins' && !loginRows.value.length) loadLogins(1)
   if (v === 'keys' && !warnings.value.length) loadWarnings()
+  if (v === 'bans') loadBans()
 })
+
+/* ------------------------------------------------------- IP 封禁 */
+
+const banRows = ref([])
+const banLoading = ref(false)
+const banDialog = ref(false)
+const banning = ref(false)
+const banForm = reactive({ ip: '', reason: '' })
+const activeBans = computed(() => banRows.value.filter((b) => b.status === 1).length)
+
+const loadBans = async () => {
+  banLoading.value = true
+  try {
+    banRows.value = (await fetchIpBans()) || []
+  } catch (e) {
+    banRows.value = []
+  } finally {
+    banLoading.value = false
+  }
+}
+
+const openBan = () => {
+  banForm.ip = ''
+  banForm.reason = ''
+  banDialog.value = true
+}
+
+const submitBan = async () => {
+  if (!banForm.ip.trim()) {
+    ElMessage.warning('请输入要封禁的 IP')
+    return
+  }
+  banning.value = true
+  try {
+    await banIp({ ip: banForm.ip.trim(), reason: banForm.reason })
+    ElMessage.success('已封禁，登录立即拒绝，网关层约 10 秒内生效')
+    banDialog.value = false
+    await loadBans()
+  } catch (e) { /* 拦截器已提示 */ } finally {
+    banning.value = false
+  }
+}
+
+const unban = async (row) => {
+  await ElMessageBox.confirm(`确认解封 ${row.ip}？解封后立即恢复访问。`, '解封 IP', { type: 'warning' })
+  await unbanIp(row.ip)
+  ElMessage.success('已解封')
+  await loadBans()
+}
 
 /* ------------------------------------------------------- 处置 */
 
@@ -361,6 +478,13 @@ const actionOptions = computed(() => current.value?.subjectType === 'API_KEY'
       { value: 'ENABLE_KEY', label: '恢复启用该 Key' },
       { value: 'IGNORE', label: '忽略该事件' }
     ]
+  : current.value?.subjectType === 'IP'
+    ? [
+        { value: 'ACK', label: '仅确认（不改状态）' },
+        { value: 'BAN_IP', label: '封禁该 IP（登录 + 网关全量拦截）' },
+        { value: 'UNBAN_IP', label: '解封该 IP' },
+        { value: 'IGNORE', label: '忽略该事件' }
+      ]
   : [
       { value: 'ACK', label: '仅确认（不改状态）' },
       { value: 'UNLOCK_USER', label: '解锁登录（清除失败计数）' },
@@ -396,6 +520,7 @@ const TYPE_LABELS = {
   LOGIN_NEW_IP: '陌生 IP 登录',
   LOGIN_OFF_HOURS: '非工作时段登录',
   LOGIN_BRUTE_FORCE: '连续失败锁定',
+  IP_BAN_HIT: '封禁 IP 尝试登录',
   KEY_SPIKE: '调用量突增',
   KEY_ERROR_RATE: '错误率异常',
   KEY_EXPIRING: 'Key 临期',
@@ -408,6 +533,8 @@ const ACTION_LABELS = {
   ENABLE_USER: '启用账号',
   UNLOCK_USER: '解锁登录',
   KICK_USER: '强制下线',
+  BAN_IP: '封禁 IP',
+  UNBAN_IP: '解封 IP',
   DISABLE_KEY: '停用 Key',
   ENABLE_KEY: '恢复 Key'
 }

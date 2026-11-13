@@ -8,6 +8,7 @@ import { Placeholder } from '@zimo/ui'
 import SettingsView from './src/views/Settings.vue'
 import SchedulerView from './src/views/Scheduler.vue'
 import LogControlView from './src/views/LogControl.vue'
+import InfraConfigView from './src/views/InfraConfig.vue'
 
 export const menu = [
   {
@@ -16,8 +17,9 @@ export const menu = [
     children: [
       { path: '/system/role', title: '角色管理', icon: 'Avatar', perm: 'system.role.view' },
       { path: '/system/settings', title: '系统设置', icon: 'Tools', perm: 'system.setting.view' },
-      { path: '/system/logs', title: '日志管控', icon: 'Document', perm: 'system.setting.view' },
-      { path: '/system/scheduler', title: '调度计划', icon: 'Timer' }
+      { path: '/system/logs', title: '日志管控', icon: 'Memo', perm: 'system.setting.view' },
+      { path: '/system/scheduler', title: '调度计划', icon: 'AlarmClock' },
+      { path: '/system/infra', title: '基础设施配置', icon: 'Coin' }
     ]
   }
 ]
@@ -46,6 +48,12 @@ export const routes = [
     name: 'SystemScheduler',
     component: SchedulerView,
     meta: { title: '调度计划', subtitle: '调度任务列表与详情：任务状态、执行计划、执行记录（点击任务行查看）' }
+  },
+  {
+    path: 'system/infra',
+    name: 'SystemInfra',
+    component: InfraConfigView,
+    meta: { title: '基础设施配置', subtitle: 'DB / Redis / Nacos / JWT / 服务 URL 集中到 Nacos（发布后服务重启或刷新生效）' }
   },
   // 旧地址兼容：用户管理迁到 /auth/user，收藏夹 / 历史链接不 404
   { path: 'system/user', redirect: '/auth/user' }

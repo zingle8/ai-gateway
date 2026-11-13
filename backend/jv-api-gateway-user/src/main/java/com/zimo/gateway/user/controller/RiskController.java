@@ -4,6 +4,7 @@ import com.zimo.gateway.common.result.R;
 import com.zimo.gateway.user.entity.RiskEventEntity;
 import com.zimo.gateway.user.service.RiskService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ import java.util.Map;
 public class RiskController {
 
     private final RiskService riskService;
+    private final com.zimo.gateway.user.service.IpBanService ipBanService;
 
     @GetMapping("/summary")
     public R<Map<String, Object>> summary() {
@@ -68,5 +70,28 @@ public class RiskController {
     @GetMapping("/keys/warnings")
     public R<List<Map<String, Object>>> keyWarnings() {
         return R.ok(riskService.keyWarnings());
+    }
+
+    // ---------------------------------------------------------- IP 封禁（v0.2 增强）
+
+    /** 封禁清单（含已解封历史，前端标注状态） */
+    @GetMapping("/ip-bans")
+    public R<List<com.zimo.gateway.user.entity.IpBanEntity>> ipBans() {
+        return R.ok(ipBanService.list());
+    }
+
+    /** 手动封禁 IP（支持前缀通配 10.0.*），登录与网关两层同时生效 */
+    @PostMapping("/ip-bans")
+    public R<com.zimo.gateway.user.entity.IpBanEntity> banIp(@RequestBody Map<String, String> body) {
+        String operator = com.zimo.gateway.common.context.UserContext.getUsername();
+        return R.ok(ipBanService.ban(body.get("ip"), body.get("reason"), operator));
+    }
+
+    /** 解封 IP */
+    @DeleteMapping("/ip-bans/{ip}")
+    public R<Map<String, Object>> unbanIp(@PathVariable String ip) {
+        String operator = com.zimo.gateway.common.context.UserContext.getUsername();
+        int rows = ipBanService.unban(ip, operator);
+        return R.ok(Map.of("affected", rows));
     }
 }

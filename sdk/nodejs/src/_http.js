@@ -1,27 +1,29 @@
 'use strict';
 /**
  * 最小 HTTP 封装：node:http 实现，零第三方依赖。
- * 所有请求自动携带共享密钥头 X-Gateway-Client-Token（与 Java / Python SDK 同语义）。
+ * 所有请求自动携带共享密钥头 X-Gateway-Client-Token（与 Java / Python SDK 同语义）；
+ * 传入 appId 时附带 X-Gateway-App-Id（上报通道黑白名单按它比对服务名）。
  */
 
 const http = require('node:http');
 
 const HEADER_CLIENT_TOKEN = 'X-Gateway-Client-Token';
+const HEADER_APP_ID = 'X-Gateway-App-Id';
 
 /**
  * POST JSON，返回 Promise<{ status, body }>。
  * 网络/超时错误 reject（调用方自行兜底，上报链路只告警不抛出）。
  */
-function postJson(url, payload, clientToken = '', timeoutMs = 5000) {
-  return requestJson(url, 'POST', payload, clientToken, timeoutMs);
+function postJson(url, payload, clientToken = '', timeoutMs = 5000, appId = '') {
+  return requestJson(url, 'POST', payload, clientToken, timeoutMs, appId);
 }
 
 /** DELETE + JSON body（主动下线用，与 Java SDK @DeleteMapping 一致）。 */
-function deleteJson(url, payload, clientToken = '', timeoutMs = 5000) {
-  return requestJson(url, 'DELETE', payload, clientToken, timeoutMs);
+function deleteJson(url, payload, clientToken = '', timeoutMs = 5000, appId = '') {
+  return requestJson(url, 'DELETE', payload, clientToken, timeoutMs, appId);
 }
 
-function requestJson(url, method, payload, clientToken, timeoutMs) {
+function requestJson(url, method, payload, clientToken, timeoutMs, appId = '') {
   return new Promise((resolve, reject) => {
     const data = Buffer.from(JSON.stringify(payload), 'utf8');
     const u = new URL(url);
@@ -36,6 +38,7 @@ function requestJson(url, method, payload, clientToken, timeoutMs) {
           'Content-Type': 'application/json',
           'Content-Length': data.length,
           ...(clientToken ? { [HEADER_CLIENT_TOKEN]: clientToken } : {}),
+          ...(appId ? { [HEADER_APP_ID]: appId } : {}),
         },
       },
       (res) => {
@@ -59,4 +62,4 @@ function requestJson(url, method, payload, clientToken, timeoutMs) {
   });
 }
 
-module.exports = { postJson, deleteJson, HEADER_CLIENT_TOKEN };
+module.exports = { postJson, deleteJson, HEADER_CLIENT_TOKEN, HEADER_APP_ID };

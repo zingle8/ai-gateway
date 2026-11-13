@@ -48,11 +48,12 @@ public class SessionController {
         return R.ok(sessionService.recentRevokes(limit));
     }
 
-    /** 强制下线（四粒度），返回实际下线会话数 */
+    /** 强制下线（五粒度：单会话 / 按平台 / 按端 / 按设备类型 / 全端），返回实际下线会话数 */
     @PostMapping("/kick")
     public R<Map<String, Object>> kick(@Valid @RequestBody SessionKickRequest request) {
         int affected = sessionService.kick(request.scope(), request.sid(), request.userId(),
-                request.appId(), request.device(), request.reason(), UserContext.getUsername());
+                request.appId(), request.device(), request.deviceType(), request.reason(),
+                UserContext.getUsername());
         return R.ok(Map.of("affected", affected));
     }
 }

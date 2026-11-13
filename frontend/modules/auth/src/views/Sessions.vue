@@ -3,8 +3,8 @@
     <p class="demo-tip">
       <el-tag size="small" type="success" effect="plain">已接真</el-tag>
       <span class="gw-sm gw-muted">
-        登录即登记会话（Redis，含 IP / 设备 / 平台）；踢人支持单会话、按平台、按端、全端四种粒度，
-        被踢令牌在网关下一次校验即失效。
+        登录即登记会话（Redis，含 IP / 设备 / 端类型 / 平台）；踢人支持单会话、按平台、按端、
+        按设备类型（手机 / 平板 / 电脑 / 服务端）、全端五种粒度，被踢令牌在网关下一次校验即失效。
       </span>
     </p>
 
@@ -27,6 +27,10 @@
           <div class="gw-card-hd">
             <span>在线会话</span>
             <div class="hd-actions">
+              <el-select v-model="deviceTypeFilter" placeholder="全部设备" size="small" clearable style="width: 120px">
+                <el-option v-for="t in DEVICE_TYPES" :key="t.value" :label="`${t.label}（${typeCount(t.value)}）`" :value="t.value" />
+                <!-- 筛选下拉显示全局在线数 -->
+              </el-select>
               <el-input
                 v-model="keyword"
                 placeholder="账号 / IP / 设备"
@@ -53,6 +57,14 @@
                 </template>
               </el-table-column>
               <el-table-column prop="device" label="设备 / 浏览器" min-width="160" show-overflow-tooltip />
+              <el-table-column label="端" width="90">
+                <template #default="{ row }">
+                  <el-tag size="small" effect="plain" :type="TYPE_TAG[row.deviceType]?.tag || 'info'">
+                    <el-icon style="vertical-align: -2px"><component :is="TYPE_TAG[row.deviceType]?.icon || 'Monitor'" /></el-icon>
+                    {{ TYPE_TAG[row.deviceType]?.label || row.deviceType || '未知' }}
+                  </el-tag>
+                </template>
+              </el-table-column>
               <el-table-column prop="ip" label="IP" width="130">
                 <template #default="{ row }">
                   <span class="gw-mono gw-sm">{{ row.ip || '-' }}</span>
@@ -78,6 +90,13 @@
                     <template #dropdown>
                       <el-dropdown-menu>
                         <el-dropdown-item command="DEVICE">踢该端（{{ row.device }}）</el-dropdown-item>
+                        <el-dropdown-item
+                          v-for="t in DEVICE_TYPES.filter((x) => x.value !== row.deviceType)"
+                          :key="t.value"
+                          :command="`TYPE:${t.value}`"
+                        >
+                          踢{{ t.label === '服务端' ? '服务端' : t.label + '端' }}（{{ typeCount(t.value, row.userId) }} 个在线）
+                        </el-dropdown-item>
                         <el-dropdown-item command="PLATFORM">踢该平台（{{ row.appId }}）</el-dropdown-item>
                         <el-dropdown-item command="ALL" divided>全端踢（{{ row.username }}）</el-dropdown-item>
                       </el-dropdown-menu>
@@ -147,14 +166,30 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown } from '@element-plus/icons-vue'
+import { ArrowDown, Cellphone, Iphone, Monitor, Cpu } from '@element-plus/icons-vue'
 import { GwPager, PaneTabs } from '@zimo/ui'
 import { fetchSessions, fetchSessionRevokes, kickSessions } from '../api'
 
 const loading = ref(false)
 const keyword = ref('')
+const deviceTypeFilter = ref('')
 const sessions = ref([])
 const revokes = ref([])
+
+/** 设备端类型（与后端 parseDeviceType 对齐） */
+const DEVICE_TYPES = [
+  { value: 'PHONE', label: '手机', icon: Cellphone },
+  { value: 'TABLET', label: '平板', icon: Iphone },
+  { value: 'PC', label: '电脑', icon: Monitor },
+  { value: 'SERVER', label: '服务端', icon: Cpu }
+]
+const TYPE_TAG = Object.fromEntries(DEVICE_TYPES.map((t) => [
+  t.value,
+  { label: t.label, icon: t.icon, tag: t.value === 'SERVER' ? 'warning' : t.value === 'PC' ? 'primary' : 'success' }
+]))
+
+const typeCount = (type, userId) =>
+  sessions.value.filter((s) => s.deviceType === type && (userId == null || s.userId === userId)).length
 
 const stats = computed(() => [
   { label: '在线会话', value: String(sessions.value.length), hint: '登录登记且未下线的会话', icon: 'User', tone: 'info' },
@@ -183,9 +218,13 @@ const tabs = computed(() => [
 ])
 
 const filteredSessions = computed(() => {
+  let list = sessions.value
+  if (deviceTypeFilter.value) {
+    list = list.filter((s) => s.deviceType === deviceTypeFilter.value)
+  }
   const k = keyword.value.trim().toLowerCase()
-  if (!k) return sessions.value
-  return sessions.value.filter((s) =>
+  if (!k) return list
+  return list.filter((s) =>
     [s.username, s.nickname, s.ip, s.device, s.appId]
       .some((f) => String(f ?? '').toLowerCase().includes(k))
   )
@@ -260,21 +299,34 @@ const SCOPE_TEXT = {
 }
 
 const kick = async (row, scope) => {
-  const tip = scope === 'SESSION'
+  // scope 支持 "TYPE:PHONE" 形式（按设备类型踢）
+  let realScope = scope
+  let deviceType
+  let scopeText = SCOPE_TEXT[scope]
+  if (scope?.startsWith('TYPE:')) {
+    deviceType = scope.slice(5)
+    realScope = 'DEVICE_TYPE'
+    scopeText = `按设备类型（${TYPE_TAG[deviceType]?.label || deviceType}）`
+  }
+  const typeLabel = TYPE_TAG[row.deviceType]?.label || row.deviceType
+  const tip = realScope === 'SESSION'
     ? `确认让「${row.username}」在 ${row.device}（${row.ip}）上的本次登录立即失效？`
-    : scope === 'DEVICE'
+    : realScope === 'DEVICE'
       ? `确认踢掉「${row.username}」所有 ${row.device} 设备上的会话？`
-      : scope === 'PLATFORM'
-        ? `确认踢掉「${row.username}」在平台 ${row.appId} 的全部会话（其他平台不受影响）？`
-        : `确认全端踢下线「${row.username}」？该账号所有令牌立即失效，需要重新登录。`
-  await ElMessageBox.confirm(tip, `${SCOPE_TEXT[scope]}下线`, { type: 'warning' })
+      : realScope === 'DEVICE_TYPE'
+        ? `确认踢掉「${row.username}」全部${typeLabel}端会话（${typeCount(row.deviceType)} 个在线）？其他设备类型不受影响。`
+        : realScope === 'PLATFORM'
+          ? `确认踢掉「${row.username}」在平台 ${row.appId} 的全部会话（其他平台不受影响）？`
+          : `确认全端踢下线「${row.username}」？该账号所有令牌立即失效，需要重新登录。`
+  await ElMessageBox.confirm(tip, `${scopeText}下线`, { type: 'warning' })
   const res = await kickSessions({
-    scope,
-    sid: scope === 'SESSION' ? row.sid : undefined,
+    scope: realScope,
+    sid: realScope === 'SESSION' ? row.sid : undefined,
     userId: row.userId,
-    appId: scope === 'PLATFORM' ? row.appId : undefined,
-    device: scope === 'DEVICE' ? row.device : undefined,
-    reason: `控制台手动${SCOPE_TEXT[scope]}踢下线`
+    appId: realScope === 'PLATFORM' ? row.appId : undefined,
+    device: realScope === 'DEVICE' ? row.device : undefined,
+    deviceType: realScope === 'DEVICE_TYPE' ? deviceType : undefined,
+    reason: `控制台手动${scopeText}踢下线`
   })
   ElMessage.success(`已下线 ${res?.affected ?? 0} 个会话`)
   await load()

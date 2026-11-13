@@ -253,6 +253,7 @@ class MetricsReporter:
             headers={
                 "Content-Type": "application/json",
                 "X-Gateway-Client-Token": self.client_token,
+                "X-Gateway-App-Id": getattr(self, "app_id", ""),
             },
         )
         try:

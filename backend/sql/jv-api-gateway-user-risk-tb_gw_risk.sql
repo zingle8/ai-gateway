@@ -60,3 +60,17 @@ INSERT IGNORE INTO tb_perm_item (menu_id, func_name, code, name, type, api, enab
 -- 网关运维组默认可见并处置（超级管理员为内置分组，自动拥有全部权限点）
 INSERT IGNORE INTO tb_perm_group_perm (group_id, perm_code)
 SELECT 102, code FROM tb_perm_item WHERE code IN ('auth.risk.view', 'auth.risk.handle');
+
+-- ============================== IP 封禁（v0.2 多端与安全增强） ==============================
+-- 手动 / 风控处置封禁来源 IP：登录拒绝（user）+ 网关全量拦截（proxy 读 Redis set gw:ipban）
+CREATE TABLE IF NOT EXISTS tb_gw_ip_ban (
+  id         BIGINT       NOT NULL AUTO_INCREMENT COMMENT '主键',
+  ip         VARCHAR(64)  NOT NULL                COMMENT '被封禁的 IP（支持前缀通配 10.0.0.*）',
+  reason     VARCHAR(255) DEFAULT NULL            COMMENT '封禁原因',
+  operator   VARCHAR(64)  DEFAULT NULL            COMMENT '操作人（system=自动）',
+  status     TINYINT      NOT NULL DEFAULT 1      COMMENT '1 生效 / 0 已解封',
+  banned_at  DATETIME     NOT NULL                COMMENT '封禁时间',
+  unbanned_at DATETIME    DEFAULT NULL            COMMENT '解封时间',
+  PRIMARY KEY (id),
+  UNIQUE KEY uk_ip (ip)
+) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = 'IP 封禁清单';

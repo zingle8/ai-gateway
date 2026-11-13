@@ -12,6 +12,7 @@ spring:
       - optional:nacos:api-jv-api-gateway-common.yaml
       - optional:nacos:api-jv-api-gateway-user.yaml
       - optional:classpath:zimo-common.yml
+      - optional:nacos:gw-platform-infra.properties
   # Redis 连接池参数（公共基线之外的覆盖项）：登录失败计数等跨实例共享状态
   data:
     redis:

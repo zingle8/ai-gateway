@@ -218,13 +218,17 @@ public class SchedulerService {
                 }
                 int advance = cfg.getAdvanceDays() == null
                         ? SchedulerConstants.DEFAULT_ADVANCE_DAYS : cfg.getAdvanceDays();
+                // 边界风格：UNIX_TIMESTAMP（trace 等毫秒列）/ TO_DAYS（host_metrics 等按天分区列）
+                boolean toDays = "TO_DAYS".equalsIgnoreCase(cfg.getBoundaryStyle());
                 for (int i = 0; i <= advance; i++) {
                     LocalDate day = today.plusDays(i);
                     String partitionName = "p" + day.format(SchedulerConstants.DAY);
                     if (mapper.partitionExists(cfg.getTableName(), partitionName) > 0) {
                         continue;
                     }
-                    String boundary = day.plusDays(1).atStartOfDay().format(SchedulerConstants.BOUNDARY);
+                    String boundary = toDays
+                            ? day.plusDays(1).format(java.time.format.DateTimeFormatter.ISO_LOCAL_DATE)
+                            : day.plusDays(1).atStartOfDay().format(SchedulerConstants.BOUNDARY);
                     SchedulerPlanEntity plan = new SchedulerPlanEntity();
                     plan.setJobKey(SchedulerConstants.JOB_PARTITION_DAILY);
                     plan.setPlanType(SchedulerConstants.PLAN_ADD_PARTITION);
@@ -235,12 +239,25 @@ public class SchedulerService {
                     plan.setStatus(SchedulerConstants.STATUS_PENDING);
                     mapper.insertPlan(plan);
                     try {
-                        mapper.addDailyPartition(cfg.getTableName(), partitionName, boundary);
-                        mapper.updatePlanStatus(plan.getId(), SchedulerConstants.STATUS_DONE, "ADD PARTITION 成功");
+                        if (toDays) {
+                            // 带 p_max(MAXVALUE) 兜底分区的表无法直接 ADD PARTITION，须 REORGANIZE 拆出
+                            if (mapper.hasMaxPartition(cfg.getTableName()) > 0) {
+                                mapper.reorganizeMaxPartition(cfg.getTableName(), partitionName, boundary);
+                            } else {
+                                mapper.addDailyPartitionToDays(cfg.getTableName(), partitionName, boundary);
+                            }
+                        } else {
+                            mapper.addDailyPartition(cfg.getTableName(), partitionName, boundary);
+                        }
+                        mapper.updatePlanStatus(plan.getId(), SchedulerConstants.STATUS_DONE,
+                                "分区创建成功（" + (toDays ? "TO_DAYS" : "UNIX_TIMESTAMP") + "）");
                         created++;
                         detail.append(cfg.getTableName()).append(".").append(partitionName).append(" ");
                     } catch (Exception pe) {
-                        mapper.updatePlanStatus(plan.getId(), SchedulerConstants.STATUS_FAILED, pe.getMessage());
+                        // 明细截断：plan.detail 仅 512，避免完整 SQL 异常写爆二次失败
+                        String msg = pe.getMessage() == null ? "unknown" : pe.getMessage();
+                        mapper.updatePlanStatus(plan.getId(), SchedulerConstants.STATUS_FAILED,
+                                msg.length() > 480 ? msg.substring(0, 480) : msg);
                         log.error("分区 {} 创建失败: {}", partitionName, pe.getMessage());
                     }
                 }

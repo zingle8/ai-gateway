@@ -94,3 +94,17 @@ export function saveOpenAuthPolicy(requireKey) {
 export function fetchApiKeyList() {
   return request.get('/keys')
 }
+
+/* ==========================================================================
+ * 上报通道黑白名单（IP / 服务名，platform.report.acl）：网关过滤器 10 秒内生效
+ * ========================================================================== */
+
+/** 读取上报通道访问控制配置 */
+export function fetchReportAcl() {
+  return request.get('/policies/report-acl')
+}
+
+/** 保存上报通道访问控制配置 */
+export function saveReportAcl(data) {
+  return request.put('/policies/report-acl', data)
+}

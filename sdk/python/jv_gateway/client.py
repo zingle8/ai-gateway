@@ -126,6 +126,8 @@ class GatewayClient:
             req.add_header("Content-Type", "application/json")
             if self.client_token:
                 req.add_header("X-Gateway-Client-Token", self.client_token)
+            if self.app_id:
+                req.add_header("X-Gateway-App-Id", self.app_id)
             with urllib.request.urlopen(req, timeout=5.0) as resp:
                 return resp.status == 200
         except Exception as e:
@@ -167,7 +169,7 @@ class GatewayClient:
 
     def _post(self, path, payload):
         try:
-            status, body = post_json(self.server_addr + path, payload, self.client_token, 5.0)
+            status, body = post_json(self.server_addr + path, payload, self.client_token, 5.0, self.app_id)
             if status == 200 and body.get("code") == 200:
                 return True
             log.warning("平台接口 %s 返回 %s：%s", path, status, body.get("message"))

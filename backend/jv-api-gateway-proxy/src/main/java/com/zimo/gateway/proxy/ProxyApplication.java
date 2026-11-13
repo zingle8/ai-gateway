@@ -12,7 +12,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
  * 因此进程内没有 Servlet 容器，也不能依赖 jv-api-gateway-common。
  */
 @EnableScheduling
-@MapperScan("com.zimo.gateway.proxy.mapper")
+@MapperScan({"com.zimo.gateway.proxy.mapper", "com.zimo.gateway.proxy.auth"})
 @SpringBootApplication
 public class ProxyApplication {
 

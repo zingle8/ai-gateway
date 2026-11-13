@@ -133,7 +133,7 @@ class GatewayClient {
   async deregister() {
     try {
       const { status, body } = await deleteJson(
-        this.serverAddr + PATH_DEREGISTER, this._instance(), this.clientToken);
+        this.serverAddr + PATH_DEREGISTER, this._instance(), this.clientToken, 5000, this.appId);
       return status === 200 && body.code === 200;
     } catch (e) {
       console.warn(`[jv-gateway] 平台下线调用失败：${e.message}`);
@@ -181,7 +181,7 @@ class GatewayClient {
 
   async _post(path, payload) {
     try {
-      const { status, body } = await postJson(this.serverAddr + path, payload, this.clientToken);
+      const { status, body } = await postJson(this.serverAddr + path, payload, this.clientToken, 5000, this.appId);
       return status === 200 && body.code === 200;
     } catch (e) {
       console.warn(`[jv-gateway] 平台接口 ${path} 调用失败：${e.message}`);

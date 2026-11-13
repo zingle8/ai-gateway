@@ -27,4 +27,17 @@ public interface ConfigStore {
 
     /** 删除值 */
     void delete(String key, String sourceRef);
+
+    /**
+     * 整文件读取（v0.2 配置集中：基础设施配置整份展示 / 编辑用）。
+     * 不支持整文件的存储返回 null。
+     */
+    default String readAll(String sourceRef) {
+        return null;
+    }
+
+    /** 整文件发布（覆盖全文）；不支持的存储抛 ConfigStoreException */
+    default void writeAll(String content, String sourceRef) {
+        throw new ConfigStoreException("该存储不支持整文件发布");
+    }
 }

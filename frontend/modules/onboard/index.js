@@ -6,6 +6,7 @@ import SystemOnboardView from './src/views/SystemOnboard.vue'
 import RouteConfigView from './src/views/RouteConfig.vue'
 import OpenAuthView from './src/views/OpenAuth.vue'
 import RateLimitView from './src/views/RateLimit.vue'
+import ReportAclView from './src/views/ReportAcl.vue'
 import { Placeholder } from '@zimo/ui'
 
 export const menu = [
@@ -16,7 +17,8 @@ export const menu = [
       { path: '/system-onboard', title: '系统接入', icon: 'Promotion', perm: 'onboard.system.view' },
       { path: '/auto-onboard', title: '自动接入', icon: 'MagicStick' },
       { path: '/route-config', title: '路由配置', icon: 'Share', perm: 'onboard.route.view' },
-      { path: '/rate-limit', title: '限流策略', icon: 'Odometer', perm: 'onboard.ratelimit.view' },
+      { path: '/rate-limit', title: '限流策略', icon: 'Histogram', perm: 'onboard.ratelimit.view' },
+      { path: '/report-acl', title: '上报通道管控', icon: 'Filter' },
       { path: '/go-live', title: '上线发布', icon: 'Upload', perm: 'onboard.release.view' },
       { path: '/open-auth', title: '开放认证', icon: 'Document' }
     ]
@@ -47,6 +49,12 @@ export const routes = [
     name: 'RateLimit',
     component: RateLimitView,
     meta: { title: '限流策略', subtitle: '令牌桶限流：全局 / 路由 / API Key / IP 四维配置' }
+  },
+  {
+    path: 'report-acl',
+    name: 'ReportAcl',
+    component: ReportAclView,
+    meta: { title: '上报通道管控', subtitle: '上报通道的 IP / 服务名黑白名单，网关 10 秒内生效' }
   },
   {
     path: 'go-live',

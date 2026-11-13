@@ -17,6 +17,12 @@
   <dependencies>
     <!-- 响应式网关。注意：不能依赖 jv-api-gateway-common（它带 spring-boot-starter-web，
          会让应用启动成 Servlet 应用，Gateway 直接失效） -->
+    <!-- Nacos 配置中心客户端（v0.2 配置集中）：仅用于拉取 gw-platform-infra.properties，
+         不做服务注册（proxy 自持运行）。optional 保证 Nacos 不可达时按本地 yml 兜底启动 -->
+    <dependency>
+      <groupId>com.alibaba.cloud</groupId>
+      <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.springframework.cloud</groupId>
       <artifactId>spring-cloud-starter-gateway</artifactId>

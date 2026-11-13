@@ -137,6 +137,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public LoginVO login(String username, String password, String ip, String ua, String appId) {
+        // IP 封禁校验（v0.2 增强）：命中封禁清单即拒并登记风控事件
+        riskService.enforceIpBan(ip);
         if (!loginPolicyService.passwordChannelEnabled()) {
             throw new BizException(ResultCode.BAD_REQUEST.getCode(), "密码登录通道已关闭，请使用其他登录方式");
         }

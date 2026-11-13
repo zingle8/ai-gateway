@@ -6,7 +6,7 @@ import TopologyView from './src/views/Topology.vue'
 
 export const menu = [
   { path: '/trace', title: '日志追踪', icon: 'Tickets', perm: 'trace.view' },
-  { path: '/topology', title: '服务拓扑', icon: 'Share' }
+  { path: '/topology', title: '服务拓扑', icon: 'Aim' }
 ]
 
 export const routes = [

@@ -43,3 +43,18 @@ export function fetchChangeLogs(params) {
 
 /** 网关健康快照：各后端服务状态 + 鉴权缓存实际生效模式 */
 export const fetchMenuHealth = () => fetch('/health/menu-services').then((r) => (r.ok ? r.json() : null))
+
+/* ==========================================================================
+ * 基础设施配置（v0.2 配置集中）：Nacos dataId gw-platform-infra.properties
+ * DB / Redis / Nacos / JWT secret / client-token / 各服务 URL，各服务重启或刷新时生效
+ * ========================================================================== */
+
+/** 基础设施配置全文（key=value 行 + 解析后的条目，敏感项打码） */
+export function fetchInfraConfig() {
+  return request.get('/infra/config')
+}
+
+/** 整份发布基础设施配置 */
+export function saveInfraConfig(content) {
+  return request.put('/infra/config', { content })
+}

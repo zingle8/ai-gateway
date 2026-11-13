@@ -29,7 +29,7 @@ public class GatewayPlatformClient {
 
     public GatewayPlatformClient(GatewayClientProperties properties) {
         this.restClient = RestClientFactory.create(normalize(properties.getServerAddr()),
-                5000L, properties.getClientToken());
+                5000L, properties.getClientToken(), properties.getAppId());
     }
 
     /** 网关总览核心指标 */

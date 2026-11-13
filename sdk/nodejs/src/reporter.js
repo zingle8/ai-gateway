@@ -13,13 +13,14 @@ class TraceReporter {
   /**
    * @param {string} serverAddr 平台统一入口，如 http://127.0.0.1:28090/api
    * @param {string} clientToken 上报共享密钥（X-Gateway-Client-Token）
-   * @param {object} [opts] reportInterval/queueSize/batchSize/timeoutMs
+   * @param {object} [opts] reportInterval/queueSize/batchSize/timeoutMs/appId（上报黑白名单服务名比对用）
    */
   constructor(serverAddr, clientToken = '', opts = {}) {
     const base = serverAddr.replace(/\/+$/, '');
     this._urlLog = base + PATH_LOG_BATCH;
     this._urlSpan = base + PATH_SPAN_BATCH;
     this._clientToken = clientToken;
+    this._appId = opts.appId || '';
     this._interval = Math.max(1000, opts.reportInterval || 3000);
     this._batchSize = opts.batchSize || 50;
     this._timeoutMs = opts.timeoutMs || 5000;
@@ -72,7 +73,7 @@ class TraceReporter {
     while (items.length > 0) {
       const batch = items.splice(0, this._batchSize);
       try {
-        const { status } = await postJson(url, batch, this._clientToken, this._timeoutMs);
+        const { status } = await postJson(url, batch, this._clientToken, this._timeoutMs, this._appId);
         if (status >= 300) console.warn(`[jv-gateway] 上报失败 ${url}: HTTP ${status}`);
       } catch (e) {
         console.warn(`[jv-gateway] 上报异常 ${url}: ${e.message}`); // 下个周期重试

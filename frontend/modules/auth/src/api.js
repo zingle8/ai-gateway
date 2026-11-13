@@ -243,3 +243,22 @@ export function deleteSsoClient(id) {
 export function fetchSsoLogs(params) {
   return request.get('/sso/logs', { params })
 }
+
+/* ==========================================================================
+ * IP 封禁（v0.2 增强）：登录拒绝 + 网关全量拦截（Redis set gw:ipban）
+ * ========================================================================== */
+
+/** 封禁清单（含已解封历史） */
+export function fetchIpBans() {
+  return request.get('/risk/ip-bans')
+}
+
+/** 手动封禁 IP（支持前缀通配 10.0.*） */
+export function banIp(data) {
+  return request.post('/risk/ip-bans', data)
+}
+
+/** 解封 IP */
+export function unbanIp(ip) {
+  return request.delete(`/risk/ip-bans/${encodeURIComponent(ip)}`)
+}

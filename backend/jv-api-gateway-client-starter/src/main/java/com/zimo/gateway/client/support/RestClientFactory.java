@@ -30,15 +30,22 @@ public final class RestClientFactory {
     }
 
     public static RestClient create(String baseUrl) {
-        return create(baseUrl, DEFAULT_READ_TIMEOUT_MS, null);
+        return create(baseUrl, DEFAULT_READ_TIMEOUT_MS, null, null);
     }
 
     public static RestClient create(String baseUrl, long readTimeoutMs) {
-        return create(baseUrl, readTimeoutMs, null);
+        return create(baseUrl, readTimeoutMs, null, null);
     }
 
     /** clientToken 非空时，所有经此 client 发出的请求（注册/心跳/上报）自动携带共享密钥头 */
     public static RestClient create(String baseUrl, long readTimeoutMs, String clientToken) {
+        return create(baseUrl, readTimeoutMs, clientToken, null);
+    }
+
+    /**
+     * appId 非空时附带 X-Gateway-App-Id：上报通道黑白名单（platform.report.acl）按它比对服务名。
+     */
+    public static RestClient create(String baseUrl, long readTimeoutMs, String clientToken, String appId) {
         HttpClient httpClient = HttpClient.newBuilder()
                 .version(HttpClient.Version.HTTP_1_1)
                 .connectTimeout(Duration.ofMillis(CONNECT_TIMEOUT_MS))
@@ -50,6 +57,9 @@ public final class RestClientFactory {
                 .requestFactory(factory);
         if (clientToken != null && !clientToken.isBlank()) {
             builder.defaultHeader("X-Gateway-Client-Token", clientToken);
+        }
+        if (appId != null && !appId.isBlank()) {
+            builder.defaultHeader("X-Gateway-App-Id", appId);
         }
         return builder.build();
     }

@@ -168,7 +168,10 @@ export const MENU_FEATURE_STATUS = {
   '/perm/menu': true,
   '/system/role': false,
   '/system/settings': true,
-  '/system/logs': true
+  '/system/logs': true,
+  '/system/scheduler': true,
+  '/system/infra': true,
+  '/report-acl': true
 }
 
 export const MENU_SERVICES = {
@@ -185,6 +188,7 @@ export const MENU_SERVICES = {
   '/route-config': 'jv-api-gateway-user',
   '/go-live': 'jv-api-gateway-user',
   '/rate-limit': 'jv-api-gateway-config',
+  '/report-acl': 'jv-api-gateway-config',
   '/open-auth': 'jv-api-gateway-user',
   '/auth/user': 'jv-api-gateway-user',
   '/auth/login-methods': 'jv-api-gateway-user',
@@ -199,7 +203,9 @@ export const MENU_SERVICES = {
   '/perm/menu': 'jv-api-gateway-user',
   '/system/role': 'jv-api-gateway-user',
   '/system/settings': 'jv-api-gateway-config',
-  '/system/logs': 'jv-api-gateway-config'
+  '/system/logs': 'jv-api-gateway-config',
+  '/system/scheduler': 'jv-api-gateway-scheduler',
+  '/system/infra': 'jv-api-gateway-config'
 }
 
 /**

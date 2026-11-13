@@ -13,8 +13,11 @@ public class SchedulerPartitionConfigEntity {
     /** 分区表名 */
     private String tableName;
 
-    /** 分区列（RANGE UNIX_TIMESTAMP 列） */
+    /** 分区列（RANGE 分区列） */
     private String partitionColumn;
+
+    /** 分区边界风格：UNIX_TIMESTAMP（默认）/ TO_DAYS（按 TO_DAYS(date_col) 建表，如主机指标表） */
+    private String boundaryStyle;
 
     /** 分区粒度：DAY */
     private String partitionType;

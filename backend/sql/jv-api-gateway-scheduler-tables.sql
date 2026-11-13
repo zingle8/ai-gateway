@@ -77,30 +77,41 @@ CREATE TABLE IF NOT EXISTS tb_scheduler_clean_table (
 CREATE TABLE IF NOT EXISTS tb_scheduler_partition_config (
   id               INT AUTO_INCREMENT PRIMARY KEY,
   table_name       VARCHAR(64) NOT NULL,
-  partition_column VARCHAR(64) NOT NULL COMMENT 'RANGE UNIX_TIMESTAMP 分区列',
+  partition_column VARCHAR(64) NOT NULL COMMENT 'RANGE 分区列',
+  boundary_style   VARCHAR(16) NOT NULL DEFAULT 'UNIX_TIMESTAMP' COMMENT '分区边界风格：UNIX_TIMESTAMP / TO_DAYS',
   partition_type   VARCHAR(8)  NOT NULL DEFAULT 'DAY' COMMENT '分区粒度',
   advance_days     INT         NOT NULL DEFAULT 2 COMMENT '提前预建天数',
   enabled          TINYINT     NOT NULL DEFAULT 1,
   UNIQUE KEY uk_ptable (table_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='分区表配置';
 
+-- 旧库升级：补 boundary_style 列（幂等，列已存在则跳过）
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'tb_scheduler_partition_config' AND COLUMN_NAME = 'boundary_style');
+SET @ddl = IF(@col_exists = 0,
+  'ALTER TABLE tb_scheduler_partition_config ADD COLUMN boundary_style VARCHAR(16) NOT NULL DEFAULT ''UNIX_TIMESTAMP'' COMMENT ''分区边界风格：UNIX_TIMESTAMP / TO_DAYS'' AFTER partition_column',
+  'SELECT 1');
+PREPARE stmt FROM @ddl; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
 -- ============ 初始数据 ============
 
 INSERT INTO tb_scheduler_job(job_key, job_name, schedule_type, run_time, status, remark) VALUES
-('data-clean',      '历史数据清理（物理删除 7 天外采集日志/记录表）', 'DAILY_TIME', '02:00', 1, '执行时间=系统设置页「调度时间」配置项，Redis/MySQL 双存储'),
-('partition-daily', '分区表每日分区预建（提前 2 天）',               'DAILY_TIME', '02:10', 1, '跟随清理时间 +10 分钟执行')
+('data-clean',      '历史数据清理（物理删除保留期外采集日志/记录表）', 'DAILY_TIME', '02:00', 1, '执行时间=系统设置页「调度时间」配置项，Redis/MySQL 双存储'),
+('partition-daily', '分区表每日分区预建（提前 2 天）',               'DAILY_TIME', '02:10', 1, '跟随清理时间 +10 分钟执行，按 boundary_style 适配 UNIX_TIMESTAMP / TO_DAYS 口径')
 ON DUPLICATE KEY UPDATE job_name = VALUES(job_name);
 
 INSERT INTO tb_scheduler_clean_table(table_name, time_column, keep_days, enabled, remark) VALUES
 ('tb_gw_trace_log',    'req_time',   7, 1, '网关请求日志（分区表）'),
 ('tb_gw_trace_span',   'start_time', 7, 1, '调用链 span（分区表）'),
 ('tb_gw_api_key_log',  'create_time',7, 1, 'API Key 调用审计'),
-('tb_gw_service_edge', 'window_start',7, 1, '服务拓扑边聚合（分区表）')
+('tb_gw_service_edge', 'window_start',7, 1, '服务拓扑边聚合（分区表）'),
+('tb_gw_host_metrics', 'report_time', 14, 1, '主机运行指标（分区表，保留 14 天）')
 ON DUPLICATE KEY UPDATE time_column = VALUES(time_column);
 
-INSERT INTO tb_scheduler_partition_config(table_name, partition_column, partition_type, advance_days, enabled) VALUES
-('tb_gw_trace_log',  'req_time',   'DAY', 2, 1),
-('tb_gw_trace_span', 'start_time', 'DAY', 2, 1)
+INSERT INTO tb_scheduler_partition_config(table_name, partition_column, boundary_style, partition_type, advance_days, enabled) VALUES
+('tb_gw_trace_log',  'req_time',   'UNIX_TIMESTAMP', 'DAY', 2, 1),
+('tb_gw_trace_span', 'start_time', 'UNIX_TIMESTAMP', 'DAY', 2, 1),
+('tb_gw_host_metrics', 'report_time', 'TO_DAYS',    'DAY', 2, 1)
 ON DUPLICATE KEY UPDATE partition_column = VALUES(partition_column);
 
 -- 调度时间配置项（系统设置页读写；tb_sys_config 有唯一键时生效）

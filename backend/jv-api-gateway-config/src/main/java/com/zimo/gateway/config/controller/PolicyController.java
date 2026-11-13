@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,6 +40,8 @@ public class PolicyController {
     public static final String METHODS_KEY = "platform.login.methods";
     /** 开放接口调用方约束开关（v0.2 第 6 项）：true = /api/open/** 必须携带 API Key */
     public static final String OPEN_AUTH_REQUIRE_KEY = "platform.open.auth.require-key";
+    /** 上报通道黑白名单（IP / 服务名，v0.2 多端与安全增强）：proxy 过滤器 10 秒内生效 */
+    public static final String REPORT_ACL_KEY = "platform.report.acl";
 
     private final SysConfigMapper mapper;
     private final ObjectMapper objectMapper;
@@ -100,6 +103,27 @@ public class PolicyController {
                 String.valueOf(!requireKey), String.valueOf(requireKey));
         log.info("[策略] 开放接口调用方约束已更新：requireKey={}", requireKey);
         return R.ok(Map.of("requireKey", requireKey));
+    }
+
+    /** 上报通道黑白名单（IP / 服务名），控制台「上报通道管控」页维护，网关 10 秒内生效 */
+    @GetMapping("/report-acl")
+    public R<Map<String, Object>> reportAcl() {
+        Map<String, Object> data = read(REPORT_ACL_KEY);
+        if (data.isEmpty()) {
+            data.put("enabled", false);
+            data.put("ipMode", "OFF");
+            data.put("ipWhitelist", List.of());
+            data.put("ipBlacklist", List.of());
+            data.put("serviceMode", "OFF");
+            data.put("serviceWhitelist", List.of());
+            data.put("serviceBlacklist", List.of());
+        }
+        return R.ok(data);
+    }
+
+    @PutMapping("/report-acl")
+    public R<Map<String, Object>> saveReportAcl(@RequestBody Map<String, Object> body) {
+        return R.ok(write(REPORT_ACL_KEY, body, "上报通道黑白名单"));
     }
 
     private Map<String, Object> read(String key) {

@@ -74,7 +74,8 @@ public interface SchedulerMapper {
     @Select("SELECT id, table_name, time_column, keep_days, enabled, remark FROM tb_scheduler_clean_table WHERE enabled = 1")
     List<SchedulerCleanTableEntity> listCleanTables();
 
-    @Select("SELECT id, table_name, partition_column, partition_type, advance_days, enabled FROM tb_scheduler_partition_config WHERE enabled = 1")
+    @Select("SELECT id, table_name, partition_column, boundary_style, partition_type, advance_days, enabled"
+            + " FROM tb_scheduler_partition_config WHERE enabled = 1")
     List<SchedulerPartitionConfigEntity> listPartitionConfigs();
 
     /* ==================== 物理清理（动态表名/列名，来源受控） ==================== */
@@ -99,6 +100,23 @@ public interface SchedulerMapper {
     @Delete("ALTER TABLE ${tableName} ADD PARTITION (PARTITION ${partitionName} VALUES LESS THAN (UNIX_TIMESTAMP(#{boundary})))")
     int addDailyPartition(@Param("tableName") String tableName, @Param("partitionName") String partitionName,
                           @Param("boundary") String boundary);
+
+    /** TO_DAYS 口径建分区（tb_gw_host_metrics 等按 TO_DAYS(date) 分区的表） */
+    @Delete("ALTER TABLE ${tableName} ADD PARTITION (PARTITION ${partitionName} VALUES LESS THAN (TO_DAYS(#{boundary})))")
+    int addDailyPartitionToDays(@Param("tableName") String tableName, @Param("partitionName") String partitionName,
+                                @Param("boundary") String boundary);
+
+    /** 表是否存在 p_max（MAXVALUE）兜底分区：存在则 ADD PARTITION 不可用，须走 REORGANIZE */
+    @Select("SELECT COUNT(*) FROM information_schema.PARTITIONS"
+            + " WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = #{tableName} AND PARTITION_NAME = 'p_max'")
+    int hasMaxPartition(@Param("tableName") String tableName);
+
+    /** REORGANIZE p_max：拆出新分区并保留 MAXVALUE 兜底（TO_DAYS 口径预建的唯一安全方式） */
+    @Delete("ALTER TABLE ${tableName} REORGANIZE PARTITION p_max INTO"
+            + " (PARTITION ${partitionName} VALUES LESS THAN (TO_DAYS(#{boundary})),"
+            + " PARTITION p_max VALUES LESS THAN MAXVALUE)")
+    int reorganizeMaxPartition(@Param("tableName") String tableName, @Param("partitionName") String partitionName,
+                               @Param("boundary") String boundary);
 
     /* ==================== 分布式锁（MySQL 兜底） ==================== */
 

@@ -60,7 +60,7 @@ public class MetricsReporter implements ApplicationRunner, DisposableBean {
     public MetricsReporter(GatewayClientProperties properties) {
         this.properties = properties;
         this.restClient = RestClientFactory.create(normalize(properties.getServerAddr()),
-                5000L, properties.getClientToken());
+                5000L, properties.getClientToken(), properties.getAppId());
         this.executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "zimo-gateway-metrics");
             thread.setDaemon(true);

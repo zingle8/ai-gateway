@@ -89,6 +89,16 @@ public class NacosConfigStore implements ConfigStore {
         }
     }
 
+    @Override
+    public String readAll(String sourceRef) {
+        return fetchContent(target(sourceRef));
+    }
+
+    @Override
+    public void writeAll(String content, String sourceRef) {
+        publish(target(sourceRef), content == null ? "" : content);
+    }
+
     // ------------------------------------------------------------------ HTTP
 
     private String fetchContent(NacosTarget t) {

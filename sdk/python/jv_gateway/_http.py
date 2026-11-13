@@ -5,15 +5,21 @@ import urllib.error
 import urllib.request
 
 HEADER_CLIENT_TOKEN = "X-Gateway-Client-Token"
+HEADER_APP_ID = "X-Gateway-App-Id"
 
 
-def post_json(url, payload, client_token="", timeout=5.0):
-    """POST JSON，返回 (status_code, response_dict)；HTTP 错误返回 (code, body)；网络异常抛出。"""
+def post_json(url, payload, client_token="", timeout=5.0, app_id=""):
+    """POST JSON，返回 (status_code, response_dict)；HTTP 错误返回 (code, body)；网络异常抛出。
+
+    app_id 非空时附带 X-Gateway-App-Id（上报通道黑白名单按它比对服务名）。
+    """
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(url, data=data, method="POST")
     req.add_header("Content-Type", "application/json")
     if client_token:
         req.add_header(HEADER_CLIENT_TOKEN, client_token)
+    if app_id:
+        req.add_header(HEADER_APP_ID, app_id)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.status, json.loads(resp.read().decode("utf-8") or "{}")

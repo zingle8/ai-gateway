@@ -105,6 +105,7 @@ public class SessionService {
         meta.put("nickname", user.getNickname() == null ? "" : user.getNickname());
         meta.put("ip", ip == null ? "" : ip);
         meta.put("device", parseDevice(ua));
+        meta.put("deviceType", parseDeviceType(ua));
         meta.put("ua", ua == null ? "" : ua);
         meta.put("appId", appId == null || appId.isBlank() ? "console" : appId);
         meta.put("loginTime", String.valueOf(now));
@@ -201,7 +202,7 @@ public class SessionService {
      * @return 实际下线的会话数
      */
     public int kick(String scope, String sid, Long userId, String appId, String device,
-                    String reason, String operator) {
+                    String deviceType, String reason, String operator) {
         String normalized = scope == null ? "" : scope.trim().toUpperCase();
         return switch (normalized) {
             case "SESSION" -> {
@@ -230,9 +231,24 @@ public class SessionService {
                         reason == null ? "手动踢下线（端 " + device + "）" : reason, operator, operator));
                 yield targets.size();
             }
+            case "DEVICE_TYPE" -> {
+                requireUser(userId);
+                String type = deviceType == null ? "" : deviceType.trim().toUpperCase();
+                if (!Set.of("PHONE", "TABLET", "PC", "SERVER").contains(type)) {
+                    throw new BizException(ResultCode.BAD_REQUEST.getCode(),
+                            "不支持的设备类型：" + deviceType + "（可选 PHONE / TABLET / PC / SERVER）");
+                }
+                List<SessionVO> targets = listByUser(userId).stream()
+                        .filter(s -> type.equals(s.deviceType()))
+                        .toList();
+                targets.forEach(s -> revokeInternal(s,
+                        reason == null ? "手动踢下线（" + deviceTypeText(type) + "端全部会话）" : reason,
+                        operator, operator));
+                yield targets.size();
+            }
             case "ALL" -> kickAll(userId, reason, operator);
             default -> throw new BizException(ResultCode.BAD_REQUEST.getCode(),
-                    "不支持的下线粒度：" + scope + "（可选 SESSION / PLATFORM / DEVICE / ALL）");
+                    "不支持的下线粒度：" + scope + "（可选 SESSION / PLATFORM / DEVICE / DEVICE_TYPE / ALL）");
         };
     }
 
@@ -390,6 +406,9 @@ public class SessionService {
                 str(raw.get("nickname")),
                 str(raw.get("ip")),
                 str(raw.get("device")),
+                // 历史会话无 deviceType 字段：按 UA 现算兜底
+                raw.get("deviceType") == null || String.valueOf(raw.get("deviceType")).isBlank()
+                        ? parseDeviceType(str(raw.get("ua"))) : str(raw.get("deviceType")),
                 str(raw.get("ua")),
                 str(raw.get("appId")),
                 loginTime, lastActive, Math.max(0, (now - loginTime) / 1000));
@@ -462,5 +481,39 @@ public class SessionService {
                 : ua.contains("Linux") ? "Linux"
                 : "未知系统";
         return browser + " / " + os;
+    }
+
+    /** 设备端类型文案（踢下线提示用） */
+    public static String deviceTypeText(String type) {
+        return switch (type == null ? "" : type) {
+            case "PHONE" -> "手机";
+            case "TABLET" -> "平板";
+            case "PC" -> "电脑";
+            case "SERVER" -> "服务端";
+            default -> "未知";
+        };
+    }
+
+    /**
+     * UA → 设备端类型（v0.2 多端增强）：手机 / 平板 / 电脑 / 服务端（curl、Postman 等 API 调用）。
+     * 平板优先于手机判断（iPad 的 UA 同时含 Macintosh 与移动标识）。
+     */
+    public static String parseDeviceType(String ua) {
+        if (ua == null || ua.isBlank()) {
+            return "SERVER";
+        }
+        String upper = ua.toUpperCase();
+        if (upper.contains("IPAD") || upper.contains("TABLET")) {
+            return "TABLET";
+        }
+        if (upper.contains("MOBILE") || upper.contains("IPHONE") || upper.contains("ANDROID")
+                || upper.contains("HARMONY") || upper.contains("MICROMESSENGER")) {
+            return "PHONE";
+        }
+        if (ua.startsWith("curl") || ua.contains("Postman") || ua.contains("Java/")
+                || ua.contains("okhttp") || ua.contains("Python-requests") || ua.contains("axios")) {
+            return "SERVER";
+        }
+        return "PC";
     }
 }

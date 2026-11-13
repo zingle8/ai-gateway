@@ -8,6 +8,7 @@ spring:
   config:
     import:
       - optional:classpath:zimo-common.yml
+      - optional:nacos:gw-platform-infra.properties
       - optional:nacos:api-jv-api-gateway-common.yaml
       - optional:nacos:api-jv-api-gateway-scheduler.yaml
   datasource:

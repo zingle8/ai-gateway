@@ -40,7 +40,7 @@ public class ServiceRegistrar implements ApplicationRunner, DisposableBean {
         this.properties = properties;
         this.environment = environment;
         this.restClient = RestClientFactory.create(normalize(properties.getServerAddr()),
-                5000L, properties.getClientToken());
+                5000L, properties.getClientToken(), properties.getAppId());
         this.executor = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "zimo-gateway-registry");
             thread.setDaemon(true);

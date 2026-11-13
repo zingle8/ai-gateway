@@ -47,6 +47,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     private final AuthVerifier verifier;
     private final AuthExemptRepository exemptRepository;
     private final OpenApiKeyPolicy openApiKeyPolicy;
+    private final ReportAclService reportAclService;
+    private final IpBanStore ipBanStore;
 
     @Override
     public int getOrder() {
@@ -60,6 +62,14 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         }
 
         String path = exchange.getRequest().getPath().value();
+        // IP 封禁（v0.2 增强）：网关入口全量拦截，Redis set gw:ipban 命中即 403（fail-open）
+        String clientIp = clientIp(exchange);
+        if (ipBanStore.isBanned(clientIp)) {
+            if (com.zimo.gateway.proxy.log.LogThrottle.allow("ip.ban:" + clientIp, 5)) {
+                log.warn("[IP封禁] 拦截 {} {}（来源 {}）", exchange.getRequest().getMethod(), path, clientIp);
+            }
+            return deny(exchange, 403, "该 IP 已被风控封禁，如有疑问请联系管理员");
+        }
         /*
          * 开放接口开启「调用方约束」后，即使命中白名单也必须校验 API Key（v0.2 第 6 项）。
          * 例外：平台内部服务（SDK 的 GatewayAuthFilter）用共享密钥头调用 /open/auth/token/verify 验签，
@@ -76,6 +86,17 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                     && !tokenMatches(exchange.getRequest().getHeaders())) {
                 log.warn("[鉴权] 上报通道共享密钥校验失败：{}", path);
                 return deny(exchange, 401, "上报通道共享密钥无效");
+            }
+            // 上报通道黑白名单（IP / 服务名，tb_sys_config platform.report.acl，10 秒生效）
+            if (isReportPath(path)) {
+                String aclDeny = reportAclService.checkReport(clientIp(exchange),
+                        exchange.getRequest().getHeaders().getFirst(ReportAclService.HEADER_APP_ID));
+                if (aclDeny != null) {
+                    if (com.zimo.gateway.proxy.log.LogThrottle.allow("report.acl:" + aclDeny, 5)) {
+                        log.warn("[上报ACL] 拦截 {} {}：{}", exchange.getRequest().getMethod(), path, aclDeny);
+                    }
+                    return deny(exchange, 403, aclDeny);
+                }
             }
             return chain.filter(exchange);
         }

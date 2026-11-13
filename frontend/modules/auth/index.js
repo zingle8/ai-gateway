@@ -28,7 +28,7 @@ export const menu = [
       { path: '/auth/policy', title: '安全策略', icon: 'SetUp', perm: 'auth.policy.view' },
       { path: '/auth/exempt', title: '鉴权豁免', icon: 'Unlock', perm: 'auth.exempt.view' },
       { path: '/auth/risk', title: '风控中心', icon: 'Warning', perm: 'auth.risk.view' },
-      { path: '/auth/api-keys', title: 'API Key', icon: 'Tools', perm: 'open.key.view' }
+      { path: '/auth/api-keys', title: 'API Key', icon: 'CreditCard', perm: 'open.key.view' }
     ]
   }
 ]

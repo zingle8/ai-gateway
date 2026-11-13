@@ -198,7 +198,8 @@ function createMetricsReporter (options = {}) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Gateway-Client-Token': clientToken
+          'X-Gateway-Client-Token': clientToken,
+          'X-Gateway-App-Id': appId || ''
         },
         body: payload
       })

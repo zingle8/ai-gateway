@@ -37,7 +37,9 @@ public class GatewayAuthProperties {
     /** 需校验共享密钥的上报路径（在 skipPaths 放行之后做二次校验，与 skipPaths 中的上报通道一一对应） */
     private List<String> clientTokenPaths = new ArrayList<>(List.of(
             "/api/discovery/services/register", "/api/discovery/services/heartbeat",
-            "/api/discovery/services/deregister", "/api/trace/logs/batch", "/api/trace/spans/batch"));
+            "/api/discovery/services/deregister", "/api/trace/logs/batch", "/api/trace/spans/batch",
+            "/api/discovery/metrics/batch", "/api/discovery/metrics/hostnames",
+            "/api/ws/frame/batch", "/api/ws/session/batch"));
 
     /**
      * 免鉴权路径（Ant 风格）：登录 / 注册 / 开放认证 / 探活 / 菜单健康，

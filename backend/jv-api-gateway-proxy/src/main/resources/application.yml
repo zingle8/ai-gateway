@@ -9,6 +9,37 @@ server:
 spring:
   application:
     name: jv-api-gateway-proxy
+  config:
+    # 基础设施配置（v0.2 配置集中）：DB / Redis / JWT secret / client-token / 服务 URL
+    # 集中在 config 子模块管理的 Nacos dataId（控制台「基础设施配置」页维护）；
+    # 本地 yml 同名项作为 Nacos 拉取失败时的兜底默认值。proxy 自持运行，DB 未就绪时仍可用本地值启动。
+    import:
+      - optional:nacos:gw-platform-infra.properties
+
+  # Nacos 配置中心（v0.2 配置集中）：proxy 只拉取基础设施配置（gw-platform-infra.properties），
+  # 不注册服务发现（proxy 自持运行）；拉取失败时用下方本地默认值兜底启动
+  cloud:
+    nacos:
+      server-addr: ${NACOS_ADDR:127.0.0.1:8848}
+      username: nacos
+      password: 'nacos'
+      config:
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: properties
+    gateway:
+      # 路由全部来自 tb_gw_route，这里不配置静态路由
+      httpclient:
+        connect-timeout: 3000
+        response-timeout: 30s
+      # 不对 OPTIONS 等预检请求做特殊处理，保持原样透传
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
 
   # 说明：proxy 是 WebFlux 网关，不依赖 jv-api-gateway-common（含 Servlet/MyBatis 体系），
   # 公共配置文件 zimo-common.yml 位于 common 模块，本服务无法 import，故数据源在此自持；
@@ -35,21 +66,6 @@ spring:
           max-idle: 8
           min-idle: 0
           max-wait: 1s
-
-  cloud:
-    gateway:
-      # 路由全部来自 tb_gw_route，这里不配置静态路由
-      httpclient:
-        connect-timeout: 3000
-        response-timeout: 30s
-      # 不对 OPTIONS 等预检请求做特殊处理，保持原样透传
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOriginPatterns: "*"
-            allowedMethods: "*"
-            allowedHeaders: "*"
-            allowCredentials: true
 
   task:
     scheduling:

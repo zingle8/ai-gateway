@@ -10,7 +10,9 @@ import {
   Odometer, DataAnalysis, Grid, Tickets, Setting, User, Avatar,
   Connection, Promotion, MagicStick, Share, Upload, Document,
   Lock, Key, Link, Timer, SetUp, Tools,
-  Management, Collection, OfficeBuilding, Menu
+  Management, Collection, OfficeBuilding, Menu,
+  Unlock, Warning, WarningFilled, Monitor, Filter,
+  CreditCard, Memo, AlarmClock, Aim, Histogram, Coin
 } from '@element-plus/icons-vue'
 
 import App from './App.vue'
@@ -41,7 +43,17 @@ const icons = {
   Management,     // 分组与权限：权限管理
   Collection,     // 分组管理：分组集合
   OfficeBuilding, // 部门组织：组织架构
-  Menu            // 平台功能与菜单：菜单结构
+  Menu,           // 平台功能与菜单：菜单结构
+  Unlock,         // 鉴权豁免：解锁放行
+  Warning,        // 风控中心：风险告警
+  WarningFilled,  // 模块加载失败占位：实心告警
+  Monitor,        // 部署关联：主机
+  Filter,         // 上报通道管控：名单过滤
+  CreditCard,     // API Key：凭证卡片
+  Memo,           // 日志管控：管控清单
+  AlarmClock,     // 调度计划：定时执行
+  Aim,            // 服务拓扑：拓扑定位
+  Histogram       // 限流策略：流量直方图
 }
 
 const app = createApp(App)

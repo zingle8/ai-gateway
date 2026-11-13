@@ -76,6 +76,7 @@ public class RiskService {
     private final UserMapper userMapper;
     private final SessionService sessionService;
     private final LoginPolicyService loginPolicyService;
+    private final IpBanService ipBanService;
 
     /** 延迟注入，避免 UserServiceImpl ←→ RiskService 构造器循环依赖 */
     private final ObjectProvider<UserService> userServiceProvider;
@@ -84,6 +85,24 @@ public class RiskService {
     private StringRedisTemplate redisTemplate;
 
     // ============================================================ 登录侧
+
+    /**
+     * IP 封禁校验（登录入口调用）：命中封禁清单即 403，并登记 IP 风控事件（10 分钟去重）。
+     * 任何异常都不影响登录主流程（校验失败视为未封禁）。
+     */
+    public void enforceIpBan(String ip) {
+        try {
+            if (ip == null || ip.isBlank() || !ipBanService.isBanned(ip)) {
+                return;
+            }
+            createEvent("IP", ip, ip, "IP_BAN_HIT", "HIGH", "被封禁 IP 尝试登录（已拒绝）");
+            throw new BizException(ResultCode.FORBIDDEN.getCode(), "该 IP 已被风控封禁，如有疑问请联系管理员");
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.warn("[风控] IP 封禁校验异常，放行：{}", e.getMessage());
+        }
+    }
 
     /**
      * 记录一次登录（成功 / 失败）并做风险识别。任何异常都不允许影响登录主流程。
@@ -262,6 +281,11 @@ public class RiskService {
             case "KICK_USER" -> kickUser(event, operator);
             case "DISABLE_KEY" -> updateKeyStatus(event, 0, operator);
             case "ENABLE_KEY" -> updateKeyStatus(event, 1, operator);
+            case "BAN_IP" -> {
+                String ip = requireIp(event);
+                ipBanService.ban(ip, "风控处置封禁（事件 #" + event.getId() + "：" + event.getRiskType() + "）", operator);
+            }
+            case "UNBAN_IP" -> ipBanService.unban(requireIp(event), operator);
             default -> throw new BizException(ResultCode.BAD_REQUEST.getCode(), "不支持的处置动作：" + act);
         }
 
@@ -325,6 +349,14 @@ public class RiskService {
                 .filter(k -> k.getKeyId().equals(event.getSubjectId()))
                 .findFirst()
                 .orElseThrow(() -> new BizException(ResultCode.NOT_FOUND.getCode(), "事件关联的 API Key 不存在"));
+    }
+
+    private String requireIp(RiskEventEntity event) {
+        if (!"IP".equals(event.getSubjectType())) {
+            throw new BizException(ResultCode.BAD_REQUEST.getCode(),
+                    "该事件主体不是 IP（" + event.getSubjectType() + "），无法执行该动作");
+        }
+        return event.getSubjectId();
     }
 
     // ============================================================ Key 调用监控

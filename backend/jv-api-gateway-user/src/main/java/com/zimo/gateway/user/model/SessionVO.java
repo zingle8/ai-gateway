@@ -9,6 +9,7 @@ package com.zimo.gateway.user.model;
  * @param nickname   姓名
  * @param ip         登录 IP
  * @param device     设备指纹（由 UA 归一化：Chrome / macOS / Windows / App 等）
+ * @param deviceType 设备端类型（PHONE 手机 / TABLET 平板 / PC 电脑 / SERVER 服务端调用）
  * @param ua         原始 User-Agent
  * @param appId      归属平台（控制台登录为 console，开放认证登录为接入方 appId）
  * @param loginTime  登录时间（毫秒）
@@ -16,6 +17,6 @@ package com.zimo.gateway.user.model;
  * @param onlineSec  已在线秒数
  */
 public record SessionVO(String sid, Long userId, String username, String nickname,
-                        String ip, String device, String ua, String appId,
+                        String ip, String device, String deviceType, String ua, String appId,
                         long loginTime, long lastActive, long onlineSec) {
 }

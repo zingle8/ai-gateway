@@ -11,6 +11,7 @@ spring:
       - optional:nacos:api-jv-api-gateway-common.yaml
       - optional:nacos:api-jv-api-gateway-config.yaml
       - optional:classpath:zimo-common.yml
+      - optional:nacos:gw-platform-infra.properties
 gateway:
   # 平台配置的存储来源（DB / Redis / Nacos 三种，可逐项指定）
   config-store:
