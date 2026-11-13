@@ -166,9 +166,42 @@ N 来自系统设置 `platform.ui.refresh.interval`（2~300，默认 10），修
 ```bash
 npm install          # 在根目录执行一次，依赖提升到根 node_modules
 npm run dev          # 启动主应用（等价 npm run dev --workspace @zimo/portal）
-npm run build        # 生产构建
+npm run build        # 生产构建（单体模式：一次构建出全量产物）
 npm run preview      # 预览构建产物
+npm run dev:mf       # 微前端联调：模块 build+preview（28091–28098）+ 宿主联邦模式 dev
+npm run build:mf     # 微前端构建：宿主 + 8 模块独立产物，汇总到 apps/portal/dist
 ```
+
+## 微前端（双模式，v0.2 第 16 项）
+
+Portal 支持两种装配模式，**默认单体模式行为与历史版本完全一致**：
+
+| 模式 | 触发 | 模块来源 | 适用 |
+| --- | --- | --- | --- |
+| 单体（static） | 默认 | Vite 别名直连 `modules/*` 源码，打进同一产物 | 日常开发、单机部署 |
+| 联邦（federation） | `VITE_MF=true` | 运行时按地址表加载各模块 federation remote（`./module`） | 模块独立构建 / 独立发布 |
+
+关键文件：
+
+| 文件 | 作用 |
+| --- | --- |
+| `mf-manifest.json` | 模块地址表（唯一事实来源）：federation name、标题、dev 端口 28091–28098、remotePath |
+| `tools/federation.js` | 模块统一 Vite 配置（exposes `./module`、shared 单例、build 参数） |
+| `apps/portal/vite.config.js` | 宿主配置：`VITE_MF=true` 时生成 remotes（dev → `http://localhost:<端口>/remoteEntry.js`，构建 → `VITE_MF_BASE`（默认 `/mf`）`/<模块>/remoteEntry.js`） |
+| `apps/portal/src/router/index.js` | 双模式装配 + 单模块故障占位兜底（失败模块菜单显示「加载失败」，页面展示 remote 地址与重试） |
+| `apps/portal/src/views/ModuleError.vue` | 模块加载失败占位页 |
+| `scripts/dev-mf.sh` / `scripts/build-mf.sh` | 联调 / 构建脚本（见上方命令） |
+
+约定与坑（改动前务必读）：
+
+1. 模块只暴露 `./module`（即 `index.js` 的 `{ menu, routes }`），**模块源码不需要感知模式**。
+2. shared 单例：`vue`、`vue-router`、`pinia`、`element-plus`、`@element-plus/icons-vue`、`@zimo/shared`（登录态、请求拦截器全局唯一）。
+   `@zimo/ui` **不共享**——共享会把 Shell 样式抽成独立 css 且宿主不引用（丢布局），故随宿主打包。
+3. `@originjs/vite-plugin-federation@1.3.7` 在 Vite 5 **dev server 不产出 remoteEntry**，所以模块侧走 `build + vite preview`（`dev:mf` 已封装），改模块代码需重跑脚本。
+4. 模块产物里 `remoteEntry.js` 与 `style-*.css` 必须位于站点根（其内部对 chunk 用 `./assets/...`、对样式用裸文件名），脚本已自动复制。
+5. 跨端口加载 remote 需要 CORS（`preview.cors = true`，已配）。
+6. 构建顺序：先宿主后模块（vite build 默认清空 `portal/dist`，脚本已按此顺序）。
+7. 联邦产物 `target` 必须 `esnext`；单体模式因装配用顶层 await 需 `es2022`。
 
 ## 已实现页面
 

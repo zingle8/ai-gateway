@@ -1,0 +1,46 @@
+{
+  "comment": "微前端模块地址表（v0.2 第 16 项）：portal 按 federation remote 动态加载 ./module；dev 为模块独立 dev server，remoteEntry 构建后复制到 dist 根（其内部按 ./assets/ 引用 chunk，必须从站点根加载）；prodBase 可用 VITE_MF_BASE 覆盖",
+  "modules": {
+    "overview": {
+      "name": "mf_overview",
+      "title": "网关总览",
+      "devPort": 28091
+    },
+    "stats": {
+      "name": "mf_stats",
+      "title": "数据统计",
+      "devPort": 28092
+    },
+    "discovery": {
+      "name": "mf_discovery",
+      "title": "服务发现",
+      "devPort": 28093
+    },
+    "trace": {
+      "name": "mf_trace",
+      "title": "日志追踪",
+      "devPort": 28094
+    },
+    "auth": {
+      "name": "mf_auth",
+      "title": "认证与安全",
+      "devPort": 28095
+    },
+    "onboard": {
+      "name": "mf_onboard",
+      "title": "接入中心",
+      "devPort": 28096
+    },
+    "perm": {
+      "name": "mf_perm",
+      "title": "分组与权限",
+      "devPort": 28097
+    },
+    "system": {
+      "name": "mf_system",
+      "title": "系统管理",
+      "devPort": 28098
+    }
+  },
+  "remotePath": "remoteEntry.js"
+}

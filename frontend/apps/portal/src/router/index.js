@@ -2,18 +2,91 @@ import { h } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import { Shell } from '@zimo/ui'
 import { useUserStore, setUnauthorizedHandler } from '@zimo/shared'
+import ModuleError from '@/views/ModuleError.vue'
+// remote 加载器：单体模式由别名指向存根（空数组），联邦模式指向真实实现
+import { remoteLoaders } from 'mf-remote-loaders'
 
-// 业务模块：每个模块自带 menu + routes，与后端微服务一一对应
-import overview from '@zimo/module-overview'
-import stats from '@zimo/module-stats'
-import discovery from '@zimo/module-discovery'
-import trace from '@zimo/module-trace'
-import system from '@zimo/module-system'
-import onboard from '@zimo/module-onboard'
-import auth from '@zimo/module-auth'
-import perm from '@zimo/module-perm'
+// ---------------------------------------------------------------- 微前端装配（v0.2 第 16 项）
 
-export const modules = [overview, stats, discovery, trace, auth, onboard, perm, system]
+const MF_MODE = import.meta.env.VITE_MF === 'true'
+// 联邦模式的模块地址表（portal/public/mf-manifest.json，构建脚本会从仓库根同步过来）；
+// 拉取失败不阻塞启动，仅影响失败占位页上的地址展示
+let MF_MANIFEST = null
+if (MF_MODE) {
+  try {
+    MF_MANIFEST = await (await fetch('/mf-manifest.json')).json()
+  } catch (e) {
+    console.warn('[MF] 模块地址表拉取失败：', e?.message)
+  }
+}
+
+/**
+ * 模块装配双模式：
+ *  - 单体模式（默认）：静态 import 源码别名，行为与 v0.1/v0.2 完全一致；
+ *  - 联邦模式（VITE_MF=true）：按地址表逐个动态加载 federation remote 的 './module'，
+ *    任一模块失败用占位模块兜底（菜单可见 + ModuleError 占位页），不白屏不拖垮其他模块。
+ */
+const STATIC_MODULES = [
+  () => import('@zimo/module-overview'),
+  () => import('@zimo/module-stats'),
+  () => import('@zimo/module-discovery'),
+  () => import('@zimo/module-trace'),
+  () => import('@zimo/module-auth'),
+  () => import('@zimo/module-onboard'),
+  () => import('@zimo/module-perm'),
+  () => import('@zimo/module-system')
+]
+
+// 联邦模式 remote 加载器来自 'mf-remote-loaders'（见文件头说明），
+// 单体模式下是空数组，assembleModules 走静态 import 分支
+
+/** 加载失败的占位模块：真实地址表信息在 MF_FAILED 里，占位页展示 */
+export const MF_FAILED = []
+
+function failedModule(key, title, remote) {
+  MF_FAILED.push({ key, title, remote })
+  return {
+    name: key,
+    menu: [{ path: `/${key}`, title: `${title}（加载失败）`, icon: 'WarningFilled' }],
+    routes: [
+      {
+        path: key,
+        name: `MfFailed-${key}`,
+        component: ModuleError,
+        props: { title, remote },
+        meta: { title: `${title}（加载失败）` }
+      }
+    ]
+  }
+}
+
+async function assembleModules() {
+  if (!MF_MODE) {
+    const mods = await Promise.all(STATIC_MODULES.map((l) => l()))
+    return mods.map((m) => m.default)
+  }
+  const mods = []
+  for (const { key, load } of remoteLoaders) {
+    const title = MF_MANIFEST?.modules?.[key]?.title || key
+    const entryPath = MF_MANIFEST?.remotePath || 'remoteEntry.js'
+    const remote = `${import.meta.env.VITE_MF_BASE || '/mf'}/${key}/${entryPath}`
+    try {
+      const m = await load()
+      mods.push(m.default)
+      console.info(`[MF] 模块 ${key} 加载成功`)
+    } catch (e) {
+      console.warn(`[MF] 模块 ${key} 加载失败：${e?.message || e}`)
+      mods.push(failedModule(key, title, remote))
+    }
+  }
+  return mods
+}
+
+const modules = await assembleModules()
+
+// 装配结果对外暴露（菜单健康、故障排查用）
+export const mfMode = MF_MODE
+export const mfFailedModules = MF_FAILED
 
 /**
  * 侧边栏菜单：只保留已落地的能力
@@ -84,7 +157,7 @@ export const MENU_FEATURE_STATUS = {
   '/open-auth': true,
   '/auth/user': true,
   '/auth/login-methods': true,
-  '/auth/sso': false,
+  '/auth/sso': true,
   '/auth/sessions': true,
   '/auth/policy': true,
   '/auth/exempt': true,
