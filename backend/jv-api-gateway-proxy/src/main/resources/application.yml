@@ -93,6 +93,8 @@ gateway:
       skip-paths:
         - /api/auth/login
         - /api/auth/register
+        - /api/oauth/**
+        - /api/.well-known/**
         - /api/open/**
         - /api/configs/public
         - /health/**

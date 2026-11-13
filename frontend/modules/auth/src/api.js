@@ -211,3 +211,35 @@ export function fetchLoginLogs(params) {
 export function fetchKeyWarnings() {
   return request.get('/risk/keys/warnings')
 }
+
+/* ---------------------------------------------------------- 单点登录 SSO（v0.2 第 15 项，tb_gw_oidc_client / tb_gw_sso_log） */
+
+/** 接入方（SP）列表 */
+export function fetchSsoClients() {
+  return request.get('/sso/clients')
+}
+
+/** 签发接入方：返回一次性 client_secret */
+export function createSsoClient(data) {
+  return request.post('/sso/clients', data)
+}
+
+/** 修改接入方（名称 / appId / 回调 / 状态） */
+export function updateSsoClient(id, data) {
+  return request.put(`/sso/clients/${id}`, data)
+}
+
+/** 轮换 client_secret（旧值立即失效） */
+export function rotateSsoSecret(id) {
+  return request.post(`/sso/clients/${id}/rotate`)
+}
+
+/** 删除接入方 */
+export function deleteSsoClient(id) {
+  return request.delete(`/sso/clients/${id}`)
+}
+
+/** SSO 登录审计（clientId / action + 分页） */
+export function fetchSsoLogs(params) {
+  return request.get('/sso/logs', { params })
+}

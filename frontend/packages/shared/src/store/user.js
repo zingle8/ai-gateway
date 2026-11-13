@@ -75,6 +75,8 @@ export const useUserStore = defineStore('user', {
       this.userInfo = null
       this.permCodes = []
       this.permsLoaded = false
+      // SSO IdP 会话 Cookie（v0.2 第 15 项）同步清除，避免残留影响授权端点判定
+      document.cookie = 'gw_token=; path=/; max-age=0'
       ;[localStorage, sessionStorage].forEach((s) => {
         s.removeItem(TOKEN_KEY)
         s.removeItem(USER_KEY)

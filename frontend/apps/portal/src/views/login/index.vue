@@ -132,6 +132,15 @@ const enter = (data, remember) => {
     nickname: data.nickname,
     role: data.role
   }, remember)
+  // SSO IdP 会话（v0.2 第 15 项）：令牌同时写入 gw_token Cookie（与控制台 localStorage 并存），
+  // 授权端点凭该 Cookie 判定登录态；Cookie 不分端口，控制台 28080 与网关 28090 同 host 共享
+  document.cookie = `gw_token=${data.token}; path=/; max-age=${8 * 3600}; SameSite=Lax`
+  // SSO 授权回跳：?sso=<authorize 地址>（由 IdP 未登录时 302 带来），整页跳回授权端点
+  const sso = typeof route.query.sso === 'string' ? route.query.sso : ''
+  if (sso && sso.includes('/api/oauth/authorize')) {
+    window.location.href = sso
+    return
+  }
   const redirect = route.query.redirect
   router.replace(typeof redirect === 'string' && redirect ? redirect : '/overview')
 }

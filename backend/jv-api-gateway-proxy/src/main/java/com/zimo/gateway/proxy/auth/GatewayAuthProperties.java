@@ -46,7 +46,10 @@ public class GatewayAuthProperties {
      * TraceGlobalFilter 的排除清单保持同一组路径）。
      */
     private List<String> skipPaths = new ArrayList<>(List.of(
-            "/api/auth/login", "/api/auth/register", "/api/open/**",
+            "/api/auth/login", "/api/auth/register",
+            // SSO OIDC 协议端点（v0.2 第 15 项）：authorize/token/userinfo/元数据/jwks 匿名
+            "/api/oauth/**", "/api/.well-known/**",
+            "/api/open/**",
             "/api/configs/public", "/health/**", "/actuator/**",
             "/api/discovery/services/register", "/api/discovery/services/heartbeat",
             "/api/discovery/services/deregister",

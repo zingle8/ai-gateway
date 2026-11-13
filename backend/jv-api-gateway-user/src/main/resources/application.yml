@@ -27,6 +27,11 @@ gateway:
     # 生产环境通过环境变量 GATEWAY_JWT_SECRET 注入，且需 >= 32 字节
     secret: ${GATEWAY_JWT_SECRET:api-gateway-platform-jwt-secret-key-change-me-please}
     expire-hours: 8
+  sso:
+    # SSO IdP（v0.2 第 15 项）：对外元数据 issuer 指向网关；登录页为控制台前端入口
+    # （生产同域部署时两者同源；开发态控制台 28080、网关 28090 分离）
+    issuer: ${GATEWAY_SSO_ISSUER:http://localhost:28090}
+    login-url: ${GATEWAY_SSO_LOGIN_URL:http://localhost:28080/login}
   # 首次启动自动写入的内置账号
   default-admin:
     username: admin

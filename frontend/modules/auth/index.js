@@ -52,7 +52,7 @@ export const routes = [
     path: 'auth/sso',
     name: 'AuthSso',
     component: SsoView,
-    meta: { title: '单点登录', subtitle: '外部 IdP 接入配置、账号绑定关系与 SSO 登录审计' }
+    meta: { title: '单点登录', subtitle: '平台即认证中心（IdP）：接入方登记、client_secret 轮换与 SSO 全链路审计' }
   },
   {
     path: 'auth/sessions',

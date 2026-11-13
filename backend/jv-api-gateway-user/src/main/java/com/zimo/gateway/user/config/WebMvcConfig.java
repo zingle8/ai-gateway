@@ -36,6 +36,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/auth/register",
                         // 开放认证：给第三方平台对接，自身不带平台令牌（总开关由系统设置控制）
                         "/open/auth/**",
+                        // SSO OIDC 协议端点（v0.2 第 15 项）：授权 / 换 token / userinfo / 元数据 / jwks
+                        // 均匿名可访问；authorize 靠 gw_token Cookie 判 IdP 会话，token 靠 client_secret
+                        "/oauth/**",
+                        "/.well-known/**",
                         "/error",
                         "/actuator/**"
                 );
