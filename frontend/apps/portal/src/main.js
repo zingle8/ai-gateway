@@ -53,7 +53,8 @@ const icons = {
   Memo,           // 日志管控：管控清单
   AlarmClock,     // 调度计划：定时执行
   Aim,            // 服务拓扑：拓扑定位
-  Histogram       // 限流策略：流量直方图
+  Histogram,      // 限流策略：流量直方图
+  Coin            // 基础设施配置：基础设施资产
 }
 
 const app = createApp(App)
