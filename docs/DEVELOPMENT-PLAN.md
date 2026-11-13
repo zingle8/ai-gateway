@@ -106,86 +106,17 @@
 1. **网关限流**（首位，网关生产底线）（✅ 已完成 2026-11-12）：新增 `tb_gw_rate_limit`（维度 GLOBAL / ROUTE / API_KEY / IP，参数 replenish_rate / burst_capacity / requested_tokens，种子全局兜底 1000 次/秒 + 演示路由 20 次/秒）；网关 `RateLimitGlobalFilter`（order = HIGHEST+20，排在鉴权之后）每 5 秒加载启用规则（Caffeine 缓存），逐条匹配并独立扣令牌，任一不足即 429 + `Retry-After` + `X-RateLimit-Limit/Remaining/Reset`；`TokenBucketLimiter` 用 Redis Lua 脚本原子扣减（多实例共享桶，键 `gw:rl:{ruleId}:{subject}`），Redis 不可用时 30 秒内回落本地令牌桶；控制台「接入中心 → 限流策略」页支持新增 / 编辑 / 启停 / 删除 + 搜索 + 分页（权限点 onboard.ratelimit.view/edit 已种入并绑定网关运维组）；实测：IP 规则 5 次/秒桶 5 → 连打 12 次得到 `200×5 + 429×5 + 200(补充后) + 429`，429 头 `X-RateLimit-Limit: 5 / Remaining: 0 / Retry-After: 1`；ROUTE 规则 1 次/秒桶 1 → 30 并发 `1×200 + 29×429`；停用后 5 秒内恢复全 200；表与种子随 config 启动自动建好
 2. **令牌与会话页接真**（✅ 已完成 2026-11-12）：JWT 增 `sid` claim，登录时登记会话到 Redis（`gw:sess:{sid}` 明细 + `gw:sess:user:{userId}` ZSET 索引，含 IP / UA / 设备指纹 / 平台 appId / 登录时间）；新增 `SessionService` + `SessionController`：`GET /auth/sessions`（在线列表）、`GET /auth/sessions/revokes`（最近 200 条吊销记录）、`POST /auth/sessions/kick`（四粒度踢人）；**多端登录控制**：`platform.session.mode`（MULTI 默认 / SINGLE 单端互踢）+ `platform.session.max`（默认 5），登录登记时按策略踢旧会话 / 超限踢最早（已种入 tb_sys_config，系统设置页可见）；**四粒度强制下线**：① SESSION 单会话（写 `gw:sess:revoked:{sid}`，网关 `AuthVerifier` 验签后命中即 401「该会话已被强制下线」）；② PLATFORM 按平台（appId 过滤，其他平台不受影响）；③ DEVICE 按端（设备指纹过滤）；④ ALL 全端（token_version +1）；前端「令牌与会话」页接真：指标卡（在线会话 / 在线账号 / 接入平台 / 吊销记录）、在线会话表（账号 / 平台 / 设备 / IP / 登录时间 / 在线时长 + 单会话 / 按端 / 按平台 / 全端踢）、吊销记录表，两 Tab 各自分页，已去掉「设计稿」标记；实测：单会话踢后旧 token 立即 401；PLATFORM console → affected 5 且同 token 立即 401；DEVICE "curl / 未知系统" → affected 1 且立即 401；连续登录 6 次在 max=5 下自动保留 5 个会话（最早被踢，记录「并发上限 5 个，自动踢最早会话」）；全端踢后 token_version +1、旧 token 报「账号已退出登录」；边界：踢人留痕暂写 Redis 吊销记录（最近 200 条），DB 审计表随第 8 项落地；「登录方式」字段待第 3/4/15 项（MFA / 登录方式开关 / SSO）补齐；SSO 联动随第 15 项
 3. **安全策略页接真**（✅ 已完成 2026-11-12）：策略整体以 JSON 落库 `tb_sys_config.platform.security.policy`（`config_value` 扩为 TEXT），新增 `PolicyController`（`GET|PUT /policies/security`，路由 `/api/policies/**` → config）；登录流程由 `LoginPolicyService` 实时读取（10 秒缓存）：**失败锁定阈值 / 锁定时长动态化**（原硬编码 5 次 / 30 分钟）、**MFA 强制范围**（NONE / ADMIN / ALL）判定并以 `mfaRequired` 回传登录结果、密码通道开关联动；前端「安全策略」页接真（进入即加载库中策略、保存后提示「登录流程实时生效」、去掉设计稿标记）。实测：`mfaScope=ALL` → 登录返回 `mfaRequired=true`；策略保存后 DB 为 424 字节完整 JSON，页面回显 5 次 / 30 分钟 / 3 会话；边界：TOTP 验证码校验与 step-up 一次性令牌需用户绑定密钥，随 v0.3 落地；「敏感操作二次验证」当前仅落库（开关值已存，拦截待 v0.3）
-4. **登录方式页接真**（✅ 已完成 2026-11-12）：登录因子与通道配置以 JSON 落库 `tb_sys_config.platform.login.methods`，新增 `GET|PUT /policies/login-methods`；登录接口按 `factors` 中 `key=username` 的开关实时拦截——关闭后密码登录返回 400「密码登录通道已关闭，请使用其他登录方式」；前端「登录方式」页接真（8 个因子开关 + 邮件 SMTP / 短信通道配置读写、保存即生效、去掉设计稿标记）。实测：关闭「用户名 + 密码」因子后登录被拒 400，恢复后立即正常；页面 8 个开关与库中配置一致（6 开 2 关）。边界：邮箱 / 短信验证码的**发送与校验**依赖 SMTP / 短信网关通道，配置已落库，通道测试与免密登录随 v0.3；扫码登录与 SSO 因子依赖第 15 项
-5. 五个业务模块：user / overview / config / discovery / trace，模块统一命名 `jv-api-gateway-*`
-6. 系统配置服务：DB / Redis / Nacos 多来源托管，展示来源与平台/应用/服务归属，公开配置接口
-7. 服务标识体系：服务ID（英文唯一）+ 服务名（中文显示），对齐应用ID/应用名模式，SDK 三端同步
+4. **登录方式页接真（多因子登录）**（✅ 已完成 2026-11-13）：配置落库 `platform.login.methods`（factors[].enabled + captcha + qrcode + mail + sms），登录流程按开关实时生效（读库 10 秒缓存）。
+    - **密码因子 + 验证码两种形态**：① **随机图片验证码**——后端 `BufferedImage` 自绘（旋转字符 / 干扰线 / 噪点，去 0O1IL 易混字符），base64 PNG 返回、120 秒有效、一次性；② **弹框动态码**——6 位数字内联展示（CSS `user-select:none` 不可复制）、30 秒有效且前端到点自动换新。形态在「登录方式 → 密码登录验证码」切换（image / dynamic），`GET /auth/captcha/image|dynamic` 下发 ticket
+    - **短信 / 邮件动态码免密登录**：`POST /auth/otp/send`（channel=SMS|EMAIL）按账号绑定的手机号 / 邮箱生成 6 位码（5 分钟、一次性），目标脱敏返回（138****00 / a***@example.com）。**通道为模拟实现**——验证码写服务日志（`[SMS-MOCK]` / `[MAIL-MOCK]`），不发真实短信、不连 SMTP；接真实通道只需替换 `LoginFactorService#deliver`，校验与界面零改动
+    - **扫码登录两种形态**：① **演示确认流**——`POST /auth/qr/create` 生成 ticket 与确认链接（`/login?qr=<ticket>`），登录页二维码（前端 `qrcode` 库生成）+ 2 秒轮询；手机端打开链接在确认页输账号密码 → `POST /auth/qr/confirm` 绑定 userId → 轮询到 CONFIRMED 自动签发令牌；② **扫码取码 + 手动输入流**——二维码内容即 6 位动态码（30 秒自动更换，`GET /auth/qr/code` 刷新），扫码读取后在登录页输入「账号 + 动态码」（`factor=QR`）完成登录
+    - **登录接口多因子分派**：`POST /auth/login` 新增 `factor` / `ticket` / `code`，取值 PASSWORD（默认）/ SMS / EMAIL / QR / QR_CONFIRM；密码因子关闭时拒登（原有逻辑），其余因子关闭时对应入口与接口均拒绝；非密码因子通过后统一走 `UserService#loginByFactor`（状态校验 + 会话登记 + 令牌签发 + 登录历史标注「因子登录：SMS/QR…」）
+    - **安全细节**：验证码 / OTP / 确认票据全部一次性消费（重放即失效）；扫码 ticket 180 秒有效期、确认后二次登录被拒；验证码错误不销毁 ticket（允许纠错重输），动态码错误按次校验；因子接口在 proxy `skip-paths` 与 user 服务拦截器双处放行；新增匿名公开端点 `GET /auth/login-methods`（只返回因子开关与形态，绝不带 SMTP / 短信凭据）
+    - **前端**：登录页按配置动态渲染因子胶囊 Tab（账号密码 / 验证码登录 / 扫码登录），密码表单按需出现图形验证码或动态码面板；短信/邮件 Tab 带 60 秒重发倒计时与「模拟通道」提示；扫码 Tab 双形态（二维码轮询 / 动态码 + 手动输入）；`/login?qr=<ticket>` 展示确认面板；「登录方式」页新增验证码形态、扫码形态配置与通道测试按钮（发一条模拟码并提示去日志查收）
+    - **实测**（经网关 28090 与浏览器全链路）：动态码错误 400 / 正确 200 / 同 ticket 重放 400；短信码登录 200、重放 400；邮件码登录 200；扫码确认 → QR_CONFIRM 登录 200、票据重放 400；取码流登录 200、错误码 400；关闭短信因子后 `otp/send` 400「登录方式已关闭」；图形验证码登录页渲染与点击刷新正常；密码直登（验证码关闭）回归正常，控制台 0 error
+    - **边界（明确不做）**：短信 / 邮件通道为模拟（无真实网关与 SMTP，接入只换 sender）；TOTP 二次验证与「敏感操作二次验证」仍随 v0.3；无发送频率限流（仅前端 60 秒倒计时）、无图形验证码 OCR 强度评估；扫码确认端是控制台内演示页而非移动 App；配置生效有 10 秒缓存窗口
+    - 关联：`LoginFactorService` / `LoginFactorController`（user 服务）、`LoginPolicyService`（因子开关 / 形态）、`WebMvcConfig` 与 proxy `skip-paths`（放行）、登录页与「登录方式」页
 
-**三、接入 SDK 三端**
-
-8. Java client-starter：注册 / 心跳 / trace 采集，注册失败心跳周期自愈
-9. Python SDK 补齐（协议与 Java 一致）
-10. Node.js SDK（jv-gateway，零第三方依赖）：GatewayClient / TraceReporter / traceExpress + Express 示例
-11. SDK 安全双门：上报共享密钥 `X-Gateway-Client-Token`（伪造注册/上报 401）+ SDK 入口鉴权验签（回调 verify + 缓存、豁免 / fail-open 可配）
-
-**四、服务发现**
-
-12. 注册表：register / heartbeat / deregister，30s 心跳、90s 判离线、HeartbeatMonitor 每 60s 巡检
-13. 服务列表：全部应用 / 全部服务双下拉过滤、接口数与调用量列
-14. 健康状态三态（健康 / 离线 / 异常）与颜色区分
-
-**五、可观测三件**
-
-15. 日志追踪（阶段一）：跨服务调用链采集与存储（trace_log / trace_span 按天分区 + 索引优化）、报文详情、应用/服务级联过滤
-16. 服务拓扑（阶段二）：调用边预聚合（tb_gw_service_edge）+ 慢链路 TopN、全局拓扑 + 应用/服务过滤
-17. 数据统计：请求量 / QPS / 入站出站流量三趋势、方法分布、状态码分布、Top 服务 / Top 接口（含服务名、所属应用归属维度）
-
-**六、网关总览**
-
-18. 核心指标卡、请求量 / QPS / 流量三张趋势折线图（各自整行）、运行时指标
-19. 已接入服务实例按近 5 分钟调用量排名
-
-**七、认证与安全**
-
-20. 分组与权限：分组管理 / 部门组织 / 平台功能与菜单，permCodes 权限点下发
-21. API Key 全生命周期：签发 / 启停 / 轮换 / 续期 / 吊销 + 操作审计（tb_gw_api_key_log）+ 统计看板（今日签发/续期等）
-22. 开放认证：register / login / logout / token verify、双类型校验
-
-**八、配置中心**
-
-23. tb_sys_config 配置项管理 + 公开配置接口（无需登录读取开关）
-24. 控制台自动刷新频率配置化 `platform.ui.refresh.interval`（总览/统计/发现接入，改值 30 秒生效，默认 10 秒）
-
-**九、前端控制台**
-
-25. 8 大模块 21 个菜单；认证与安全五个子菜单收敛为页内 Tab、接入中心菜单排序调整
-26. TrendChart 折线图组件：Y 轴刻度、悬浮 tooltip、双序列（双折线 + 图例 + 双 Y 轴）
-27. 四页统一时间统计维度（1 分钟 ~ 30 天共 10 档）、PaneTabs 分段控件、全局响应式适配
-28. 侧边栏菜单健康标识：状态点 + 悬浮提示（后端服务 / 运行状态含延迟 / 功能上线标记绿灰着色）
-
-**十、交付运维与文档**
-
-29. 日志统一切分、一键构建启动脚本（scripts/start.sh / stop.sh / restart.sh）
-30. docs/modules-deployment.md：服务拆解与按需启动、按模块售卖组装方案
-31. Maven 私服一键部署（Nexus 3，init-nexus.sh）+ file:// 仓库 / 云制品库分发替代方案
-32. 接入文档（client-integration.md）、配置信息一览（数据库/Redis/Nacos/JWT/环境变量）
-
-### 2.2 修复 Bug 清单（9 项）
-
-| # | Bug | 现象 | 修法 |
-| --- | --- | --- | --- |
-| 1 | 服务离线状态检测不到 | 离线服务无颜色标识、进程被杀后状态长期停留「健康」 | dotClass 补「离线」映射；deregister 由「异常」改「离线」；心跳巡检覆盖异常/亚健康状态（kill 后 10 秒内显红） |
-| 2 | SDK 接入三连修 | 启动顺序敏感时注册失败；SDK 上报被网关 401 拦截导致实例永久离线；SDK 默认连前端端口 | 注册失败后心跳周期自动补注册；网关白名单放行上报通道；默认 server-addr 改指网关 28090 |
-| 3 | 采集归属口径错位 | trace 表混入「配置中心」等中文值；服务发现 QPS/调用次数聚合落空 | SDK 统一走 `effectiveServiceId()` 上报；TraceLogDTO/SpanRecordDTO/SpanDTO 增 serviceId |
-| 4 | 应用下拉重复 | 同一 appId 历史改名产生多行字典（如「网关平台」→「API网关平台」） | trace/discovery/overview 三处字典 SQL 按 app_id 取最新一条，名称优先取注册表 |
-| 5 | proxy 中文名被刷回 | 注册表中文名「网关代理」被心跳刷回英文服务 ID | ProxySelfRegistrar 自注册补 serviceId + serviceName |
-| 6 | 统计页分布卡片堆叠 | 「方法分布 / 状态码分布」不并排 | 根因：`.grid-2` 缺基础样式（仅有 1400px 单列覆盖）——补两列 grid 基础样式并抵消卡片纵向间距副作用 |
-| 7 | 「服务拓扑」菜单无状态点 | 悬浮提示与绿点缺失 | MENU_SERVICES 漏登记 `/topology`（不以 /trace 开头，最长前缀匹配落空）→ 补映射 |
-| 8 | 数据归属混乱 | 冒烟测试数据散落、应用编码两套写法 | 冒烟数据归并 regtech 应用；app-gateway → app-api-gateway 统一（5 张表迁移 + 窗口期残留清理） |
-| 9 | 文档与代码不一致 | 接入文档与实际行为偏差 | 接入文档修正；Web 页面与文件文档全量对齐服务ID/服务名体系 |
-
----
-
-## 三、v0.2 计划清单（P0 —— 影响「能交付」的缺口）
-
-1. **网关限流**（首位，网关生产底线）（✅ 已完成 2026-11-12）：新增 `tb_gw_rate_limit`（维度 GLOBAL / ROUTE / API_KEY / IP，参数 replenish_rate / burst_capacity / requested_tokens，种子全局兜底 1000 次/秒 + 演示路由 20 次/秒）；网关 `RateLimitGlobalFilter`（order = HIGHEST+20，排在鉴权之后）每 5 秒加载启用规则（Caffeine 缓存），逐条匹配并独立扣令牌，任一不足即 429 + `Retry-After` + `X-RateLimit-Limit/Remaining/Reset`；`TokenBucketLimiter` 用 Redis Lua 脚本原子扣减（多实例共享桶，键 `gw:rl:{ruleId}:{subject}`），Redis 不可用时 30 秒内回落本地令牌桶；控制台「接入中心 → 限流策略」页支持新增 / 编辑 / 启停 / 删除 + 搜索 + 分页（权限点 onboard.ratelimit.view/edit 已种入并绑定网关运维组）；实测：IP 规则 5 次/秒桶 5 → 连打 12 次得到 `200×5 + 429×5 + 200(补充后) + 429`，429 头 `X-RateLimit-Limit: 5 / Remaining: 0 / Retry-After: 1`；ROUTE 规则 1 次/秒桶 1 → 30 并发 `1×200 + 29×429`；停用后 5 秒内恢复全 200；表与种子随 config 启动自动建好
-2. **令牌与会话页接真**（✅ 已完成 2026-11-12）：JWT 增 `sid` claim，登录时登记会话到 Redis（`gw:sess:{sid}` 明细 + `gw:sess:user:{userId}` ZSET 索引，含 IP / UA / 设备指纹 / 平台 appId / 登录时间）；新增 `SessionService` + `SessionController`：`GET /auth/sessions`（在线列表）、`GET /auth/sessions/revokes`（最近 200 条吊销记录）、`POST /auth/sessions/kick`（四粒度踢人）；**多端登录控制**：`platform.session.mode`（MULTI 默认 / SINGLE 单端互踢）+ `platform.session.max`（默认 5），登录登记时按策略踢旧会话 / 超限踢最早（已种入 tb_sys_config，系统设置页可见）；**四粒度强制下线**：① SESSION 单会话（写 `gw:sess:revoked:{sid}`，网关 `AuthVerifier` 验签后命中即 401「该会话已被强制下线」）；② PLATFORM 按平台（appId 过滤，其他平台不受影响）；③ DEVICE 按端（设备指纹过滤）；④ ALL 全端（token_version +1）；前端「令牌与会话」页接真：指标卡（在线会话 / 在线账号 / 接入平台 / 吊销记录）、在线会话表（账号 / 平台 / 设备 / IP / 登录时间 / 在线时长 + 单会话 / 按端 / 按平台 / 全端踢）、吊销记录表，两 Tab 各自分页，已去掉「设计稿」标记；实测：单会话踢后旧 token 立即 401；PLATFORM console → affected 5 且同 token 立即 401；DEVICE "curl / 未知系统" → affected 1 且立即 401；连续登录 6 次在 max=5 下自动保留 5 个会话（最早被踢，记录「并发上限 5 个，自动踢最早会话」）；全端踢后 token_version +1、旧 token 报「账号已退出登录」；边界：踢人留痕暂写 Redis 吊销记录（最近 200 条），DB 审计表随第 8 项落地；「登录方式」字段待第 3/4/15 项（MFA / 登录方式开关 / SSO）补齐；SSO 联动随第 15 项
-3. **安全策略页接真**（✅ 已完成 2026-11-12）：策略整体以 JSON 落库 `tb_sys_config.platform.security.policy`（`config_value` 扩为 TEXT），新增 `PolicyController`（`GET|PUT /policies/security`，路由 `/api/policies/**` → config）；登录流程由 `LoginPolicyService` 实时读取（10 秒缓存）：**失败锁定阈值 / 锁定时长动态化**（原硬编码 5 次 / 30 分钟）、**MFA 强制范围**（NONE / ADMIN / ALL）判定并以 `mfaRequired` 回传登录结果、密码通道开关联动；前端「安全策略」页接真（进入即加载库中策略、保存后提示「登录流程实时生效」、去掉设计稿标记）。实测：`mfaScope=ALL` → 登录返回 `mfaRequired=true`；策略保存后 DB 为 424 字节完整 JSON，页面回显 5 次 / 30 分钟 / 3 会话；边界：TOTP 验证码校验与 step-up 一次性令牌需用户绑定密钥，随 v0.3 落地；「敏感操作二次验证」当前仅落库（开关值已存，拦截待 v0.3）
-4. **登录方式页接真**（假页面优先 2）：密码 / 验证码 / 扫码 / SSO 因子开关落库，登录接口按开关启用禁用（密码关掉时返回明确错误码）。**各方式实现口径（功能完整开发，外部通道不联调）**：
-    - **密码登录验证码（两种形态，可配置切换）**：① 随机图片验证码——随机字符生成图片，带角度矫正 / 扭曲 / 干扰线防机器识别；② 弹框动态码——弹框上方展示 6 位随机动态码（前端渲染为不可复制、不可选中，**30 秒自动更换**，过期/刷新即重生成），弹框下方为手动输入框；两种形态均可由登录方式页配置选择
-    - **短信验证码**：完整开发功能链路（发送按钮 + 60s 倒计时、输入校验、验证码生成与有效期管理）；**发送通道以「未接入」状态存在——验证码落入平台日志（开发联调可见），不接短信网关、不做连通性测试**；后续接入真实通道只需替换发送实现，界面与校验逻辑零改动
-    - **扫码登录（两种验证形态，可配置切换）**：① **演示确认流**——登录页生成带时效的二维码 → 轮询扫码状态 → 确认后登录，扫码确认端以平台内演示 / mock 实现（不依赖外部扫码 App，不验证连通性）；② **扫码取码 + 手动输入流**——登录页二维码内容即 6 位动态码（**30 秒自动更换**，与弹框动态码同源机制），用户用手机设备任意扫码工具扫描读取动态码，在二维码**旁边的手动输入框输入该动态码完成验证**——无需任何外部 App 回调与连通性依赖，纯「读码 + 输入」闭环；两种形态均由登录方式页配置选择
-    - **邮件验证码**：走 SMTP（可配，无配置时该开关灰显）
 5. **鉴权精细豁免管理（新菜单）**（✅ 已完成 2026-11-12）：新增表 `tb_gw_auth_exempt`（名称 / Ant 路径 / 方法 / 类型 LOGIN·RATE·ALL / 状态 / 到期时间 / 备注）；config 服务 `AuthExemptController`（`/auth-exempts` 增删改查 + 启停，路由 `/api/auth-exempts/**` → config），`AuthExemptService` 校验路径前缀、类型枚举、到期时间格式（必须晚于当前）；网关 `AuthExemptRepository`（5 秒缓存）+ `AuthGlobalFilter` / `RateLimitGlobalFilter` 以「**追加放行**」方式应用——yml 内置白名单仍然有效，避免误配置把登录链路放死；控制台新增「认证与安全 → 鉴权豁免」菜单（表格 + 新增/编辑对话框 + 启停/删除 + 搜索 + 分页），启用与新增均弹**高危二次确认**（明确提示将放行的路径与类型），过期规则自动显示「已过期」；实测：无 token 访问 `/api/users` 基线 401 → 新增 LOGIN 豁免 `/api/users/**` 后 6 秒内变为 200 → 停用后 6 秒恢复 401 → 删除成功；页面 1 条种子规则（停用示例）与对话框字段正常；边界：豁免规则暂只覆盖「登录鉴权 / 限流」两类，数据权限豁免随 v0.3 行级权限方案
 6. **开放认证调用方约束**（✅ 已完成 2026-11-12）：复用 API Key 作为调用凭证，四个维度落在 Key 上。① **Key 表扩 4 列**：`allowed_ips`（逗号分隔，支持精确 IP、CIDR 网段、`10.20.3.*` 前缀通配、`*` 全放开）、`allowed_services`（`tb_gw_route.service_name` 白名单）、`allowed_platforms`（`tb_gw_open_platform.app_id` 白名单）、`rate_limit_per_minute`（该 Key 单独每分钟上限，0 = 不单独限流）；存量库用 `information_schema` + `PREPARE` 动态 DDL 补列，脚本可反复执行（MySQL 5.7 无 `ADD COLUMN IF NOT EXISTS`）。② **管理接口**：`PUT /keys/{id}/scope` 全量覆盖约束（空串 = 不限），变更写一条审计（action = `SCOPE`，备注列出四项约束），控制台 API Key 页新增「调用方约束」列（IP / 服务 / 平台 / 限流的数量标签）与「约束」对话框。③ **网关校验**：`AuthVerifier` 比对 IP 白名单（不通过 **403**，凭证本身无效仍 **401**）；新增 `ApiKeyScopeFilter`（order `HIGHEST_PRECEDENCE + 15`）按最长前缀匹配路由，校验目标服务的 `service_name` 与所属 `app_id` 是否在 Key 授权范围内，越界 **403** 且不消耗限流令牌、不产生调用日志；路由表 10 秒缓存避免每请求查库。④ **每分钟限流**：`RateLimitGlobalFilter` 在既有规则之后叠加 Key 自带桶（容量 = N、每秒补充 ⌈N/60⌉，id = -1），复用同一 Redis 令牌桶实现，不另造一套；超限 429 + `Retry-After`。⑤ **开放接口强制 Key**：新增开关 `platform.open.auth.require-key`（系统设置 / 开放认证页，10 秒缓存），开启后 `/api/open/**` 不再走白名单，必须携带 `X-Api-Key`（不接受用户令牌），否则 401；平台内部服务用共享密钥头（`X-Gateway-Client-Token`）调用验签接口时按内部调用放行，避免「开约束 → 下游服务全部验签失败」的自伤。⑥ **控制台**：「开放认证」页由静态说明页升级为半接真——新增「调用方约束」区块（开关 + Key 约束清单表：IP / 服务与平台白名单 / 每分钟限流 / 状态），接口文档与 curl 示例保留。**实测**：错误 IP → 403「调用方 IP 127.0.0.1 不在该 API Key 的 IP 白名单内」；改为 127.0.0.1 → 200；服务白名单填 `jv-api-gateway-trace` → `/api/users` 403、`/api/trace/logs` 200；平台白名单填 `zimo-erp` → 403「平台「API网关平台」不在授权范围」，改 `app-api-gateway` → 200；限流 2 次/分 → 前 2 次 200、后续 429；开关开启 → 外部无 Key 401、带 Key 200、内部验签 200；控制台保存约束落库正确、审计出现 `SCOPE` 记录。**边界（明确不做）**：① 约束生效有 **30 秒**延迟（鉴权缓存 TTL），不做主动推送失效；② IP 白名单只比对 `X-Forwarded-For` 首地址 / TCP 远端地址，不防伪造（前置代理需自行清洗该头）；③ 每分钟限流是「容量 N、速率 ⌈N/60⌉/秒」的令牌桶近似，不是严格滑动窗口；④ Key 与账号是两套凭证，Key 不做「最后使用 IP 告警 / 自动熔断」（属第 13 项风控）
 7. **菜单按权限动态渲染 + 账号平台授权**（✅ 已完成 2026-11-12）：permCodes 已下发到前端，补菜单过滤逻辑（当前全量可见，纯前端改动）；**① 菜单按权限动态渲染（✅ 已完成 2026-11-12）**——8 个模块的 menu 声明补 `perm` 字段（18 处，与 `tb_perm_item` 的 DISPLAY 权限码一致：`/auth/user→auth.user.view`、`/route-config→onboard.route.view`、`/auth/api-keys→open.key.view` 等）；portal 装配层新增 `MENU_PERM_MAP`（path → 权限码）与 `filterMenusByPerms`（未声明 perm 的菜单默认可见，组内可见子项为空则整组剔除）；user store 新增 `permCodes` 缓存与 `loadPerms()`（登录会话内拉一次 `/auth/my-perms`，失败不置位、下次导航重试，登出清空）；路由守卫每次导航 `await loadPerms`，目标菜单声明 perm 且用户无权限 → 重定向到首个有权限的菜单（无任何权限则回登录页）。实测：admin（超级管理员 builtin 分组，44 个权限码）26 项菜单全量可见；只读观察者分组仅授 overview / stats / trace / discovery 四码，登录后菜单收窄为 10 项（认证与安全、分组与权限整组隐藏，系统管理组仅剩无权限点管理的调度计划），直接访问 `/auth/user`、`/perm/menu` 均重定向 `/overview`；测试账号已清理。
