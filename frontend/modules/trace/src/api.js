@@ -39,3 +39,22 @@ export function fetchTopology(params) {
 export function fetchSlowTraces(params) {
   return request.get('/trace/slow', { params })
 }
+
+/* ==========================================================================
+ * 主机 pod 调用拓扑（v0.2 第 12 项，数据来自第 11 项部署关联接口）
+ * ========================================================================== */
+
+/** 部署清单：主机 / pod → 实例清单 + 资源水位（拓扑节点来源） */
+export function fetchHostDeployments(minutes = 60) {
+  return request.get('/discovery/deployments', { params: { minutes } })
+}
+
+/** 跨主机调用：源 IP → 目标 IP 聚合调用量 / 耗时 / 错误率（拓扑边来源） */
+export function fetchHostEdges(minutes = 60) {
+  return request.get('/discovery/cross-host', { params: { minutes } })
+}
+
+/** 单点影响面：主机故障时受影响的实例与服务调用占比（节点点击下钻） */
+export function fetchHostImpact(hostname, minutes = 60) {
+  return request.get('/discovery/impact', { params: { hostname, minutes } })
+}

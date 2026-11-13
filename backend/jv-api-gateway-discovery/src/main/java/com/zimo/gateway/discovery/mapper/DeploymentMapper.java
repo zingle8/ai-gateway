@@ -56,7 +56,8 @@ public interface DeploymentMapper {
 
     /**
      * 跨主机调用聚合：按「源 IP → 目标 IP」统计调用量 / 平均耗时 / 错误率。
-     * 错误口径：status_code >= 500 或存在 err_type（网关侧错误）。
+     * 错误口径：status_code >= 500 或 err_type 为网关侧错误类型
+     * （err_type 落库时成功调用写「无」而非 NULL，必须排除「无」）。
      */
     @Select("""
             SELECT req_ip                                        AS srcIp,
@@ -67,7 +68,8 @@ public interface DeploymentMapper {
                      WHERE s.ip = t.res_ip AND s.hostname IS NOT NULL LIMIT 1) AS dstHost,
                    COUNT(*)                                      AS calls,
                    ROUND(AVG(t.cost), 1)                         AS avgCost,
-                   ROUND(SUM(CASE WHEN t.status_code >= 500 OR t.err_type IS NOT NULL THEN 1 ELSE 0 END)
+                   ROUND(SUM(CASE WHEN t.status_code >= 500
+                                    OR (t.err_type IS NOT NULL AND t.err_type <> '无') THEN 1 ELSE 0 END)
                          * 100.0 / COUNT(*), 2)                  AS errorRate,
                    MAX(t.req_time)                               AS lastTime
             FROM tb_gw_trace_log t
