@@ -33,7 +33,8 @@ public class PermSchemaInitializer implements ApplicationRunner {
             "db/jv-api-gateway-user-perm-tb_perm_group.sql",
             "db/jv-api-gateway-user-apikey-tb_gw_api_key.sql",
             "db/jv-api-gateway-user-apikey-log-tb_gw_api_key_log.sql",
-            "db/jv-api-gateway-user-platform-tb_gw_open_platform.sql"
+            "db/jv-api-gateway-user-platform-tb_gw_open_platform.sql",
+            "db/jv-api-gateway-user-risk-tb_gw_risk.sql"
     );
 
     private final DataSource dataSource;

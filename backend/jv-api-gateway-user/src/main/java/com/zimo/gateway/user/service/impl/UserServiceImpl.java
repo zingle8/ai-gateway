@@ -42,6 +42,8 @@ public class UserServiceImpl implements UserService {
     private final JwtUtil jwtUtil;
     private final SessionService sessionService;
     private final LoginPolicyService loginPolicyService;
+    /** 登录历史与风险标记（v0.2 第 13 项） */
+    private final com.zimo.gateway.user.service.RiskService riskService;
 
     /**
      * Redis 模板（可选依赖）。
@@ -149,13 +151,17 @@ public class UserServiceImpl implements UserService {
 
         UserEntity user = userMapper.selectByUsername(username);
         if (user == null) {
+            riskService.recordLogin(username, null, ip, ua, appId, false, "账号不存在", currentFailCount(username));
             throw new BizException(ResultCode.UNAUTHORIZED.getCode(), "账号不存在");
         }
         if (Objects.equals(user.getStatus(), 0)) {
+            riskService.recordLogin(username, user.getId(), ip, ua, appId, false, "账号已禁用",
+                    currentFailCount(username));
             throw new BizException(ResultCode.FORBIDDEN.getCode(), "账号已禁用，请联系管理员");
         }
         if (!passwordEncoder.matches(password, user.getPassword())) {
             int count = incrFailCount(username);
+            riskService.recordLogin(username, user.getId(), ip, ua, appId, false, "账号或密码错误", count);
             log.warn("用户登录失败：{}（{}），连续失败 {} 次", username, ip, count);
             throw new BizException(ResultCode.UNAUTHORIZED.getCode(),
                     "账号或密码错误，还可尝试 " + Math.max(0, loginPolicyService.lockThreshold() - count) + " 次");
@@ -170,6 +176,7 @@ public class UserServiceImpl implements UserService {
         String sid = sessionService.newSid();
         String token = jwtUtil.createToken(user.getId(), username, user.getTokenVersion(), sid);
         sessionService.register(user, sid, ip, ua, appId);
+        riskService.recordLogin(username, user.getId(), ip, ua, appId, true, null, 0);
         log.info("用户登录成功：{}（{}，会话 {}，平台 {}）", username, ip, sid, appId);
         return LoginVO.of(token, user, loginPolicyService.mfaRequiredFor(user.getRole()));
     }

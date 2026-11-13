@@ -14,6 +14,7 @@ import SessionsView from './src/views/Sessions.vue'
 import SecurityPolicyView from './src/views/SecurityPolicy.vue'
 import AuthExemptView from './src/views/AuthExempt.vue'
 import ApiKeysView from './src/views/ApiKeys.vue'
+import RiskView from './src/views/Risk.vue'
 
 export const menu = [
   {
@@ -26,6 +27,7 @@ export const menu = [
       { path: '/auth/sessions', title: '令牌与会话', icon: 'Timer', perm: 'auth.session.view' },
       { path: '/auth/policy', title: '安全策略', icon: 'SetUp', perm: 'auth.policy.view' },
       { path: '/auth/exempt', title: '鉴权豁免', icon: 'Unlock', perm: 'auth.exempt.view' },
+      { path: '/auth/risk', title: '风控中心', icon: 'Warning', perm: 'auth.risk.view' },
       { path: '/auth/api-keys', title: 'API Key', icon: 'Tools', perm: 'open.key.view' }
     ]
   }
@@ -75,6 +77,12 @@ export const routes = [
     name: 'AuthApiKeys',
     component: ApiKeysView,
     meta: { title: 'API Key', subtitle: '开放接口凭证：签发 / 轮换 / 吊销，网关侧 SHA-256 校验' }
+  },
+  {
+    path: 'auth/risk',
+    name: 'AuthRisk',
+    component: RiskView,
+    meta: { title: '风控中心', subtitle: '异常登录识别与处置、登录历史、API Key 调用熔断与临期预警' }
   }
 ]
 

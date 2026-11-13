@@ -184,3 +184,30 @@ export function updateAuthExemptStatus(id, status) {
 export function deleteAuthExempt(id) {
   return request.delete(`/auth-exempts/${id}`)
 }
+
+/* ---------------------------------------------------------- 鉴权风控（v0.2 第 13 项，tb_login_log / tb_gw_risk_event） */
+
+/** 风控概览：今日事件 / 待处置 / 高风险 / 今日失败登录 / 近 7 天类型分布 / Key 预警数 */
+export function fetchRiskSummary() {
+  return request.get('/risk/summary')
+}
+
+/** 风控事件列表（subjectType / status / riskLevel / keyword + 分页） */
+export function fetchRiskEvents(params) {
+  return request.get('/risk/events', { params })
+}
+
+/** 处置事件：action = ACK|IGNORE|DISABLE_USER|ENABLE_USER|UNLOCK_USER|KICK_USER|DISABLE_KEY|ENABLE_KEY */
+export function handleRiskEvent(id, data) {
+  return request.post(`/risk/events/${id}/handle`, data)
+}
+
+/** 登录历史（username / success / riskOnly + 分页） */
+export function fetchLoginLogs(params) {
+  return request.get('/risk/logins', { params })
+}
+
+/** Key 预警清单：临期 / 已过期 / 长期未用 */
+export function fetchKeyWarnings() {
+  return request.get('/risk/keys/warnings')
+}

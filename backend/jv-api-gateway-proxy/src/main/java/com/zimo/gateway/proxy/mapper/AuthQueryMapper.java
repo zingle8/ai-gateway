@@ -22,8 +22,9 @@ public interface AuthQueryMapper {
     @Select("SELECT token_version, status FROM tb_sys_user WHERE id = #{userId} AND deleted = 0")
     Map<String, Object> selectUserState(@Param("userId") Long userId);
 
-    @Update("UPDATE tb_gw_api_key SET last_used_at = #{now} WHERE key_id = #{keyId}")
-    int touchLastUsed(@Param("keyId") String keyId, @Param("now") LocalDateTime now);
+    /** 最近使用时间与来源 IP 回写（v0.2 第 13 项：Key 预警清单消费该字段） */
+    @Update("UPDATE tb_gw_api_key SET last_used_at = #{now}, last_used_ip = #{ip} WHERE key_id = #{keyId}")
+    int touchLastUsed(@Param("keyId") String keyId, @Param("now") LocalDateTime now, @Param("ip") String ip);
 
     /** 平台配置（tb_sys_config，由 jv-api-gateway-config 维护）：缓存模式实时读取 */
     @Select("SELECT config_value FROM tb_sys_config WHERE config_key = #{key}")

@@ -143,7 +143,7 @@ public class AuthVerifier {
             }
             return Decision.forbidden("调用方 IP " + clientIp + " 不在该 API Key 的 IP 白名单内");
         }
-        touchLastUsed(keyId);
+        touchLastUsed(keyId, clientIp);
         return Decision.allowKey(keyId, new ApiKeyScope(keyId,
                 splitCsv(key.get("allowed_services")),
                 splitCsv(key.get("allowed_platforms")),
@@ -172,8 +172,8 @@ public class AuthVerifier {
         return raw instanceof Number number ? number.intValue() : 0;
     }
 
-    /** 最近使用时间回写：60 秒内不重复写库，失败不影响放行 */
-    private void touchLastUsed(String keyId) {
+    /** 最近使用时间 / 来源 IP 回写：60 秒内不重复写库，失败不影响放行 */
+    private void touchLastUsed(String keyId, String clientIp) {
         long now = System.currentTimeMillis();
         Long last = lastTouch.get(keyId);
         if (last != null && now - last < 60_000L) {
@@ -181,9 +181,9 @@ public class AuthVerifier {
         }
         lastTouch.put(keyId, now);
         try {
-            authQueryMapper.touchLastUsed(keyId, LocalDateTime.now());
+            authQueryMapper.touchLastUsed(keyId, LocalDateTime.now(), clientIp);
         } catch (Exception e) {
-            log.debug("[鉴权] 更新 Key 最近使用时间失败：{}", e.getMessage());
+            log.debug("[鉴权] 更新 Key 最近使用记录失败：{}", e.getMessage());
         }
     }
 
